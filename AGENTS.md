@@ -27,4 +27,4 @@ Preserve clean boundaries between:
 - Update docs when architecture changes.
 
 ## Development Environment
-Development usually happens in GitHub Codespaces, not on a local machine. Assume a remote container environment: use commands that work in-container, bind dev servers to an accessible host when needed, and remember that localhost access may require Codespaces port forwarding or the browser preview URL.
+Development usually happens in GitHub Codespaces, not on a local machine. Assume a remote container environment: use commands that work in-container, bind dev servers to an accessible host when needed, and remember that localhost access may require Codespaces port forwarding or the browser preview URL!
