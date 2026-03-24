@@ -1,0 +1,64 @@
+{
+  "name": "cs-exam-platform",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22-bookworm",
+  "remoteUser": "node",
+
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12"
+    },
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "21"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  "forwardPorts": [3000, 5173, 8000, 8080],
+  "portsAttributes": {
+    "3000": {
+      "label": "Web app",
+      "onAutoForward": "notify"
+    },
+    "5173": {
+      "label": "Vite dev server",
+      "onAutoForward": "openPreview"
+    },
+    "8000": {
+      "label": "API server",
+      "onAutoForward": "notify"
+    },
+    "8080": {
+      "label": "Alt app/API",
+      "onAutoForward": "silent"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "editor.formatOnSave": true,
+        "files.trimTrailingWhitespace": true,
+        "js/ts.tsdk.path": "node_modules/typescript/lib",
+        "editor.codeActionsOnSave": {
+            "source.fixAll.eslint": "explicit"
+        }
+    },
+      "extensions": [
+        "openai.chatgpt",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-typescript-next",
+        "ms-python.python",
+        "redhat.java"
+      ]
+    }
+  },
+
+  "postCreateCommand": "corepack enable && node --version && npm --version && python3 --version && java -version",
+  "postStartCommand": "git --version && gh --version",
+
+  "runArgs": [
+    "--init"
+  ]
+}
