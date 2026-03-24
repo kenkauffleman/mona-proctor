@@ -40,19 +40,23 @@ Exit criteria:
 - source can be edited and switched between supported languages
 - project structure is ready for future API integration
 
-### Phase 2: Client-side edit history capture
-Goal: track how code changes over time in the browser.
+### Phase 2: In-memory edit history prototype
+Goal: prove that Monaco edit events can be captured in memory and replayed accurately in the browser.
 
 Deliverables:
-- operation-based edit history model
-- timestamps and sequence numbers
-- optional checkpoints/snapshots
-- ability to reconstruct source from history
+- in-memory array of recorded editor change events
+- timestamps and sequence numbers for each recorded event
+- a simple recordable Monaco editor
+- a simple replay Monaco editor on the same page
+- ability to replay recorded changes into the replay editor
+- a basic event log view for debugging and inspection
 
 Exit criteria:
-- replay can reconstruct source accurately
-- paste/replace operations are captured correctly
-- history data model is documented
+- edits made in the recordable editor are captured into an in-memory event list
+- replay can reconstruct the editor contents accurately from recorded events alone
+- undo/redo events are captured and replayed sensibly
+- the event data shape used in the prototype is documented
+- basic tests verify event capture and deterministic reconstruction
 
 ### Phase 3: Submission/storage API
 Goal: send code and edit history to the backend and persist it.
