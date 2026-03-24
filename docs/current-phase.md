@@ -1,61 +1,67 @@
 # Current Phase
 
 ## Active phase
-Phase 1: Monaco editor page
+Phase 2: In-memory edit history prototype
 
 ## Goal
-Create a minimal but clean web application that renders a Monaco editor for Python, Java, and JavaScript.
+Prove that Monaco edit events can be captured in memory and replayed accurately in the browser.
 
-This phase should establish a good foundation for later history tracking and backend integration, but it should not try to implement the full system.
+This phase is a focused prototype. The purpose is to validate the core idea of recording editor changes and reconstructing them later, before adding persistence, server upload, or richer metadata.
 
 ## In scope
-- scaffold the web app
-- choose the frontend framework and basic project structure
-- render Monaco in a dedicated page or view
-- support switching between Python, Java, and JavaScript
-- maintain source state per language or per editor session
-- create a small amount of UI framing so the app is easy to extend later
+- capture Monaco content-change events from a recordable editor
+- store recorded events in an in-memory array
+- assign sequence numbers and timestamps to recorded events
+- display or inspect the recorded event log for debugging
+- add a replay editor on the same page
+- replay recorded changes into the replay editor
+- verify that replay reconstructs the final editor contents accurately
+- document the prototype event data shape
 
 ## Out of scope
-- auth
-- rosters
-- backend submission
-- cloud storage
-- grader execution
-- replay UI
-- full anti-cheat logic
-- full exam timer/policy system
+- IndexedDB or any other local persistence
+- server upload
+- backend submission APIs
+- auth, rosters, or admin features
+- paste-specific annotations
+- selection, cursor, focus, or composition tracking
+- draggable replay timeline
+- grading integration
 
 ## Desired qualities
-- simple and readable structure
-- clear separation between editor component and app shell
-- easy place to add history capture in the next phase
-- no premature infrastructure complexity
+- simple and readable implementation
+- clear separation between recording logic and replay logic
+- event shape that can evolve later without major redesign
+- deterministic reconstruction from recorded events alone
+- easy-to-test logic for capture and replay
 
 ## Suggested deliverables
-- app shell with route or page for the editor
-- Monaco editor component
-- language selector
-- starter source templates for Python, Java, JavaScript
-- basic documentation for how to run the app locally
+- one page with:
+  - a recordable Monaco editor
+  - a replay Monaco editor
+  - a visible event log or debug panel
+- in-memory event recording
+- replay controls such as reset and replay
+- basic documentation for how the prototype works
 
 ## Exit criteria
-- app runs locally in the dev environment
-- Monaco loads reliably
-- switching languages works
-- source editing works without major glitches
-- code organization is good enough to begin Phase 2 cleanly
+- edits made in the recordable editor are captured into an in-memory event list
+- each recorded event has a sequence number and timestamp
+- replay reconstructs editor contents accurately from recorded events alone
+- undo/redo events are captured and replayed sensibly
+- the prototype event shape is documented
+- basic automated tests verify event capture and deterministic reconstruction
 
 ## Notes for the agent
-- do not implement history persistence yet
-- do not add backend endpoints yet
-- do not overbuild admin/auth scaffolding
-- prefer small, reviewable commits/changes
-- when making structural choices, optimize for the next phase: client-side edit history capture
+- keep this phase narrow and prototype-oriented
+- prefer Monaco content-change events as the canonical signal
+- do not add persistence or server communication yet
+- do not add extra event types unless they are required to make capture/replay work
+- prioritize correctness and clarity over polish
 
 ## Handoff to the next phase
 At the end of this phase, the codebase should make it easy to add:
-- editor event listeners
-- operation-based history capture
-- checkpoints/snapshots
-- submission triggers
+- local persistence for recorded history
+- background or submission-time upload
+- richer event annotations such as paste detection
+- more advanced replay controls
