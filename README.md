@@ -1,10 +1,12 @@
 # mona-proctor
 
-Phase 1 currently provides a minimal web app with a Monaco editor page for:
+Phase 2 currently provides a minimal web app with:
 
-- Python
-- JavaScript
-- Java
+- an editable Monaco record editor that starts empty
+- an in-memory edit event log
+- a Monaco replay editor on the same page that starts empty
+- a watch replay action that rebuilds the document at the original input speed
+- language switching for Python, JavaScript, and Java
 
 ## Run locally
 
@@ -22,13 +24,18 @@ The Vite dev server binds to `0.0.0.0`, which works well in Codespaces or other 
 - `npm test` runs the test suite
 - `npm run lint` runs ESLint
 
-## Phase 1 scope
+## Phase 2 scope
 
 This slice intentionally includes only:
 
 - app shell
 - Monaco editor integration
-- language switching
 - local in-memory source state
+- Monaco content-change recording
+- deterministic in-browser replay from an empty document
+- time-based watch replay using recorded timestamps
+- a debug event log
 
 It intentionally does not include backend submission, storage, grading, auth, replay, or admin features yet.
+
+Prototype event shape details live in [docs/history-prototype.md](./docs/history-prototype.md).

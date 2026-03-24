@@ -54,3 +54,9 @@ export const initialSourcesByLanguage = {
   javascript: editorLanguages.javascript.starterSource,
   java: editorLanguages.java.starterSource,
 }
+
+export const emptySourcesByLanguage = {
+  python: '',
+  javascript: '',
+  java: '',
+}

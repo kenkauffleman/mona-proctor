@@ -130,6 +130,84 @@ textarea {
   overflow: hidden;
 }
 
+.editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 0 16px 16px;
+}
+
+.editor-column,
+.debug-panel {
+  border: 1px solid rgba(141, 183, 255, 0.14);
+  border-radius: 18px;
+  background: rgba(9, 15, 28, 0.72);
+}
+
+.panel-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: start;
+  padding: 18px 18px 0;
+}
+
+.panel-heading h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.panel-heading p {
+  margin: 6px 0 0;
+  color: #9eb1cc;
+  font-size: 0.95rem;
+}
+
+.replay-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.replay-controls button {
+  padding: 10px 14px;
+  border: 1px solid rgba(141, 183, 255, 0.24);
+  border-radius: 12px;
+  background: rgba(17, 27, 47, 0.95);
+  color: #e5eefb;
+  cursor: pointer;
+}
+
+.debug-panel {
+  margin: 0 16px 16px;
+}
+
+.debug-summary {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px 18px 0;
+  color: #86a1c5;
+  font-size: 0.92rem;
+}
+
+.debug-summary span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(54, 85, 132, 0.22);
+}
+
+.event-log {
+  margin: 0;
+  padding: 18px;
+  max-height: 280px;
+  overflow: auto;
+  color: #d9e5f7;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
 @media (max-width: 720px) {
   .app-shell {
     width: min(100% - 20px, 1200px);
@@ -143,5 +221,13 @@ textarea {
 
   .language-selector {
     width: 100%;
+  }
+
+  .editor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-heading {
+    flex-direction: column;
   }
 }
