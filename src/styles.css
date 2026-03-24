@@ -1,0 +1,147 @@
+:root {
+  color-scheme: dark;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  background:
+    radial-gradient(circle at top, rgba(48, 108, 196, 0.35), transparent 28%),
+    linear-gradient(180deg, #0f1724 0%, #111827 45%, #0b1220 100%);
+  color: #e5eefb;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  width: min(1200px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 32px 0 40px;
+}
+
+.hero {
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #8db7ff;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 4vw, 3.6rem);
+  line-height: 1.05;
+}
+
+.hero-copy {
+  max-width: 720px;
+  margin: 12px 0 0;
+  color: #b8c7de;
+}
+
+.workspace {
+  border: 1px solid rgba(141, 183, 255, 0.18);
+  border-radius: 20px;
+  background: rgba(10, 17, 30, 0.82);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+  overflow: hidden;
+}
+
+.workspace-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: end;
+  padding: 24px;
+  border-bottom: 1px solid rgba(141, 183, 255, 0.14);
+}
+
+.workspace-toolbar h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.workspace-toolbar p {
+  margin: 4px 0 0;
+  color: #9eb1cc;
+}
+
+.workspace-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 0 24px 18px;
+  color: #86a1c5;
+  font-size: 0.92rem;
+}
+
+.workspace-meta span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(54, 85, 132, 0.22);
+}
+
+.language-selector {
+  display: grid;
+  gap: 8px;
+  min-width: 170px;
+  color: #c9d7eb;
+}
+
+.language-selector select {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(141, 183, 255, 0.24);
+  background: rgba(17, 27, 47, 0.95);
+  color: inherit;
+}
+
+.editor-panel {
+  padding: 0 16px 16px;
+}
+
+.editor-panel > div {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    width: min(100% - 20px, 1200px);
+    padding-top: 20px;
+  }
+
+  .workspace-toolbar {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .language-selector {
+    width: 100%;
+  }
+}
