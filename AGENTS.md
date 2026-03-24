@@ -26,5 +26,12 @@ Preserve clean boundaries between:
 - Keep changes narrow and reviewable.
 - Update docs when architecture changes.
 
+## Verification
+- Add or update tests for non-trivial changes.
+- Prefer the smallest sensible test layer.
+- Bug fixes should include a regression test.
+- Before finishing, run tests, lint, and typecheck for the changed area.
+- Report the commands run and the results.
+
 ## Development Environment
 Development usually happens in GitHub Codespaces, not on a local machine. Assume a remote container environment: use commands that work in-container, bind dev servers to an accessible host when needed, and remember that localhost access may require Codespaces port forwarding or the browser preview URL!
