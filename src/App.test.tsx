@@ -22,20 +22,19 @@ vi.mock('@monaco-editor/react', () => ({
 }))
 
 describe('App', () => {
-  it('renders the phase 2 demo shell with empty record and replay editors', () => {
+  it('renders the recording page by default', () => {
     render(<App />)
 
     expect(
       screen.getByRole('heading', {
-        name: 'In-Memory Monaco History Prototype',
+        name: 'Local Client/Server History Prototype',
       }),
     ).toBeInTheDocument()
     expect(screen.getByLabelText('Language')).toHaveValue('python')
-    expect(screen.getAllByTestId('monaco-editor')).toHaveLength(2)
+    expect(screen.getAllByTestId('monaco-editor')).toHaveLength(1)
     expect(screen.getByLabelText('Record editor')).toHaveTextContent('')
-    expect(screen.getByLabelText('Replay editor')).toHaveTextContent('')
     expect(
-      screen.getByRole('button', { name: 'Watch Replay' }),
-    ).toBeDisabled()
+      screen.getByText(/Session UUID:/),
+    ).toBeInTheDocument()
   })
 })
