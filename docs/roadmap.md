@@ -58,21 +58,43 @@ Exit criteria:
 - the event data shape used in the prototype is documented
 - basic tests verify event capture and deterministic reconstruction
 
-### Phase 3: Submission/storage API
-Goal: send code and edit history to the backend and persist it.
+### Phase 3: Local client/server history API prototype
+Goal: prove that recorded edit history can be batched from the client to a backend API and later loaded for replay in a separate browser session.
 
 Deliverables:
-- backend endpoint for saving attempts/submissions
-- object storage for raw attempt artifacts
-- database metadata for indexing and retrieval
-- session, attempt, submission, and result records
+- backend API running locally
+- client-generated UUID for each recording session
+- recording page that batches edit history updates to the backend on a timer
+- backend storage of session history in SQLite
+- replay page that accepts a session UUID and loads full history from the backend
+- replay from backend-loaded history into a Monaco replay editor
+- basic API and history format documentation
 
 Exit criteria:
-- submission data is durable
-- attempts can be listed later
-- stored records are tied to a student/session/problem
+- a recording page can generate a UUID and display it to the user
+- recorded edit history is sent to the backend in periodic batches
+- the backend stores and returns the full history for a session
+- a replay page can load history by UUID in a new tab or browser session
+- replay reconstructs the recorded editor contents accurately from backend-loaded history
+- basic tests verify batching, API handling, and deterministic reconstruction from fetched history
 
-### Phase 4: Remote grader
+### Phase 4: Client persistence and sync hardening
+Goal: make edit history more durable on the client and prepare the client/server flow for more reliable real-world use.
+
+Deliverables:
+- local client persistence for recorded history
+- recovery after refresh or browser crash
+- sync state tracking for uploaded versus pending history
+- checkpoint or snapshot strategy as needed
+- improved client/server batching behavior
+
+Exit criteria:
+- locally recorded work survives refresh and ordinary browser interruption
+- the client can resume and continue syncing history for an active session
+- replay remains accurate when combining persisted and synced history
+- the local persistence and sync model are documented
+
+### Phase 5: Remote grader
 Goal: run hidden tests in an isolated execution environment and return results.
 
 Deliverables:
@@ -87,7 +109,7 @@ Exit criteria:
 - Java support is either included or explicitly deferred
 - grader artifacts and logs are saved for debugging
 
-### Phase 4.5: Load and cost planning
+### Phase 5.5: Load and cost planning
 Goal: understand expected scale, queueing behavior, and likely cost.
 
 Deliverables:
@@ -102,7 +124,7 @@ Exit criteria:
 - can estimate storage growth per term
 - can identify likely bottlenecks and cost drivers
 
-### Phase 5: Admin attempt listing
+### Phase 6: Admin attempt listing
 Goal: allow instructors/admins to view saved attempts.
 
 Deliverables:
@@ -115,8 +137,8 @@ Exit criteria:
 - saved attempts can be found quickly
 - metadata indexing is sufficient for normal class use
 
-### Phase 6: Replay UI
-Goal: provide draggable playback of student edit history.
+### Phase 7: Instructor replay and inspection UI
+Goal: provide draggable playback of student edit history for instructor review.
 
 Deliverables:
 - timeline slider
@@ -129,7 +151,7 @@ Exit criteria:
 - reconstruction fidelity is trustworthy
 - instructors can inspect suspicious transitions
 
-### Phase 7: User accounts and roster system
+### Phase 8: User accounts and roster system
 Goal: support real student login and class management.
 
 Deliverables:
@@ -142,7 +164,7 @@ Exit criteria:
 - students can log in and access assigned work
 - instructors can manage rosters and exam availability
 
-### Phase 8: Results and instructor dashboards
+### Phase 9: Results and instructor dashboards
 Goal: present grades and replayable attempts together.
 
 Deliverables:
@@ -154,7 +176,7 @@ Deliverables:
 Exit criteria:
 - instructors can see both outcomes and development history in one workflow
 
-### Phase 9: Git-based test management
+### Phase 10: Git-based test management
 Goal: make problem and test authoring manageable and reproducible.
 
 Deliverables:
