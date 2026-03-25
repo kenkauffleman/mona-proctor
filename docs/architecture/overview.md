@@ -15,31 +15,37 @@ Responsibilities:
 - render Monaco editor
 - manage current source state
 - capture edit history
-- create checkpoints/snapshots
-- submit source and history
-- show grading results
-- later: handle login, timers, and student exam flow
+- replay edit history when needed
+- send recorded history batches to the backend
+- later: handle login, timers, submission flow, and student exam flow
+- later: show grading results
 
 Likely stack:
 - TypeScript
 - React or similar frontend framework
 - Monaco editor
+- Firebase client SDKs for Auth and Firestore-related integration where appropriate
 
 ### App/API backend
 Responsibilities:
-- create and manage sessions
-- receive history chunks and submissions
-- validate and persist metadata
-- write raw artifacts to object storage
-- enqueue grading jobs
-- return grading status/results
-- serve admin data
+- receive history batches from the client
+- validate ordering and session identifiers
+- persist and retrieve session history
+- later: manage submissions and grading orchestration
+- later: serve admin and instructor data
+- later: write larger artifacts and logs to object storage if needed
+
+Deployment model:
+- deployed on Cloud Run in the hosted environment
+- stateless service instances
+- scale-to-zero when idle
+- designed for bursty classroom traffic
 
 Likely stack:
 - TypeScript backend
-- relational database
-- object storage
-- queue/job orchestration
+- Cloud Run
+- Firestore
+- later: object storage and grading job orchestration as needed
 
 ### Grader service
 Responsibilities:
@@ -54,6 +60,10 @@ Important:
 - keep grader/runtime images separate from the main app dev environment
 - version runtimes and tests explicitly
 - assume student code is hostile or buggy
+- treat grading as a separate compute surface from the main app/API
+
+Likely deployment direction:
+- Cloud Run Jobs or another isolated container-based execution path
 
 ### Admin/instructor UI
 Responsibilities:
@@ -61,6 +71,18 @@ Responsibilities:
 - show test results
 - replay edit history
 - later: manage rosters, classes, and problem assignments
+
+### Authentication and identity
+Authentication will use Firebase Auth.
+
+Responsibilities:
+- student and instructor sign-in
+- identity for access control
+- later: role-aware access to sessions, replay, and results
+
+Important:
+- prototype phases may temporarily use UUID-based access for local development
+- production access should rely on authenticated identity rather than possession of a session UUID alone
 
 ## Recommended data model
 
@@ -72,7 +94,7 @@ Responsibilities:
 - **Attempt snapshot**: saved code/history state at a point in time
 - **Submission**: attempt sent for grading
 - **Grade result**: structured outcome returned by grader
-- **History chunk**: operation log segment uploaded from the client
+- **History batch**: append-only group of operation records uploaded from the client
 - **Checkpoint**: full or partial reconstructed source state to accelerate replay
 
 ### Important modeling rule
@@ -84,15 +106,18 @@ They represent different moments in the lifecycle and should remain distinguisha
 ### Recommendation
 Use an operation-based history format, not raw keyboard events.
 
+In the current implementation phases, Monaco content-change events are the canonical history source.
+Richer annotations such as paste, selection, cursor movement, or focus changes may be added later.
+
 Examples of useful events:
 - insert text
 - delete text
 - replace range
-- selection change
-- cursor movement
-- paste
-- submission
-- checkpoint created
+- later: selection change
+- later: cursor movement
+- later: paste
+- later: submission
+- later: checkpoint created
 
 Required metadata:
 - sequence number
@@ -110,54 +135,97 @@ Required metadata:
 
 ## Persistence strategy
 
-### Relational database
+### Current phased strategy
+The project is being built in stages:
+
+1. **In-memory prototype**
+   - record and replay Monaco history entirely in memory
+
+2. **Local client/server API prototype**
+   - batch history from the client to a local backend
+   - store and retrieve session history using SQLite during local development
+
+3. **Local Firestore validation**
+   - replace or supplement SQLite with Firestore running via the local emulator
+   - validate that the Firestore data model and API flow are a good fit before any cloud deployment
+   - use the emulator to test session metadata, history batch writes, replay fetches, and local development workflows
+
+4. **Hosted application path**
+   - deploy the app/API on Cloud Run
+   - use Firestore as the primary operational datastore for session-oriented history data
+   - use Firebase Auth for user identity and access control
+
+### Firestore
+Firestore is the primary planned operational datastore for hosted history/session data.
+
 Use for:
-- users
-- classes
-- rosters
-- problems
-- sessions
-- submissions
-- result summaries
-- pointers to stored artifacts
+- session metadata
+- history batch documents
+- session lookup and replay fetch
+- later: user/session/problem metadata that fits a document-oriented model
+
+Why Firestore:
+- good fit for append-oriented session history
+- low-maintenance managed service
+- good match for Cloud Run’s stateless service model
+- supports a strong local development story through the emulator before hosted deployment
+- better aligned than object storage for structured session data
 
 ### Object storage
-Use for:
-- raw history chunks
+Object storage may be added later for:
+- raw history archives
 - full submission payloads
 - checkpoints/snapshots
 - grader logs
 - stdout/stderr and related artifacts
 
-### Why both
-Object storage is good for durable blobs.
-A relational database is better for indexing, filtering, querying, and powering admin pages.
+Why:
+- object storage is good for durable blobs and larger immutable artifacts
+- Firestore is better for operational structured app data
 
-## Submission flow
+## Current history sync flow
 
-### Recommended flow
+### Recommended near-term flow
 1. student edits code locally
 2. client records operation history
-3. client periodically uploads history chunks
-4. student submits code
-5. backend stores submission metadata and payload references
-6. backend enqueues grading job
-7. grader fetches payload and hidden tests
-8. grader runs tests in isolation
-9. backend stores result and returns status to client/admin views
+3. client batches history updates periodically
+4. client sends history batches to the backend
+5. backend stores ordered session history
+6. replay client fetches history by session id
+7. replay reconstructs editor contents from fetched history
 
-### Why periodic chunk upload
+### Why periodic batch upload
 Compared with submission-only history upload, chunking:
 - reduces risk of total data loss on browser crash
 - improves audit trail durability
-- keeps submissions smaller
-- still avoids the overhead of per-keystroke live streaming
+- keeps requests manageable
+- avoids the overhead of per-keystroke live streaming
+
+## Future submission and grading flow
+
+### Planned flow
+1. student edits code locally
+2. client records operation history
+3. client periodically uploads history batches
+4. student submits code
+5. backend stores submission metadata and payload references
+6. backend enqueues grading work
+7. grader fetches payload and hidden tests
+8. grader runs tests in isolation
+9. backend stores result and returns status to client/admin views
 
 ## Isolation model
 
 ### Main app environment
 - normal web app/API development environment
-- not trusted for grading student code
+- deployed on Cloud Run in the hosted environment
+- stateless and not trusted for grading student code directly
+
+### Data and identity environment
+- Firestore for operational application data
+- Firebase Auth for authentication and identity
+- Firestore emulator for local validation before hosted deployment
+- security rules and backend authorization should be used to protect user/session data
 
 ### Grader environment
 - isolated execution environment
@@ -188,6 +256,8 @@ Do not grade production submissions against floating branch heads.
 
 ## Observability
 Collect at least:
+- history batch counts
+- replay fetch counts
 - submission counts
 - grading queue delay
 - grading duration
@@ -216,7 +286,14 @@ It should not be described as a perfect anti-cheat solution.
 ## Current architectural stance
 Build the system in small vertical slices, but keep the long-term seams visible from the beginning:
 - editor/history capture
-- submission/storage API
+- client/server history API
+- client persistence and sync hardening
 - grader execution
 - admin/replay
 - auth/roster
+
+Key platform decisions:
+- Cloud Run for the main hosted app/API
+- Firestore for structured operational session/history data
+- Firebase Auth for authentication and identity
+- Firestore emulator as the validation step before any hosted GCP deployment
