@@ -79,7 +79,7 @@ Exit criteria:
 - replay reconstructs the recorded editor contents accurately from backend-loaded history
 - basic tests verify batching, API handling, and deterministic reconstruction from fetched history
 
-### Phase 4: Local Firestore emulator sanity check
+### Phase 4 (completed): Local Firestore emulator sanity check
 Goal: validate that Firestore and its local emulator are a reasonable fit for the project before integrating the full backend and client flow.
 
 Deliverables:

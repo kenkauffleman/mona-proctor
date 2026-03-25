@@ -21,6 +21,8 @@ Preserve clean boundaries between:
 - test: `npm test`
 - lint: `npm run lint`
 
+Additional agent-facing script guidance lives in `docs/agent-scripts.md`.
+
 ## Rules
 - Prefer TypeScript for app code.
 - Keep changes narrow and reviewable.
