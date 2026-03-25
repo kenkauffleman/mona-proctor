@@ -7,13 +7,17 @@
     "dev": "concurrently -k -n web,api \"npm:dev:web\" \"npm:dev:api\"",
     "dev:web": "vite --host 0.0.0.0",
     "dev:api": "tsx watch server/index.ts",
+    "emulator:firestore": "firebase emulators:start --only firestore",
+    "emulator:firestore:check": "firebase emulators:exec --only firestore \"tsx scripts/firestoreEmulatorSanityCheck.ts\"",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "test": "vitest run",
     "lint": "eslint .",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "emulator:firestore:manualcheck": "tsx scripts/firestoreEmulatorManualCheck.ts"
   },
   "dependencies": {
+    "@google-cloud/firestore": "^8.3.0",
     "@monaco-editor/react": "^4.7.0",
     "better-sqlite3": "^12.8.0",
     "concurrently": "^9.2.1",
@@ -35,6 +39,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
     "jsdom": "^26.1.0",
+    "firebase-tools": "^15.11.0",
     "tsx": "^4.21.0",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.41.0",
