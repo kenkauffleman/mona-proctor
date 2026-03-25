@@ -95,7 +95,7 @@ Exit criteria:
 - a trivial write can be stored and read back successfully
 - the local setup is documented and scriptable
 
-### Phase 5: Backend container to Firestore validation
+### Phase 5 (completed): Backend container to Firestore validation
 Goal: prove that the backend, running in its containerized form, can connect to the local Firestore emulator and perform simple reads and writes.
 
 Deliverables:

@@ -1,91 +1,77 @@
 # Current Phase
 
 ## Active phase
-Phase 5: Backend container to Firestore validation
+Phase 6: Backend API seam validation
 
 ## Goal
-Prove that the backend, running in its containerized form, can connect to the local Firestore emulator and perform simple reads and writes.
+Validate the backend API shape independently of the frontend before wiring in the full browser flow.
 
-This phase is intentionally narrow. The purpose is to validate the containerized backend runtime and its connection to the local Firestore emulator before building more API surface or adding richer application behavior.
+This phase is intentionally narrow. The purpose is to prove that the backend can expose a simple HTTP API that talks to Firestore correctly, and that this API can be exercised and validated without involving the real frontend.
 
 ## In scope
-- set up the backend for containerized local execution
-- add backend configuration for connecting to the local Firestore emulator
-- choose and use a lightweight backend stack that fits the project direction
-- implement a trivial backend-triggered Firestore write and read path
-- document how to run the backend container locally against the emulator
-- update the relevant npm scripts so the Phase 5 validation path includes the backend container
-- update the agent script guide so it reflects the new container-based validation workflow
-- keep the setup aligned with the future Cloud Run deployment model
+- add at least one simple HTTP endpoint on the backend
+- make the endpoint exercise Firestore read/write behavior
+- ensure the backend API can be called locally without the frontend
+- add a small test harness or script for exercising the endpoint
+- document the local validation endpoint(s) and how to run them
+- keep the setup aligned with the future client ↔ backend ↔ Firestore architecture
 
 ## Out of scope
-- full backend API design
-- client integration with the backend
+- full frontend integration
+- full production API design
 - Firebase Auth integration
 - Firestore security rules design
 - hosted deployment
-- production IAM or secrets setup
 - final Firestore schema design
+- replay feature changes
 - grading integration
-- admin or replay feature work
+- admin or instructor feature work
 
 ## Desired qualities
-- simple and repeatable local setup
+- simple and understandable API surface
 - minimal moving parts
 - easy local debugging
-- lightweight backend structure
-- easy evolution toward Cloud Run
-- validation focused on proving container ↔ Firestore emulator compatibility
+- easy-to-run validation without the browser
+- backend behavior that is easy to evolve later toward the real client flow
 
 ## Recommended implementation direction
-- backend language: TypeScript
-- runtime: Node.js 22
-- framework: Express
-- Firestore access: Firebase Admin SDK
-- container base image: `node:22-bookworm-slim`
-
-These are recommendations for this phase because they are lightweight, familiar, and align well with the likely hosted deployment path.
+- continue using the existing lightweight backend stack from Phase 5
+- keep the API small and explicit
+- favor one narrow validation endpoint over prematurely designing the full future API
+- keep the Firestore interaction simple and easy to inspect
 
 ## Script expectations
-- preserve the existing Phase 3 scripts unless a small adjustment is clearly necessary
+- preserve existing scripts unless a small adjustment is clearly necessary
 - add or update scripts so there is a repeatable way to:
   - start the Firestore emulator
   - run the backend in its container
-  - validate backend container ↔ Firestore emulator connectivity
+  - exercise the backend validation endpoint without the frontend
 - keep script names clear and explicit
-- update the script guide so it clearly distinguishes:
-  - direct emulator sanity checks
-  - backend container ↔ emulator validation
-  - older local SQLite/API scripts from Phase 3
+- update the agent script guide so it accurately reflects the new API-validation workflow
 
 ## Suggested deliverables
-- backend container configuration
-- repeatable command or script for running the backend container locally
-- backend configuration for Firestore emulator connectivity
-- trivial read/write validation path in the backend
-- updated npm scripts for container-based validation
+- at least one simple backend HTTP endpoint
+- endpoint-level Firestore read/write behavior
+- a small test harness or script for exercising the endpoint
+- updated scripts for repeatable local API validation
 - updated agent script guide
-- short local setup and validation documentation
+- basic API documentation for the local validation endpoint(s)
 
 ## Exit criteria
-- the backend runs successfully in its container locally
-- the backend can connect to the Firestore emulator
-- a trivial backend-triggered write can be read back successfully
-- the container-to-emulator setup is documented and repeatable
-- the relevant validation scripts include the backend container in the loop
-- the script guide accurately describes the new workflow
+- the backend API can be called locally without the real frontend
+- an API request can trigger Firestore read/write behavior successfully
+- the API seam is documented and testable independently of the UI
 
 ## Notes for the agent
 - keep this phase narrowly scoped
-- do not overbuild the backend architecture yet
-- do not start designing the final API surface yet
+- do not start full frontend integration yet
+- do not overdesign the long-term API surface yet
 - do not add auth or unrelated infrastructure concerns
-- prioritize simplicity, repeatability, and confidence in the local runtime setup
-- structure the backend code so it can grow later without requiring a rewrite
-- treat script updates and script-guide updates as part of the core deliverable for this wave
+- prioritize simplicity, repeatability, and confidence in the local API seam
+- structure the endpoint and supporting code so it can be reused or evolved in later phases
 
 ## Handoff to the next phase
 At the end of this phase, the codebase should make it easy to:
-- validate backend API behavior independently of the frontend
-- add simple HTTP endpoints that exercise Firestore through the containerized backend
-- continue toward a full local client ↔ backend ↔ Firestore vertical slice
+- connect the browser client to the backend validation API
+- validate the full local client ↔ backend ↔ Firestore round trip
+- continue toward the local vertical prototype in the next phase
