@@ -1,6 +1,6 @@
 # mona-proctor
 
-Wave 5 is focused on proving that a lightweight backend, running in a local container shape, can connect to the local Firestore emulator and complete a trivial read/write.
+Wave 6 is focused on validating a small backend API seam against the local Firestore emulator before wiring in the real frontend flow.
 
 The repo currently provides:
 
@@ -12,6 +12,7 @@ The repo currently provides:
 - deterministic timed replay from backend-loaded history
 - a local Firestore emulator setup for early datastore validation
 - a minimal TypeScript backend validation service for container-to-emulator checks
+- a simple HTTP validation endpoint that can be exercised without the frontend
 
 ## Run locally
 
@@ -40,8 +41,54 @@ To run the manual sanity check that prints the fetched document and keeps the em
 
 ```bash
 npm run emulator:firestore:manualcheck
+```
 
 These Phase 4-style scripts validate the emulator directly and do not involve the backend container.
+
+## Backend API seam validation
+
+Start the Firestore emulator:
+
+```bash
+npm run emulator:firestore
+```
+
+Start the lightweight backend directly:
+
+```bash
+npm run backend:dev
+```
+
+This direct-run backend script is preconfigured for local emulator use and sets `FIRESTORE_EMULATOR_HOST=127.0.0.1:8080`.
+
+Exercise the validation endpoint without the frontend:
+
+```bash
+npm run backend:api:exercise
+```
+
+The endpoint is:
+
+```text
+POST /api/firestore/validation
+```
+
+Example request body:
+
+```json
+{
+  "runId": "wave-6-smoke-test",
+  "note": "Local backend API seam validation."
+}
+```
+
+The endpoint writes that validation run to Firestore, reads the same document back, and returns the stored payload. Validation runs are stored in the `backendApiValidationRuns` collection using the provided `runId` as the document id, which makes inspection in the emulator UI straightforward.
+
+To run the repeatable local workflow that starts the emulator, boots the backend, calls the endpoint, verifies the round trip, and shuts everything down:
+
+```bash
+npm run backend:api:validate
+```
 
 ## Backend container validation
 
@@ -65,7 +112,6 @@ npm run backend:container:validate
 ```
 
 The container scripts require a local Docker-compatible runtime to be available.
-```
 
 ## Available scripts
 
@@ -73,6 +119,8 @@ The container scripts require a local Docker-compatible runtime to be available.
 - `npm run dev:web` starts only the Vite frontend
 - `npm run dev:api` starts only the history API backend
 - `npm run backend:dev` starts only the Firestore-validation backend outside Docker
+- `npm run backend:api:exercise` calls the backend validation endpoint on a running backend without the frontend
+- `npm run backend:api:validate` runs the repeatable local backend API seam validation flow against the Firestore emulator
 - `npm run backend:build` compiles the backend validation service to `dist/backend`
 - `npm run backend:container:build` builds the local backend validation container image
 - `npm run backend:container:run` runs the built backend container against a local Firestore emulator
@@ -85,7 +133,7 @@ The container scripts require a local Docker-compatible runtime to be available.
 - `npm test` runs the test suite
 - `npm run lint` runs ESLint
 
-## Wave 5 scope
+## Wave 6 scope
 
 This slice intentionally includes:
 
@@ -95,7 +143,7 @@ This slice intentionally includes:
 - deterministic reconstruction from backend-loaded history alone
 - local Firestore emulator configuration
 - a scriptable emulator-backed read/write validation path
-- a minimal Express + Firebase Admin backend validation path
+- a minimal Express + Firebase Admin backend validation API path
 - a local container workflow aligned with the likely future Cloud Run runtime shape
 - tests for batching, API behavior, storage, and replay reconstruction
 

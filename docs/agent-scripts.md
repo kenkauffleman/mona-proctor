@@ -60,9 +60,21 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 ## Backend container validation scripts
 
 ### `npm run backend:dev`
-- Starts the Wave 5 backend validation service directly with `tsx`.
+- Starts the Wave 6 backend validation service directly with `tsx`.
+- Sets `FIRESTORE_EMULATOR_HOST=127.0.0.1:8080` for the normal local emulator workflow.
 - Use this only for quick local backend iteration outside Docker.
 - This does not prove the container runtime shape by itself.
+
+### `npm run backend:api:exercise`
+- Calls `POST /api/firestore/validation` on a backend that is already running.
+- Defaults to `http://127.0.0.1:8081` and sends a small JSON body with a `runId` and `note`.
+- Use this when you want to exercise the backend API seam without the frontend, either against `npm run backend:dev` or a separately started container.
+- You can override the target with `BACKEND_BASE_URL=http://... npm run backend:api:exercise`.
+
+### `npm run backend:api:validate`
+- Starts the Firestore emulator, boots the backend directly with `tsx`, calls the validation endpoint, verifies the Firestore-backed round trip, and shuts everything down.
+- This is the preferred repeatable Wave 6 validation script when Docker is not part of what you are trying to prove.
+- Use this to validate the local backend API seam independently of the frontend.
 
 ### `npm run backend:build`
 - Compiles the Wave 5 backend validation service to `dist/backend`.
@@ -78,11 +90,12 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - Expects a Firestore emulator to already be available on the host.
 - Requires a local Docker-compatible runtime.
 - This is the manual backend container ↔ emulator path.
+- Pair this with `npm run backend:api:exercise` when you want to hit the HTTP endpoint manually without the frontend.
 
 ### `npm run backend:container:validate`
 - Starts the Firestore emulator, builds the backend container, runs it, calls the backend validation endpoint, verifies the Firestore write/read, and shuts everything down.
 - Requires a local Docker-compatible runtime.
-- This is the preferred repeatable Wave 5 validation script.
+- This is the preferred repeatable container-shaped validation script for the Wave 5 to Wave 6 backend path.
 - Use this for backend container ↔ emulator proof, not the older Phase 3 SQLite/API flow.
 
 ## Verification scripts

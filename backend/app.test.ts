@@ -1,6 +1,10 @@
 import type { AddressInfo } from 'node:net'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createBackendApp, type FirestoreValidationResponse, type ValidationService } from './app.js'
+import {
+  createBackendApp,
+  type FirestoreValidationResponse,
+  type ValidationService,
+} from './app.js'
 
 const servers: Array<{ close: () => void }> = []
 
@@ -29,14 +33,15 @@ async function startTestServer(validationService: ValidationService) {
 
 function createValidationResponse(): FirestoreValidationResponse {
   return {
-    collection: 'backendValidationChecks',
-    documentId: 'container-firestore-validation',
+    collection: 'backendApiValidationRuns',
+    documentId: 'wave-6-smoke-test',
     payload: {
       checkedAt: '2026-03-25T00:00:00.000Z',
       emulatorHost: '127.0.0.1:8080',
-      message: 'Backend container Firestore validation succeeded.',
+      note: 'wave 6 smoke test',
       projectId: 'demo-mona-proctor',
-      runtime: 'backend-container',
+      runId: 'wave-6-smoke-test',
+      runtime: 'backend-api',
     },
   }
 }
@@ -65,6 +70,13 @@ describe('backend validation app', () => {
 
     const response = await fetch(`${baseUrl}/api/firestore/validation`, {
       method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        runId: 'wave-6-smoke-test',
+        note: 'wave 6 smoke test',
+      }),
     })
 
     expect(response.status).toBe(200)
@@ -72,7 +84,13 @@ describe('backend validation app', () => {
       ok: true,
       ...createValidationResponse(),
     })
-    expect(validationService.writeAndReadValidation).toHaveBeenCalledWith('127.0.0.1:8080')
+    expect(validationService.writeAndReadValidation).toHaveBeenCalledWith(
+      {
+        runId: 'wave-6-smoke-test',
+        note: 'wave 6 smoke test',
+      },
+      '127.0.0.1:8080',
+    )
   })
 
   it('returns a 500 response when Firestore validation fails', async () => {
@@ -89,5 +107,29 @@ describe('backend validation app', () => {
       ok: false,
       error: 'emulator unavailable',
     })
+  })
+
+  it('returns a 400 response for an invalid validation request body', async () => {
+    const validationService = {
+      writeAndReadValidation: vi.fn(),
+    }
+    const { baseUrl } = await startTestServer(validationService)
+
+    const response = await fetch(`${baseUrl}/api/firestore/validation`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        runId: '',
+      }),
+    })
+
+    expect(response.status).toBe(400)
+    expect(await response.json()).toEqual({
+      ok: false,
+      error: 'runId must be a non-empty string when provided.',
+    })
+    expect(validationService.writeAndReadValidation).not.toHaveBeenCalled()
   })
 })

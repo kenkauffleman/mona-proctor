@@ -1,12 +1,14 @@
 import { initializeApp, getApps } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
+import type { FirestoreValidationRequest } from './app.js'
 
 export type FirestoreValidationPayload = {
   checkedAt: string
   emulatorHost?: string
-  message: string
+  note?: string
   projectId: string
-  runtime: 'backend-container'
+  runId: string
+  runtime: 'backend-api'
 }
 
 export type FirestoreValidationRecord = {
@@ -15,8 +17,11 @@ export type FirestoreValidationRecord = {
   payload: FirestoreValidationPayload
 }
 
-const validationCollection = 'backendValidationChecks'
-const validationDocumentId = 'container-firestore-validation'
+const validationCollection = 'backendApiValidationRuns'
+
+function createRunId() {
+  return `run-${Date.now()}`
+}
 
 export class FirestoreValidationStore {
   constructor(private readonly projectId: string) {
@@ -28,16 +33,25 @@ export class FirestoreValidationStore {
   }
 
   async writeAndReadValidation(
+    request: FirestoreValidationRequest,
     emulatorHost: string | undefined,
   ): Promise<FirestoreValidationRecord> {
     const firestore = getFirestore()
-    const documentReference = firestore.collection(validationCollection).doc(validationDocumentId)
+    const runId = request.runId ?? createRunId()
+    const documentReference = firestore.collection(validationCollection).doc(runId)
     const payload: FirestoreValidationPayload = {
       checkedAt: new Date().toISOString(),
-      emulatorHost,
-      message: 'Backend container Firestore validation succeeded.',
       projectId: this.projectId,
-      runtime: 'backend-container',
+      runId,
+      runtime: 'backend-api',
+    }
+
+    if (emulatorHost) {
+      payload.emulatorHost = emulatorHost
+    }
+
+    if (request.note) {
+      payload.note = request.note
     }
 
     await documentReference.set(payload)
@@ -56,7 +70,7 @@ export class FirestoreValidationStore {
 
     return {
       collection: validationCollection,
-      documentId: validationDocumentId,
+      documentId: runId,
       payload: stored,
     }
   }

@@ -118,6 +118,13 @@ async function main() {
 
     const response = await fetch(`${baseUrl}/api/firestore/validation`, {
       method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        runId: `container-${Date.now()}`,
+        note: 'Wave 6 container API seam validation.',
+      }),
     })
 
     if (!response.ok) {
@@ -128,8 +135,9 @@ async function main() {
       ok: boolean
       payload?: {
         emulatorHost?: string
-        message?: string
+        note?: string
         projectId?: string
+        runId?: string
         runtime?: string
       }
     }
@@ -138,12 +146,12 @@ async function main() {
       throw new Error(`Validation endpoint returned an unexpected payload: ${JSON.stringify(body)}`)
     }
 
-    if (body.payload?.runtime !== 'backend-container') {
+    if (body.payload?.runtime !== 'backend-api') {
       throw new Error(`Unexpected validation runtime: ${JSON.stringify(body)}`)
     }
 
     console.log(
-      `Backend container validation succeeded for project ${body.payload?.projectId} via ${body.payload?.emulatorHost}.`,
+      `Backend container validation succeeded for project ${body.payload?.projectId} via ${body.payload?.emulatorHost} with run ${body.payload?.runId}.`,
     )
   } finally {
     await stopContainer()
