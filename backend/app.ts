@@ -1,66 +1,57 @@
 import express from 'express'
+import type { EditorLanguage } from '../src/features/editor/languages.js'
+import type { AppendHistoryBatchRequest } from '../src/features/history/apiTypes.js'
+import type { HistoryRepository } from './historyRepository.js'
 
-export type FirestoreValidationRequest = {
-  note?: string
-  runId?: string
-}
-
-export type FirestoreValidationResponse = {
-  collection: string
-  documentId: string
-  payload: {
-    checkedAt: string
-    emulatorHost?: string
-    note?: string
-    projectId: string
-    runId: string
-    runtime: 'backend-api'
-  }
-}
-
-export type ValidationService = {
-  writeAndReadValidation: (
-    request: FirestoreValidationRequest,
-    emulatorHost: string | undefined,
-  ) => Promise<FirestoreValidationResponse>
-}
+const supportedLanguages = new Set<EditorLanguage>(['python', 'javascript', 'java'])
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function parseValidationRequest(body: unknown): FirestoreValidationRequest {
-  if (body === undefined) {
-    return {}
+function isAppendHistoryBatchRequest(value: unknown): value is AppendHistoryBatchRequest {
+  if (!isObject(value)) {
+    return false
   }
 
-  if (!isObject(body)) {
-    throw new Error('Request body must be a JSON object.')
-  }
+  return (
+    typeof value.language === 'string'
+    && supportedLanguages.has(value.language as EditorLanguage)
+    && typeof value.batchSequence === 'number'
+    && Number.isInteger(value.batchSequence)
+    && value.batchSequence >= 1
+    && typeof value.eventOffset === 'number'
+    && Number.isInteger(value.eventOffset)
+    && value.eventOffset >= 0
+    && Array.isArray(value.events)
+  )
+}
 
-  const request: FirestoreValidationRequest = {}
+function validateBatchOrdering(request: AppendHistoryBatchRequest) {
+  let expectedSequence = request.eventOffset + 1
 
-  if ('runId' in body) {
-    if (typeof body.runId !== 'string' || body.runId.trim().length === 0) {
-      throw new Error('runId must be a non-empty string when provided.')
+  for (const event of request.events) {
+    if (
+      typeof event.sequence !== 'number'
+      || !Number.isInteger(event.sequence)
+      || typeof event.timestamp !== 'number'
+      || !Array.isArray(event.changes)
+    ) {
+      return 'Events must include numeric sequence and timestamp fields plus a changes array.'
     }
 
-    request.runId = body.runId.trim()
-  }
-
-  if ('note' in body) {
-    if (typeof body.note !== 'string' || body.note.trim().length === 0) {
-      throw new Error('note must be a non-empty string when provided.')
+    if (event.sequence !== expectedSequence) {
+      return 'Batch events must be contiguous and match the provided eventOffset.'
     }
 
-    request.note = body.note.trim()
+    expectedSequence += 1
   }
 
-  return request
+  return null
 }
 
 export function createBackendApp(
-  validationService: ValidationService,
+  historyRepository: HistoryRepository,
   options: { firestoreEmulatorHost?: string; projectId: string },
 ) {
   const app = express()
@@ -74,29 +65,61 @@ export function createBackendApp(
     })
   })
 
-  app.post('/api/firestore/validation', async (request, response) => {
+  app.post('/api/history/sessions/:sessionId/batches', async (request, response) => {
+    const sessionId = request.params.sessionId
+
+    if (typeof sessionId !== 'string' || sessionId.trim().length === 0) {
+      response.status(400).send('Session ID is required.')
+      return
+    }
+
+    if (!isAppendHistoryBatchRequest(request.body)) {
+      response.status(400).send('Invalid history batch request.')
+      return
+    }
+
+    const orderingError = validateBatchOrdering(request.body)
+
+    if (orderingError) {
+      response.status(400).send(orderingError)
+      return
+    }
+
     try {
-      const validationRequest = parseValidationRequest(request.body)
-      const result = await validationService.writeAndReadValidation(
-        validationRequest,
-        options.firestoreEmulatorHost,
-      )
-
-      response.json({
-        ok: true,
-        ...result,
-      })
+      const result = await historyRepository.appendHistoryBatch(sessionId.trim(), request.body)
+      response.json(result)
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown validation error'
+      const message = error instanceof Error ? error.message : 'Unknown history append error.'
+      const status = message.includes('different history payload') || message.includes('language cannot change')
+        ? 409
+        : 500
 
-      if (message.includes('Request body') || message.includes('runId') || message.includes('note')) {
-        response.status(400).json({
-          ok: false,
-          error: message,
-        })
+      response.status(status).json({
+        ok: false,
+        error: message,
+      })
+    }
+  })
+
+  app.get('/api/history/sessions/:sessionId', async (request, response) => {
+    const sessionId = request.params.sessionId
+
+    if (typeof sessionId !== 'string' || sessionId.trim().length === 0) {
+      response.status(400).send('Session ID is required.')
+      return
+    }
+
+    try {
+      const session = await historyRepository.loadSessionHistory(sessionId.trim())
+
+      if (!session) {
+        response.status(404).send('Session not found.')
         return
       }
 
+      response.json(session)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown session load error.'
       response.status(500).json({
         ok: false,
         error: message,

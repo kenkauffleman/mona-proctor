@@ -3,7 +3,7 @@ import type {
   RecordedMonacoChange,
   RecordedMonacoEvent,
   RecordedMonacoPlaybackStep,
-} from './types'
+} from './types.js'
 
 function toRecordedChange(change: RecordedMonacoChange): RecordedMonacoChange
 function toRecordedChange(

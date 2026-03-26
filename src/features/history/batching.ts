@@ -4,6 +4,8 @@ import type { RecordedMonacoEvent } from './types'
 export type HistoryBatch = {
   sessionId: string
   language: EditorLanguage
+  batchSequence: number
+  eventOffset: number
   events: RecordedMonacoEvent[]
 }
 
@@ -29,6 +31,7 @@ export class HistoryBatcher {
   private readonly sendBatch: (batch: HistoryBatch) => Promise<void>
   private readonly onStateChange?: (state: HistoryBatcherState) => void
   private pendingEvents: RecordedMonacoEvent[] = []
+  private nextBatchSequence = 1
   private intervalId: ReturnType<typeof setInterval> | null = null
   private flushPromise: Promise<void> | null = null
   private state: HistoryBatcherState = {
@@ -66,6 +69,8 @@ export class HistoryBatcher {
     }
 
     const batchEvents = [...this.pendingEvents]
+    const batchSequence = this.nextBatchSequence
+    const eventOffset = batchEvents[0]?.sequence ? batchEvents[0].sequence - 1 : 0
     this.pendingEvents = []
     this.publishState({
       pendingEvents: 0,
@@ -76,9 +81,12 @@ export class HistoryBatcher {
     this.flushPromise = this.sendBatch({
       sessionId: this.sessionId,
       language: this.language,
+      batchSequence,
+      eventOffset,
       events: batchEvents,
     })
       .then(() => {
+        this.nextBatchSequence += 1
         this.publishState({
           isFlushing: false,
           lastSyncedAt: Date.now(),

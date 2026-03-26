@@ -19,6 +19,7 @@ export function ReplayPage() {
   const [loadedSessionId, setLoadedSessionId] = useState('')
   const [activeLanguage, setActiveLanguage] = useState<'python' | 'javascript' | 'java'>('python')
   const [events, setEvents] = useState<RecordedMonacoEvent[]>([])
+  const [batchCount, setBatchCount] = useState(0)
   const [replaySource, setReplaySource] = useState('')
   const [status, setStatus] = useState('Enter a session UUID to load history.')
   const [isLoading, setIsLoading] = useState(false)
@@ -57,6 +58,7 @@ export function ReplayPage() {
       setLoadedSessionId(session.sessionId)
       setActiveLanguage(session.language)
       setEvents(session.events)
+      setBatchCount(session.batches.length)
       setReplaySource(replayRecordedMonacoEvents('', session.events))
       setStatus(
         session.events.length === 0
@@ -65,6 +67,7 @@ export function ReplayPage() {
       )
     } catch (error) {
       setEvents([])
+      setBatchCount(0)
       setReplaySource('')
       setStatus(error instanceof Error ? error.message : 'Failed to load session')
     } finally {
@@ -99,10 +102,10 @@ export function ReplayPage() {
   return (
     <main className="app-shell">
       <section className="hero">
-        <p className="eyebrow">Phase 3</p>
+        <p className="eyebrow">Phase 7</p>
         <h1>Session Replay</h1>
         <p className="hero-copy">
-          Load a recorded session by UUID, fetch the full backend history, and replay it into a separate Monaco editor.
+          Load a recorded session by UUID, fetch the full backend history from Firestore, and replay it into a separate Monaco editor.
         </p>
       </section>
 
@@ -137,6 +140,7 @@ export function ReplayPage() {
         <div className="workspace-meta" aria-label="Replay session details">
           <span>Loaded session: {loadedSessionId || 'None'}</span>
           <span>Language: {activeLanguageConfig.label}</span>
+          <span>{batchCount} uploaded batches</span>
           <span>{events.length} loaded events</span>
           <span>{isWatchingReplay ? 'Replay running' : 'Replay idle'}</span>
           <span>{status}</span>

@@ -29,6 +29,7 @@ export function EditorPane({
   return (
     <div className="editor-panel">
       <Editor
+        key={modelPath}
         height={height}
         language={language.monacoLanguage}
         path={modelPath}

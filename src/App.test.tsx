@@ -27,7 +27,7 @@ describe('App', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: 'Local Client/Server History Prototype',
+        name: 'Local Client/Backend/Firestore Prototype',
       }),
     ).toBeInTheDocument()
     expect(screen.getByLabelText('Language')).toHaveValue('python')

@@ -16,19 +16,19 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - Run this before using any other script in a fresh environment.
 
 ### `npm run dev`
-- Starts the Phase 3 local prototype stack:
+- Starts the Wave 7 local prototype stack:
   - Vite frontend on a container-friendly host
-  - local Express history API backend
-- Use this for the current Monaco/history client-server flow.
-- Do not use this to validate Firestore integration.
+  - Firestore-backed backend history API on port `8081`
+- Use this for the browser client ↔ backend ↔ Firestore vertical slice.
+- Pair it with `npm run emulator:firestore` when you want the browser flow working against the local Firestore emulator.
 
 ### `npm run dev:web`
 - Starts only the Vite frontend.
 - Use when working only on frontend behavior or UI.
 
 ### `npm run dev:api`
-- Starts only the local Express history API backend.
-- Use when working only on the SQLite-backed history API behavior.
+- Starts only the Wave 7 backend history API with Firestore-emulator settings.
+- Use when working only on the backend history API or Firestore persistence behavior.
 
 ### `npm run preview`
 - Serves the built frontend preview on a container-friendly host.
@@ -60,24 +60,24 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 ## Backend container validation scripts
 
 ### `npm run backend:dev`
-- Starts the Wave 6 backend validation service directly with `tsx`.
+- Starts the Wave 7 backend history service directly with `tsx`.
 - Sets `FIRESTORE_EMULATOR_HOST=127.0.0.1:8080` for the normal local emulator workflow.
 - Use this only for quick local backend iteration outside Docker.
 - This does not prove the container runtime shape by itself.
 
 ### `npm run backend:api:exercise`
-- Calls `POST /api/firestore/validation` on a backend that is already running.
-- Defaults to `http://127.0.0.1:8081` and sends a small JSON body with a `runId` and `note`.
-- Use this when you want to exercise the backend API seam without the frontend, either against `npm run backend:dev` or a separately started container.
+- Calls the Wave 7 history append/load endpoints on a backend that is already running.
+- Defaults to `http://127.0.0.1:8081` and writes a tiny manual smoke-test session.
+- Use this when you want to exercise the backend API seam without the browser, either against `npm run backend:dev` or a separately started container.
 - You can override the target with `BACKEND_BASE_URL=http://... npm run backend:api:exercise`.
 
 ### `npm run backend:api:validate`
-- Starts the Firestore emulator, boots the backend directly with `tsx`, calls the validation endpoint, verifies the Firestore-backed round trip, and shuts everything down.
-- This is the preferred repeatable Wave 6 validation script when Docker is not part of what you are trying to prove.
-- Use this to validate the local backend API seam independently of the frontend.
+- Starts the Firestore emulator, boots the backend directly with `tsx`, appends two history batches through the API, loads the session back, verifies deterministic replay reconstruction, checks Firestore metadata/batch separation, and shuts everything down.
+- This is the preferred repeatable Wave 7 validation script when Docker is not part of what you are trying to prove.
+- Use this to validate the backend API seam plus Firestore persistence independently of the browser page.
 
 ### `npm run backend:build`
-- Compiles the Wave 5 backend validation service to `dist/backend`.
+- Compiles the backend service to `dist/backend`.
 - Use this before local runtime inspection or as part of container build troubleshooting.
 
 ### `npm run backend:container:build`
@@ -86,17 +86,30 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - Use this when you want to inspect or rerun the container manually.
 
 ### `npm run backend:container:run`
-- Runs the already-built backend validation container on port `8081`.
+- Runs the already-built backend container on port `8081`.
 - Expects a Firestore emulator to already be available on the host.
 - Requires a local Docker-compatible runtime.
-- This is the manual backend container ↔ emulator path.
+- This is the manual backend container ↔ emulator path for the Wave 7 history API.
 - Pair this with `npm run backend:api:exercise` when you want to hit the HTTP endpoint manually without the frontend.
 
 ### `npm run backend:container:validate`
-- Starts the Firestore emulator, builds the backend container, runs it, calls the backend validation endpoint, verifies the Firestore write/read, and shuts everything down.
+- Starts the Firestore emulator, builds the backend container, runs it, calls the Wave 7 history append endpoint, and shuts everything down.
 - Requires a local Docker-compatible runtime.
-- This is the preferred repeatable container-shaped validation script for the Wave 5 to Wave 6 backend path.
-- Use this for backend container ↔ emulator proof, not the older Phase 3 SQLite/API flow.
+- This is the preferred repeatable container-shaped validation script for the Wave 7 backend path.
+- Use this for backend container ↔ emulator proof, not the older SQLite/API flow.
+
+### `npm run wave7:validate`
+- Alias for the repeatable non-Docker Wave 7 round-trip validation.
+- Use this when you want the fastest pass/fail check for append → Firestore persistence → load → replay reconstruction.
+
+### `npm run wave7:manual`
+- Starts the Firestore emulator and UI, builds and runs the backend in its Docker container, and starts the Vite client.
+- Use this when you want to manually type in the browser, open the replay page, and inspect stored documents in the Firestore UI.
+- Expected local URLs:
+  - client: `http://127.0.0.1:5173`
+  - backend: `http://127.0.0.1:8081`
+  - Firestore UI: `http://127.0.0.1:4000/firestore`
+- In Codespaces, make sure the forwarded ports for `5173`, `8081`, and `4000` are accessible.
 
 ## Verification scripts
 

@@ -1,13 +1,13 @@
 import { createBackendApp } from './app.js'
 import { getBackendConfig } from './config.js'
-import { FirestoreValidationStore } from './firestoreValidationStore.js'
+import { FirestoreHistoryRepository } from './firestoreHistoryRepository.js'
 
 const config = getBackendConfig()
-const validationStore = new FirestoreValidationStore(config.projectId)
-const app = createBackendApp(validationStore, config)
+const historyRepository = new FirestoreHistoryRepository(config.projectId)
+const app = createBackendApp(historyRepository, config)
 
 const server = app.listen(config.port, '0.0.0.0', () => {
-  console.log(`Backend validation service listening on http://0.0.0.0:${config.port}`)
+  console.log(`Backend history service listening on http://0.0.0.0:${config.port}`)
 })
 
 function shutdown() {

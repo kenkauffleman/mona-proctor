@@ -1,6 +1,6 @@
 import type {
-  AppendHistoryRequest,
-  AppendHistoryResponse,
+  AppendHistoryBatchRequest,
+  AppendHistoryBatchResponse,
   HistorySessionResponse,
 } from './apiTypes'
 
@@ -13,11 +13,11 @@ async function parseJsonResponse<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>
 }
 
-export async function appendSessionHistory(
+export async function appendSessionHistoryBatch(
   sessionId: string,
-  request: AppendHistoryRequest,
+  request: AppendHistoryBatchRequest,
 ) {
-  const response = await fetch(`/api/history/sessions/${sessionId}/events`, {
+  const response = await fetch(`/api/history/sessions/${sessionId}/batches`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -25,7 +25,7 @@ export async function appendSessionHistory(
     body: JSON.stringify(request),
   })
 
-  return parseJsonResponse<AppendHistoryResponse>(response)
+  return parseJsonResponse<AppendHistoryBatchResponse>(response)
 }
 
 export async function fetchSessionHistory(sessionId: string) {

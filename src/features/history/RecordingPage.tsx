@@ -9,7 +9,7 @@ import {
 } from '../editor/languages'
 import { getRecordEditorModelPath } from '../editor/modelPaths'
 import { HistoryBatcher, type HistoryBatcherState } from './batching'
-import { appendSessionHistory } from './client'
+import { appendSessionHistoryBatch } from './client'
 import { createRecordedMonacoEvent } from './history'
 import { createSessionId } from './session'
 import type { RecordedMonacoEvent } from './types'
@@ -53,8 +53,10 @@ export function RecordingPage() {
       language: activeLanguage,
       intervalMs: syncIntervalMs,
       sendBatch: async (batch) => {
-        const response = await appendSessionHistory(batch.sessionId, {
+        const response = await appendSessionHistoryBatch(batch.sessionId, {
           language: batch.language,
+          batchSequence: batch.batchSequence,
+          eventOffset: batch.eventOffset,
           events: batch.events,
         })
         setSyncedEventCount(response.totalEvents)
@@ -115,11 +117,11 @@ export function RecordingPage() {
   return (
     <main className="app-shell">
       <section className="hero">
-        <p className="eyebrow">Phase 3</p>
-        <h1>Local Client/Server History Prototype</h1>
+        <p className="eyebrow">Phase 7</p>
+        <h1>Local Client/Backend/Firestore Prototype</h1>
         <p className="hero-copy">
           Record Monaco content-change events, batch them to a local backend,
-          and persist session history in SQLite for later replay.
+          and persist session history in Firestore for later replay.
         </p>
       </section>
 
@@ -127,7 +129,7 @@ export function RecordingPage() {
         <div className="workspace-toolbar">
           <div>
             <h2>Recording Page</h2>
-            <p>Each page session gets a client-generated UUID and uploads append-only event batches to the backend.</p>
+            <p>Each page session gets a client-generated UUID and uploads append-only history batches through the backend API.</p>
           </div>
           <LanguageSelector
             languages={editorLanguages}
