@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+source "$(dirname "$0")/common.sh"
+
 readonly CLOUDRUN_TERRAFORM_DIR="infra/terraform/cloud-run-backend"
 readonly CLOUDRUN_PLAN_BASENAME="cloud-run-backend.tfplan"
 readonly CLOUDRUN_PLAN_FILE="${CLOUDRUN_TERRAFORM_DIR}/${CLOUDRUN_PLAN_BASENAME}"
@@ -20,16 +22,9 @@ Optional:
 EOF
 }
 
-require_command() {
-  local command_name="$1"
-
-  if ! command -v "${command_name}" >/dev/null 2>&1; then
-    echo "Missing required command: ${command_name}" >&2
-    exit 1
-  fi
-}
-
 load_cloudrun_env_file() {
+  load_shared_deploy_env_file
+
   local env_file="${CLOUDRUN_DEPLOY_ENV_FILE:-${CLOUDRUN_ENV_FILE_DEFAULT}}"
 
   if [[ -f "${env_file}" ]]; then
@@ -95,4 +90,13 @@ print_cloudrun_target_summary() {
   echo "Container image: ${CLOUDRUN_CONTAINER_IMAGE}"
   echo "Private invoker: ${CLOUDRUN_INVOKER_PRINCIPAL}"
   echo "Terraform root: ${CLOUDRUN_TERRAFORM_DIR}"
+}
+
+build_and_push_cloudrun_image() {
+  require_command gcloud
+
+  print_cloudrun_target_summary
+  echo "Building and pushing backend image with Cloud Build..."
+
+  gcloud builds submit --tag "${CLOUDRUN_CONTAINER_IMAGE}"
 }

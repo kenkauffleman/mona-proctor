@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+source "$(dirname "$0")/common.sh"
+
 readonly FIRESTORE_TERRAFORM_DIR="infra/terraform/firestore"
 readonly FIRESTORE_PLAN_BASENAME="firestore.tfplan"
 readonly FIRESTORE_PLAN_FILE="${FIRESTORE_TERRAFORM_DIR}/firestore.tfplan"
@@ -18,16 +20,9 @@ Optional:
 EOF
 }
 
-require_command() {
-  local command_name="$1"
-
-  if ! command -v "${command_name}" >/dev/null 2>&1; then
-    echo "Missing required command: ${command_name}" >&2
-    exit 1
-  fi
-}
-
 load_firestore_env_file() {
+  load_shared_deploy_env_file
+
   local env_file="${FIRESTORE_DEPLOY_ENV_FILE:-${FIRESTORE_ENV_FILE_DEFAULT}}"
 
   if [[ -f "${env_file}" ]]; then

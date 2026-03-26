@@ -24,6 +24,7 @@
     "emulator:firestore:manualcheck": "tsx scripts/firestoreEmulatorManualCheck.ts",
     "wave7:validate": "firebase emulators:exec --only firestore \"tsx scripts/historyRoundTripValidate.ts\"",
     "wave7:manual": "tsx scripts/manualWave7Stack.ts",
+    "deploy": "bash scripts/deploy/manage.sh",
     "deploy:firestore:check": "bash scripts/deploy/firestore-check-prereqs.sh",
     "deploy:firestore:init": "bash scripts/deploy/firestore-init.sh",
     "deploy:firestore:validate": "bash scripts/deploy/firestore-validate.sh",
@@ -32,10 +33,12 @@
     "deploy:firestore:config-check": "tsx scripts/checkFirestoreTerraformConfig.ts",
     "deploy:cloudrun:check": "bash scripts/deploy/cloudrun-check-prereqs.sh",
     "deploy:cloudrun:init": "bash scripts/deploy/cloudrun-init.sh",
+    "deploy:cloudrun:build": "bash scripts/deploy/cloudrun-build.sh",
     "deploy:cloudrun:validate": "bash scripts/deploy/cloudrun-validate.sh",
     "deploy:cloudrun:plan": "bash scripts/deploy/cloudrun-plan.sh",
     "deploy:cloudrun:apply": "bash scripts/deploy/cloudrun-apply.sh",
     "deploy:cloudrun:validation-commands": "bash scripts/deploy/cloudrun-print-validation-commands.sh",
+    "deploy:cloudrun:validate-private": "bash scripts/deploy/cloudrun-validate-private.sh",
     "deploy:cloudrun:config-check": "tsx scripts/checkCloudRunTerraformConfig.ts"
   },
   "dependencies": {

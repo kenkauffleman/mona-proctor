@@ -20,21 +20,25 @@ This wave does not make the backend public, connect the hosted frontend, add Fir
 
 The agent environment does not need live cloud credentials, service account keys, or secrets.
 
-## Optional local operator config
-If you do not want to repeat the deployment inputs on every command, create a local config file:
+## Shared local operator config
+To avoid repeating deployment inputs on every command, create a shared local config file:
 
 ```bash
-cp .env.cloudrun.example .env.cloudrun
+cp .env.deploy.example .env.deploy
 ```
 
 Then fill in:
+- `FIRESTORE_PROJECT_ID`
+- `FIRESTORE_LOCATION`
+- `FIRESTORE_DATABASE_NAME`
 - `CLOUDRUN_PROJECT_ID`
 - `CLOUDRUN_REGION`
 - `CLOUDRUN_SERVICE_NAME`
 - `CLOUDRUN_CONTAINER_IMAGE`
 - `CLOUDRUN_INVOKER_PRINCIPAL`
 
-The Wave 9 deploy scripts automatically load `.env.cloudrun` when present.
+The deploy scripts automatically load `.env.deploy` when present.
+They still support the older service-specific env files, but `.env.deploy` is now the preferred operator workflow.
 Explicit CLI flags still win, so you can override the file for one-off runs.
 
 ## Authentication flow
@@ -47,54 +51,53 @@ gcloud auth application-default login
 
 Terraform uses Application Default Credentials from the human operator's machine for this wave.
 
-## Container image prerequisite
-Wave 9 Terraform deploys a Cloud Run service from an image that already exists.
-
-One simple operator-managed path is:
+## Unified deploy entrypoint
+The preferred operator entrypoint is now:
 
 ```bash
-gcloud builds submit --tag YOUR_CONTAINER_IMAGE_URI
+npm run deploy -- <target> <action>
 ```
 
-Example:
-
-```bash
-gcloud builds submit --tag us-central1-docker.pkg.dev/YOUR_PROJECT_ID/mona-proctor/backend:wave9
-```
-
-This repo does not create or publish the image automatically during Wave 9. Keep image build/push as a deliberate human-run step.
+Examples:
+- `npm run deploy -- firestore validate`
+- `npm run deploy -- firestore plan`
+- `npm run deploy -- cloudrun build`
+- `npm run deploy -- cloudrun validate`
+- `npm run deploy -- cloudrun plan`
+- `npm run deploy -- cloudrun apply`
+- `npm run deploy -- cloudrun validate-private`
 
 ## Safe operator workflow
 1. Check prerequisites:
 
 ```bash
-npm run deploy:cloudrun:check
+npm run deploy -- cloudrun check
 ```
 
-2. Validate the Terraform root for your target project, region, image, and invoker principal:
+2. Build and push the backend image with Cloud Build:
 
 ```bash
-npm run deploy:cloudrun:validate -- --project YOUR_PROJECT_ID --region CLOUD_RUN_REGION --image YOUR_CONTAINER_IMAGE_URI --invoker user:you@example.com
+npm run deploy -- cloudrun build
 ```
 
-3. Create a reviewable plan file:
+3. Validate the Terraform root for your target project, region, image, and invoker principal:
 
 ```bash
-npm run deploy:cloudrun:plan -- --project YOUR_PROJECT_ID --region CLOUD_RUN_REGION --image YOUR_CONTAINER_IMAGE_URI --invoker user:you@example.com
+npm run deploy -- cloudrun validate
 ```
 
-Optional service-name override:
+4. Create a reviewable plan file:
 
 ```bash
-npm run deploy:cloudrun:plan -- --project YOUR_PROJECT_ID --region CLOUD_RUN_REGION --service mona-proctor-backend --image YOUR_CONTAINER_IMAGE_URI --invoker user:you@example.com
+npm run deploy -- cloudrun plan
 ```
 
-4. Review the plan output carefully. Confirm that it only targets the expected project and creates or updates the Cloud Run backend service plus a single invoker IAM binding for the named operator principal.
+5. Review the plan output carefully. Confirm that it only targets the expected project and creates or updates the Cloud Run backend service plus a single invoker IAM binding for the named operator principal.
 
-5. Apply the exact reviewed plan deliberately:
+6. Apply the exact reviewed plan deliberately:
 
 ```bash
-npm run deploy:cloudrun:apply -- --project YOUR_PROJECT_ID --region CLOUD_RUN_REGION --image YOUR_CONTAINER_IMAGE_URI --invoker user:you@example.com
+npm run deploy -- cloudrun apply
 ```
 
 The apply script requires an explicit `APPLY` confirmation and reuses the saved plan file instead of replanning.
@@ -113,8 +116,21 @@ Your operator identity must be the same principal granted `roles/run.invoker`, o
 You can print the current validation commands after deploy:
 
 ```bash
-npm run deploy:cloudrun:validation-commands -- --project YOUR_PROJECT_ID --region CLOUD_RUN_REGION --image YOUR_CONTAINER_IMAGE_URI --invoker user:you@example.com
+npm run deploy -- cloudrun validation-commands
 ```
+
+Or run the full private round-trip validation script:
+
+```bash
+npm run deploy -- cloudrun validate-private
+```
+
+That validation script:
+- fetches the private Cloud Run URL through `gcloud`
+- gets an identity token through `gcloud auth print-identity-token`
+- appends two history batches through the private Cloud Run service
+- loads the stored session back through the private Cloud Run service
+- verifies deterministic replay reconstruction of the returned events
 
 ### Option 1: Cloud Run proxy
 Start a local proxy:
@@ -159,7 +175,7 @@ If you want to exercise the history API manually, use the same auth pattern agai
 - confirm the service requires authentication and is not publicly invokable
 - call `/health` through either the proxy flow or identity-token flow
 - confirm the response reports the hosted project id and `firestoreEmulatorHost: null`
-- optionally append and load a tiny history session through the private service to confirm Cloud Run ↔ Firestore connectivity
+- run `npm run deploy -- cloudrun validate-private` to confirm Cloud Run ↔ Firestore end-to-end persistence
 
 ## IAM notes for this phase
 - The operator principal named in `invoker_principal` receives `roles/run.invoker` on the backend service.

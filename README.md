@@ -123,22 +123,24 @@ See [docs/firestore-provisioning.md](./docs/firestore-provisioning.md) for the f
 
 Wave 9 keeps cloud changes human-controlled and follows [`docs/deployment-safety.md`](./docs/deployment-safety.md).
 
-From a trusted local machine with `terraform` and `gcloud` installed:
+Preferred setup:
 
 ```bash
-npm run deploy:cloudrun:check
-npm run deploy:cloudrun:validate -- --project YOUR_PROJECT_ID --region CLOUD_RUN_REGION --image YOUR_CONTAINER_IMAGE_URI --invoker user:you@example.com
-npm run deploy:cloudrun:plan -- --project YOUR_PROJECT_ID --region CLOUD_RUN_REGION --image YOUR_CONTAINER_IMAGE_URI --invoker user:you@example.com
-npm run deploy:cloudrun:apply -- --project YOUR_PROJECT_ID --region CLOUD_RUN_REGION --image YOUR_CONTAINER_IMAGE_URI --invoker user:you@example.com
+cp .env.deploy.example .env.deploy
 ```
 
-After deploy, print the private validation commands:
+Then, from a trusted local machine with `terraform` and `gcloud` installed:
 
 ```bash
-npm run deploy:cloudrun:validation-commands -- --project YOUR_PROJECT_ID --region CLOUD_RUN_REGION --image YOUR_CONTAINER_IMAGE_URI --invoker user:you@example.com
+npm run deploy -- cloudrun check
+npm run deploy -- cloudrun build
+npm run deploy -- cloudrun validate
+npm run deploy -- cloudrun plan
+npm run deploy -- cloudrun apply
+npm run deploy -- cloudrun validate-private
 ```
 
-The service stays non-public by default. Validation is intended to happen with either `gcloud run services proxy` or `curl` plus an identity token.
+The service stays non-public by default. The private validation step uses `gcloud` plus an identity token to push a tiny history session through Cloud Run and load it back again.
 
 See [docs/cloud-run-backend-deployment.md](./docs/cloud-run-backend-deployment.md) for the full runbook.
 
@@ -163,12 +165,15 @@ See [docs/cloud-run-backend-deployment.md](./docs/cloud-run-backend-deployment.m
 - `npm run deploy:firestore:plan -- --project ... --location ...` writes a reviewable Terraform plan for hosted Firestore provisioning
 - `npm run deploy:firestore:apply -- --project ... --location ...` applies the reviewed Terraform plan after explicit confirmation
 - `npm run deploy:firestore:config-check` verifies that the Terraform config still reuses the repo-managed `firestore.rules` file
+- `npm run deploy -- <target> <action>` is the unified deploy entrypoint for Firestore and Cloud Run workflows
 - `npm run deploy:cloudrun:check` checks Terraform and local ADC prerequisites for Wave 9 Cloud Run deployment
 - `npm run deploy:cloudrun:init -- --project ... --region ... --image ... --invoker ...` initializes the Wave 9 Terraform root
+- `npm run deploy:cloudrun:build` builds and pushes the backend container image with Cloud Build
 - `npm run deploy:cloudrun:validate -- --project ... --region ... --image ... --invoker ...` runs `fmt`, `init`, and `validate` for the Cloud Run backend root
 - `npm run deploy:cloudrun:plan -- --project ... --region ... --image ... --invoker ...` writes a reviewable Terraform plan for private Cloud Run backend deployment
 - `npm run deploy:cloudrun:apply -- --project ... --region ... --image ... --invoker ...` applies the reviewed Cloud Run plan after explicit confirmation
 - `npm run deploy:cloudrun:validation-commands -- --project ... --region ... --image ... --invoker ...` prints private-service validation commands for the deployed backend
+- `npm run deploy:cloudrun:validate-private` exercises the private Cloud Run history API and confirms the session round-trip through Firestore
 - `npm run deploy:cloudrun:config-check` verifies that the Wave 9 Terraform config keeps the service private by default
 - `npm run build` creates a production build
 - `npm run typecheck` runs TypeScript project checks
