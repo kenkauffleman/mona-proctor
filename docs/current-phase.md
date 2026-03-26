@@ -1,79 +1,72 @@
 # Current Phase
 
 ## Active phase
-Phase 8: Deployment scripts, setup, and Firestore provisioning
+Phase 9: Cloud Run backend deployment
 
 ## Goal
-Validate the human-in-the-loop deployment flow by provisioning the minimum hosted data layer and deployment tooling needed for the project.
+Deploy the backend/API portion of the validated vertical slice to Cloud Run and confirm that the hosted backend can use the chosen cloud data path without being publicly writable during the prototype stage.
 
-This phase is intentionally narrow. The purpose is to prove that the repo can define the infrastructure and scripts needed for a human to provision Firestore in the existing GCP project, without giving the agent live cloud credentials or direct deployment authority.
+This phase is intentionally narrow. The purpose is to validate the hosted backend deployment path, Firestore connectivity, and private-service invocation workflow before exposing the backend to hosted browser clients.
 
 ## In scope
-- add Terraform for the existing GCP project
-- provision Firestore in the existing project
-- add setup and deployment scripts for human-run local execution
-- document the human-in-the-loop auth and deployment flow
-- keep the deployment flow aligned with the repo’s deployment safety policy
-- make the provisioning workflow reviewable, scriptable, and repeatable
+- add Terraform and scripts for Cloud Run backend deployment
+- deploy the existing backend/API to Cloud Run
+- configure the hosted backend to communicate with hosted Firestore
+- keep the Cloud Run service non-public by default
+- add a human-usable validation path for invoking the private service
+- document the deployment and validation flow
 
 ## Out of scope
-- Cloud Run deployment
-- static frontend hosting
-- Firebase Auth integration
-- service account key creation or storage
-- CI/CD automation
-- production IAM hardening beyond what is needed for this validation step
-- hosted app/backend integration
-- grading integration
-- client persistence or replay feature changes
+- public backend exposure
+- hosted frontend integration
+- Firebase Auth browser flow
+- App Check
+- Cloud Armor
+- final production IAM hardening beyond what is needed for this phase
+- grader deployment
+- client persistence changes
+- replay feature changes
 
 ## Desired qualities
-- explicit and reviewable infrastructure changes
-- human-controlled apply step
-- no secrets or live credentials in the agent environment
+- private-by-default backend deployment
 - minimal blast radius
-- simple local operator workflow
-- easy evolution toward later hosted phases
+- simple human validation workflow
+- repeatable deployment through repo-managed scripts
+- clear separation between hosted backend validation and later hosted browser integration
 
 ## Design constraints
-- target the existing GCP project only
-- do not create a new project
-- do not assume the agent has cloud credentials
-- do not require service account keys in the repo
-- separate planning/validation from applying changes
-- prefer least-privilege and non-public defaults
-- treat budgets, quotas, and deployment safety as first-class concerns where practical
-
-## Recommended implementation direction
-- use Terraform for hosted infrastructure definition
-- keep local emulator/developer config separate from Terraform where appropriate
-- use human-run local authentication via ADC for this phase
-- keep scripts explicit and safe by default
-- make `plan` easy and `apply` deliberate
+- the Cloud Run service must not be publicly invokable by default
+- validation should work through a human-operated path such as:
+  - Cloud Run proxy
+  - or curl with an identity token
+- keep the deployment aligned with the repo’s deployment safety policy
+- do not assume agent access to live cloud credentials
+- keep the implementation focused on backend hosting and Firestore connectivity only
 
 ## Suggested deliverables
-- Terraform for the existing GCP project and Firestore provisioning
-- setup scripts for local human-run execution
-- plan/apply-oriented deployment scripts
-- documentation for local auth and deployment steps
-- documentation aligned with `docs/deployment-safety.md`
+- Terraform for Cloud Run backend deployment
+- scripts for human-run local plan/apply and validation
+- runtime configuration for hosted backend ↔ Firestore connectivity
+- IAM or service configuration needed for private-service validation
+- deployment and validation documentation
 
 ## Exit criteria
-- the repo contains the Terraform and scripts needed for a human to provision Firestore in the existing GCP project
-- the deployment flow is documented and does not require secrets in the agent environment
-- a human can run the scripts locally and successfully provision Firestore
+- the backend/API deploys successfully to Cloud Run
+- the hosted backend can communicate with the hosted Firestore setup
+- the backend is not publicly invokable by default during this phase
+- a human can validate the private service using the documented workflow
+- the deployment is documented and repeatable through the repo-managed workflow
 
 ## Notes for the agent
 - keep this phase narrowly scoped
-- do not start Cloud Run deployment yet
-- do not start frontend hosting yet
-- do not add Firebase Auth setup yet unless it is strictly required for Firestore provisioning
-- do not assume service account keys or console-driven setup
-- prioritize clarity, safety, and repeatability over convenience shortcuts
-- if a bootstrap/manual prerequisite is unavoidable, document it clearly and keep it minimal
+- do not make the service public just to simplify testing
+- do not start hosted frontend integration yet
+- do not add Firebase Auth browser flow yet
+- prioritize private-by-default deployment and a clean human validation path
+- keep the scripts and docs explicit about what the human operator must do
 
 ## Handoff to the next phase
 At the end of this phase, the codebase should make it easy to:
-- add Cloud Run deployment through the same human-in-the-loop workflow
-- keep infrastructure changes repo-managed and reviewable
-- expand the hosted stack without redesigning the deployment approach
+- keep the hosted backend private while validating it
+- add hosted frontend integration later
+- introduce authenticated browser-to-backend access in the next phase

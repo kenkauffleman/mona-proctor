@@ -110,7 +110,7 @@ Exit criteria:
 - a trivial backend-triggered write can be read back successfully
 - the container-to-emulator setup is documented and repeatable
 
-### Phase 6: Backend API seam validation
+### Phase 6 (completed): Backend API seam validation
 Goal: validate the backend API shape independently of the frontend before wiring in the full browser flow.
 
 Deliverables:
@@ -124,7 +124,7 @@ Exit criteria:
 - an API request can trigger Firestore read/write behavior successfully
 - the API seam is documented and testable independently of the UI
 
-### Phase 7: Local client/backend/Firestore vertical prototype
+### Phase 7 (completed): Local client/backend/Firestore vertical prototype
 Goal: prove the full local round trip from browser client to backend container to Firestore and back again.
 
 Deliverables:
@@ -139,7 +139,7 @@ Exit criteria:
 - the full local round trip works end-to-end
 - the vertical prototype is scriptable and repeatable in local development
 
-### Phase 8: Deployment scripts, setup, and Firestore provisioning
+### Phase 8 (completed): Deployment scripts, setup, and Firestore provisioning
 Goal: validate the human-in-the-loop deployment flow by provisioning the minimum hosted data layer and deployment tooling needed for the project.
 
 Deliverables:
@@ -155,35 +155,55 @@ Exit criteria:
 - a human can run the scripts locally and successfully provision Firestore
 
 ### Phase 9: Cloud Run backend deployment
-Goal: deploy the backend/API portion of the validated vertical slice to Cloud Run and confirm that the hosted backend can use the chosen cloud data path.
+Goal: deploy the backend/API portion of the validated vertical slice to Cloud Run and confirm that the hosted backend can use the chosen cloud data path without being publicly writable during the prototype stage.
 
 Deliverables:
 - Terraform and scripts for Cloud Run backend deployment
 - hosted backend/API environment
 - configuration for backend connectivity to hosted Firestore
 - deployment and validation documentation for the backend service
+- non-public backend deployment by default
 
 Exit criteria:
 - the backend/API deploys successfully to Cloud Run
 - the hosted backend can communicate with the hosted Firestore setup
+- the backend is not publicly invokable by default during this phase
 - the deployment is documented and repeatable through the repo-managed workflow
 
-### Phase 10: Static frontend hosting
-Goal: deploy the frontend in a hosted form and validate the full hosted browser ↔ backend ↔ Firestore path.
+### Phase 10: Local Firebase Auth validation
+Goal: validate the application-level authentication flow locally before introducing hosted browser-to-backend authenticated access.
+
+Deliverables:
+- local Firebase Auth emulator setup
+- local test users and sign-in flow
+- frontend acquisition of Firebase ID tokens in local development
+- backend verification of Firebase ID tokens in local development
+- documentation for the local authenticated flow
+
+Exit criteria:
+- a local user can sign in through the Auth emulator
+- the frontend can acquire and send a Firebase ID token to the backend
+- the backend can verify the token locally
+- authenticated local browser ↔ backend ↔ Firestore behavior is validated
+- the local auth workflow is documented and repeatable
+
+### Phase 11: Hosted frontend and authenticated cloud flow
+Goal: deploy the frontend in a hosted form and validate the full hosted browser ↔ backend ↔ Firestore path using authenticated access rather than a publicly writable backend.
 
 Deliverables:
 - hosting configuration for the static frontend
 - deployment scripts or Terraform-managed setup as appropriate
+- Firebase Auth setup needed for hosted browser-to-backend access
 - documentation for the hosted frontend flow
 - end-to-end hosted validation path
 
 Exit criteria:
 - the frontend is hosted successfully
-- the hosted frontend can communicate with the hosted backend
+- authenticated browser clients can communicate with the hosted backend
 - the full hosted vertical slice works end-to-end
-- the hosting flow is documented and repeatable
+- the hosting and authenticated access flow are documented and repeatable
 
-### Phase 11: Client persistence and sync hardening
+### Phase 12: Client persistence and sync hardening
 Goal: make edit history more durable on the client and prepare the client/server flow for more reliable real-world use.
 
 Deliverables:
@@ -199,7 +219,7 @@ Exit criteria:
 - replay remains accurate when combining persisted and synced history
 - the local persistence and sync model are documented
 
-### Phase 12: Remote grader
+### Phase 13: Remote grader
 Goal: run hidden tests in an isolated execution environment and return results.
 
 Deliverables:
@@ -214,7 +234,7 @@ Exit criteria:
 - Java support is either included or explicitly deferred
 - grader artifacts and logs are saved for debugging
 
-### Phase 12.5: Load and cost planning
+### Phase 13.5: Load and cost planning
 Goal: understand expected scale, queueing behavior, and likely cost.
 
 Deliverables:
@@ -229,7 +249,7 @@ Exit criteria:
 - can estimate storage growth per term
 - can identify likely bottlenecks and cost drivers
 
-### Phase 13: Admin attempt listing
+### Phase 14: Admin attempt listing
 Goal: allow instructors/admins to view saved attempts.
 
 Deliverables:
@@ -242,7 +262,7 @@ Exit criteria:
 - saved attempts can be found quickly
 - metadata indexing is sufficient for normal class use
 
-### Phase 14: Instructor replay and inspection UI
+### Phase 15: Instructor replay and inspection UI
 Goal: provide draggable playback of student edit history for instructor review.
 
 Deliverables:
@@ -256,7 +276,7 @@ Exit criteria:
 - reconstruction fidelity is trustworthy
 - instructors can inspect suspicious transitions
 
-### Phase 15: User accounts and roster system
+### Phase 16: User accounts and roster system
 Goal: support real student login and class management.
 
 Deliverables:
@@ -269,7 +289,7 @@ Exit criteria:
 - students can log in and access assigned work
 - instructors can manage rosters and exam availability
 
-### Phase 16: Results and instructor dashboards
+### Phase 17: Results and instructor dashboards
 Goal: present grades and replayable attempts together.
 
 Deliverables:
@@ -281,7 +301,7 @@ Deliverables:
 Exit criteria:
 - instructors can see both outcomes and development history in one workflow
 
-### Phase 17: Git-based test management
+### Phase 18: Git-based test management
 Goal: make problem and test authoring manageable and reproducible.
 
 Deliverables:
