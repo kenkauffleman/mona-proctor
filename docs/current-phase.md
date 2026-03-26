@@ -1,89 +1,79 @@
 # Current Phase
 
 ## Active phase
-Phase 7: Local client/backend/Firestore vertical prototype
+Phase 8: Deployment scripts, setup, and Firestore provisioning
 
 ## Goal
-Prove the full local round trip from browser client to backend container to Firestore and back again.
+Validate the human-in-the-loop deployment flow by provisioning the minimum hosted data layer and deployment tooling needed for the project.
 
-This phase should validate that the browser can send recorded history through the backend API, the backend can persist and retrieve it through Firestore, and the replay path can reconstruct the session from backend-loaded data alone.
+This phase is intentionally narrow. The purpose is to prove that the repo can define the infrastructure and scripts needed for a human to provision Firestore in the existing GCP project, without giving the agent live cloud credentials or direct deployment authority.
 
 ## In scope
-- connect the browser client to the backend API
-- send recorded history batches from the recording page through the backend
-- persist and retrieve session history through Firestore
-- load session history back through the backend for replay
-- validate the full local client ↔ backend ↔ Firestore round trip
-- keep the local setup scriptable and repeatable
-- introduce a small persistence abstraction layer so Firestore usage is isolated behind a backend interface
-- use that abstraction layer to improve testing seams and future storage flexibility
+- add Terraform for the existing GCP project
+- provision Firestore in the existing project
+- add setup and deployment scripts for human-run local execution
+- document the human-in-the-loop auth and deployment flow
+- keep the deployment flow aligned with the repo’s deployment safety policy
+- make the provisioning workflow reviewable, scriptable, and repeatable
 
 ## Out of scope
-- hosted deployment
+- Cloud Run deployment
+- static frontend hosting
 - Firebase Auth integration
-- Firestore security rules design
-- final production API design
-- final production Firestore schema design
-- advanced replay controls
-- client-side persistence and crash recovery
+- service account key creation or storage
+- CI/CD automation
+- production IAM hardening beyond what is needed for this validation step
+- hosted app/backend integration
 - grading integration
-- admin or instructor feature work
+- client persistence or replay feature changes
 
 ## Desired qualities
-- simple and understandable API shape
-- deterministic replay from backend-loaded history
-- clear separation between API logic and persistence logic
-- minimal Firestore-specific code outside the persistence layer
-- easy local debugging
-- repeatable local validation workflow
+- explicit and reviewable infrastructure changes
+- human-controlled apply step
+- no secrets or live credentials in the agent environment
+- minimal blast radius
+- simple local operator workflow
+- easy evolution toward later hosted phases
 
 ## Design constraints
-- keep the API intentionally small:
-  - one append-style write path for history batches
-  - one read path for loading a full session for replay
-- keep session metadata separate from uploaded history batches
-- preserve the canonical Monaco content-change payload as much as practical
-- include explicit sequence information so retries and ordering are understandable
-- optimize for correctness, simplicity, inspectability, and easy evolution later
+- target the existing GCP project only
+- do not create a new project
+- do not assume the agent has cloud credentials
+- do not require service account keys in the repo
+- separate planning/validation from applying changes
+- prefer least-privilege and non-public defaults
+- treat budgets, quotas, and deployment safety as first-class concerns where practical
 
-## Persistence abstraction guidance
-- isolate Firestore access behind a small backend abstraction layer
-- define the abstraction around current use cases, not around a speculative generic storage framework
-- keep the abstraction narrow and explicit
-- prefer a small interface such as:
-  - create or update session metadata
-  - append history batch
-  - load session history for replay
-- provide a Firestore-backed implementation for this phase
-- structure code so tests can use a fake or in-memory implementation without requiring Firestore
+## Recommended implementation direction
+- use Terraform for hosted infrastructure definition
+- keep local emulator/developer config separate from Terraform where appropriate
+- use human-run local authentication via ADC for this phase
+- keep scripts explicit and safe by default
+- make `plan` easy and `apply` deliberate
 
 ## Suggested deliverables
-- recording page that sends history through the backend API
-- replay or retrieval path that loads data back through the backend
-- persistence interface or repository layer for session/history storage
-- Firestore-backed implementation of that persistence layer
-- visible end-to-end validation of client ↔ backend ↔ Firestore
-- tests for the local vertical slice and its core logic
-- updated scripts and documentation for repeatable local validation
+- Terraform for the existing GCP project and Firestore provisioning
+- setup scripts for local human-run execution
+- plan/apply-oriented deployment scripts
+- documentation for local auth and deployment steps
+- documentation aligned with `docs/deployment-safety.md`
 
 ## Exit criteria
-- the client can successfully call the backend locally
-- the backend stores and retrieves data through Firestore
-- the full local round trip works end-to-end
-- replay reconstructs from backend-loaded history alone
-- Firestore usage is isolated behind a small persistence abstraction
-- the vertical prototype is scriptable and repeatable in local development
+- the repo contains the Terraform and scripts needed for a human to provision Firestore in the existing GCP project
+- the deployment flow is documented and does not require secrets in the agent environment
+- a human can run the scripts locally and successfully provision Firestore
 
 ## Notes for the agent
 - keep this phase narrowly scoped
-- do not overdesign the final production API
-- do not add auth, submission/grading, or unrelated infrastructure concerns
-- do not turn the persistence abstraction into a large framework
-- prioritize replay correctness, retry tolerance, and inspectability
-- structure the code so the persistence boundary is easy to test independently from the page-level UI
+- do not start Cloud Run deployment yet
+- do not start frontend hosting yet
+- do not add Firebase Auth setup yet unless it is strictly required for Firestore provisioning
+- do not assume service account keys or console-driven setup
+- prioritize clarity, safety, and repeatability over convenience shortcuts
+- if a bootstrap/manual prerequisite is unavoidable, document it clearly and keep it minimal
 
 ## Handoff to the next phase
 At the end of this phase, the codebase should make it easy to:
-- validate the hosted deployment of the same vertical slice
-- swap or extend the persistence implementation later if needed
-- continue toward client persistence and sync hardening
+- add Cloud Run deployment through the same human-in-the-loop workflow
+- keep infrastructure changes repo-managed and reviewable
+- expand the hosted stack without redesigning the deployment approach
