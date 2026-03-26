@@ -11,8 +11,8 @@ type DeployConfig = {
 
 function parseArgs(argv: string[]): DeployConfig {
   const config: Partial<DeployConfig> = {
-    projectId: process.env.CLOUDRUN_PROJECT_ID,
-    region: process.env.CLOUDRUN_REGION,
+    projectId: process.env.DEPLOY_PROJECT_ID,
+    region: process.env.DEPLOY_REGION,
     serviceName: process.env.CLOUDRUN_SERVICE_NAME ?? 'mona-proctor-backend',
   }
 

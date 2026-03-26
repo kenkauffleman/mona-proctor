@@ -132,82 +132,14 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 
 ## Wave 8 deployment scripts
 
-### `npm run deploy:firestore:check`
-- Checks that `terraform` and `gcloud` are installed locally.
-- Confirms that Application Default Credentials are available through `gcloud`.
-- Use this first on the human operator's machine before any Terraform command.
-
-### `npm run deploy:firestore:init -- --project ... --location ...`
-- Runs `terraform init` for the Wave 8 Firestore Terraform root.
-- Prints the target project and Firestore location before doing any work.
-- The deploy scripts also auto-load `.env.firestore` if present, so the flags are optional once that file is filled in.
-
-### `npm run deploy:firestore:validate -- --project ... --location ...`
-- Runs `terraform fmt -check`, `terraform init`, and `terraform validate`.
-- This is the preferred repeatable validation command before planning changes.
-- The deploy scripts also auto-load `.env.firestore` if present, so the flags are optional once that file is filled in.
-
-### `npm run deploy:firestore:plan -- --project ... --location ...`
-- Runs `terraform plan` for the existing project and writes a saved plan file to `infra/terraform/firestore/firestore.tfplan`.
-- Use this for the reviewable human-in-the-loop plan step.
-- The deploy scripts also auto-load `.env.firestore` if present, so the flags are optional once that file is filled in.
-
-### `npm run deploy:firestore:apply -- --project ... --location ...`
-- Applies the previously saved Terraform plan file only after an explicit `APPLY` confirmation.
-- This is intentionally separate from `plan` and does not auto-plan for you.
-- The deploy scripts also auto-load `.env.firestore` if present, so the flags are optional once that file is filled in.
-
-### `npm run deploy:firestore:config-check`
-- Runs a small repo-side check that the Terraform config still references the shared [`firestore.rules`](/workspaces/mona-proctor/firestore.rules) file and the expected Firestore resources.
-- Use this as a lightweight regression check when editing the Wave 8 infrastructure config.
-
 ## Wave 9 deployment scripts
 
 ### `npm run deploy -- <target> <action>`
 - Unified deploy entrypoint for repo-managed infrastructure workflows.
 - Preferred operator path for both Firestore and Cloud Run.
 - Automatically loads `.env.deploy` when present.
-
-### `npm run deploy:cloudrun:check`
-- Checks that `terraform` and `gcloud` are installed locally.
-- Confirms that Application Default Credentials are available through `gcloud`.
-- Use this first on the human operator's machine before any Wave 9 Terraform command.
-
-### `npm run deploy:cloudrun:init -- --project ... --region ... --image ... --invoker ...`
-- Runs `terraform init` for the Wave 9 Cloud Run backend Terraform root.
-- Prints the target project, region, service name, image, and private invoker principal before doing any work.
-- The deploy scripts auto-load `.env.deploy` if present, so the flags are optional once that file is filled in.
-
-### `npm run deploy:cloudrun:build`
-- Builds and pushes the backend container image with `gcloud builds submit --tag ...`.
-- Uses the container image URI from `.env.deploy` or the explicit `--image` flag.
-- Run this before `plan` and `apply` when you want the deployed revision to match the current repo state.
-
-### `npm run deploy:cloudrun:validate -- --project ... --region ... --image ... --invoker ...`
-- Runs `terraform fmt -check`, `terraform init`, and `terraform validate`.
-- This is the preferred repeatable validation command before planning Cloud Run changes.
-- The deploy scripts auto-load `.env.deploy` if present, so the flags are optional once that file is filled in.
-
-### `npm run deploy:cloudrun:plan -- --project ... --region ... --image ... --invoker ...`
-- Runs `terraform plan` for the Cloud Run backend root and writes a saved plan file to `infra/terraform/cloud-run-backend/cloud-run-backend.tfplan`.
-- Use this for the reviewable human-in-the-loop plan step.
-- The deploy scripts auto-load `.env.deploy` if present, so the flags are optional once that file is filled in.
-
-### `npm run deploy:cloudrun:apply -- --project ... --region ... --image ... --invoker ...`
-- Applies the previously saved Terraform plan file only after an explicit `APPLY` confirmation.
-- This is intentionally separate from `plan` and does not auto-plan for you.
-- The deploy scripts auto-load `.env.deploy` if present, so the flags are optional once that file is filled in.
-
-### `npm run deploy:cloudrun:validation-commands -- --project ... --region ... --image ... --invoker ...`
-- Prints the human-usable private validation commands for the deployed Cloud Run service.
-- Includes both a `gcloud run services proxy` workflow and a `curl` workflow using `gcloud auth print-identity-token`.
-- Use this after deploy when you want a copy-paste validation path without making the service public.
-
-### `npm run deploy:cloudrun:validate-private`
-- Uses `gcloud` to discover the private service URL and obtain an identity token.
-- Appends two history batches through the private Cloud Run service, then loads the session back through the same service.
-- Verifies the returned events reconstruct the expected final source, which gives a human-usable Cloud Run ↔ Firestore validation path beyond a simple health check.
-
-### `npm run deploy:cloudrun:config-check`
-- Runs a small repo-side check that the Cloud Run Terraform config still uses a private invoker binding and does not grant public access.
-- Use this as a lightweight regression check when editing the Wave 9 infrastructure config.
+- Shared env keys are `DEPLOY_PROJECT_ID` and `DEPLOY_REGION`, with service-specific additions only where needed.
+- Firestore actions are `check`, `init`, `validate`, `plan`, and `apply`.
+- Cloud Run actions are `check`, `init`, `build`, `validate`, `plan`, `apply`, `validation-commands`, and `validate-private`.
+- `npm run deploy -- cloudrun build` builds and pushes the backend image through Cloud Build.
+- `npm run deploy -- cloudrun validate-private` performs a private Cloud Run → Firestore → Cloud Run history round-trip using `gcloud` and an identity token.

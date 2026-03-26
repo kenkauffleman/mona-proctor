@@ -7,13 +7,12 @@ source "$(dirname "$0")/common.sh"
 readonly FIRESTORE_TERRAFORM_DIR="infra/terraform/firestore"
 readonly FIRESTORE_PLAN_BASENAME="firestore.tfplan"
 readonly FIRESTORE_PLAN_FILE="${FIRESTORE_TERRAFORM_DIR}/firestore.tfplan"
-readonly FIRESTORE_ENV_FILE_DEFAULT=".env.firestore"
 
 print_usage() {
   cat <<'EOF'
 Usage:
   --project <existing-project-id>
-  --location <firestore-location>
+  --region <shared-region>
 
 Optional:
   --database <database-name>    Defaults to (default)
@@ -22,20 +21,13 @@ EOF
 
 load_firestore_env_file() {
   load_shared_deploy_env_file
-
-  local env_file="${FIRESTORE_DEPLOY_ENV_FILE:-${FIRESTORE_ENV_FILE_DEFAULT}}"
-
-  if [[ -f "${env_file}" ]]; then
-    # shellcheck disable=SC1090
-    source "${env_file}"
-  fi
 }
 
 load_firestore_args() {
   load_firestore_env_file
 
-  FIRESTORE_PROJECT_ID="${FIRESTORE_PROJECT_ID:-}"
-  FIRESTORE_LOCATION="${FIRESTORE_LOCATION:-}"
+  FIRESTORE_PROJECT_ID="${DEPLOY_PROJECT_ID:-}"
+  FIRESTORE_LOCATION="${DEPLOY_REGION:-}"
   FIRESTORE_DATABASE_NAME="${FIRESTORE_DATABASE_NAME:-"(default)"}"
 
   while [[ $# -gt 0 ]]; do
@@ -44,7 +36,7 @@ load_firestore_args() {
         FIRESTORE_PROJECT_ID="${2:-}"
         shift 2
         ;;
-      --location)
+      --location|--region)
         FIRESTORE_LOCATION="${2:-}"
         shift 2
         ;;
@@ -65,7 +57,7 @@ load_firestore_args() {
   done
 
   if [[ -z "${FIRESTORE_PROJECT_ID}" || -z "${FIRESTORE_LOCATION}" ]]; then
-    echo "Both --project and --location are required." >&2
+    echo "Both --project and --region are required." >&2
     print_usage >&2
     exit 1
   fi

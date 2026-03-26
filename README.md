@@ -109,10 +109,10 @@ Wave 8 keeps cloud changes human-controlled and follows [`docs/deployment-safety
 From a trusted local machine with `terraform` and `gcloud` installed:
 
 ```bash
-npm run deploy:firestore:check
-npm run deploy:firestore:validate -- --project YOUR_PROJECT_ID --location FIRESTORE_LOCATION
-npm run deploy:firestore:plan -- --project YOUR_PROJECT_ID --location FIRESTORE_LOCATION
-npm run deploy:firestore:apply -- --project YOUR_PROJECT_ID --location FIRESTORE_LOCATION
+npm run deploy -- firestore check
+npm run deploy -- firestore validate
+npm run deploy -- firestore plan
+npm run deploy -- firestore apply
 ```
 
 Terraform uses local Application Default Credentials from the human operator's machine. No cloud secrets, service account keys, or live credentials are required in the repo or agent environment.
@@ -159,22 +159,11 @@ See [docs/cloud-run-backend-deployment.md](./docs/cloud-run-backend-deployment.m
 - `npm run emulator:firestore` starts the local Firestore emulator and Emulator UI
 - `npm run emulator:firestore:check` runs the emulator-backed read/write sanity check
 - `npm run emulator:firestore:manualcheck` runs the same sanity check, prints the fetched document, and keeps the emulator UI running
-- `npm run deploy:firestore:check` checks Terraform and local ADC prerequisites for Wave 8
-- `npm run deploy:firestore:init -- --project ... --location ...` initializes the Wave 8 Terraform root
-- `npm run deploy:firestore:validate -- --project ... --location ...` runs `fmt`, `init`, and `validate`
-- `npm run deploy:firestore:plan -- --project ... --location ...` writes a reviewable Terraform plan for hosted Firestore provisioning
-- `npm run deploy:firestore:apply -- --project ... --location ...` applies the reviewed Terraform plan after explicit confirmation
-- `npm run deploy:firestore:config-check` verifies that the Terraform config still reuses the repo-managed `firestore.rules` file
 - `npm run deploy -- <target> <action>` is the unified deploy entrypoint for Firestore and Cloud Run workflows
-- `npm run deploy:cloudrun:check` checks Terraform and local ADC prerequisites for Wave 9 Cloud Run deployment
-- `npm run deploy:cloudrun:init -- --project ... --region ... --image ... --invoker ...` initializes the Wave 9 Terraform root
-- `npm run deploy:cloudrun:build` builds and pushes the backend container image with Cloud Build
-- `npm run deploy:cloudrun:validate -- --project ... --region ... --image ... --invoker ...` runs `fmt`, `init`, and `validate` for the Cloud Run backend root
-- `npm run deploy:cloudrun:plan -- --project ... --region ... --image ... --invoker ...` writes a reviewable Terraform plan for private Cloud Run backend deployment
-- `npm run deploy:cloudrun:apply -- --project ... --region ... --image ... --invoker ...` applies the reviewed Cloud Run plan after explicit confirmation
-- `npm run deploy:cloudrun:validation-commands -- --project ... --region ... --image ... --invoker ...` prints private-service validation commands for the deployed backend
-- `npm run deploy:cloudrun:validate-private` exercises the private Cloud Run history API and confirms the session round-trip through Firestore
-- `npm run deploy:cloudrun:config-check` verifies that the Wave 9 Terraform config keeps the service private by default
+- `npm run deploy -- firestore check|init|validate|plan|apply` manages the hosted Firestore Terraform flow
+- `npm run deploy -- cloudrun check|init|build|validate|plan|apply` manages the private Cloud Run backend deployment flow
+- `npm run deploy -- cloudrun validation-commands` prints private-service validation commands for the deployed backend
+- `npm run deploy -- cloudrun validate-private` exercises the private Cloud Run history API and confirms the session round-trip through Firestore
 - `npm run build` creates a production build
 - `npm run typecheck` runs TypeScript project checks
 - `npm test` runs the test suite

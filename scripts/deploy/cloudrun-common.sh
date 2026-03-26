@@ -7,13 +7,12 @@ source "$(dirname "$0")/common.sh"
 readonly CLOUDRUN_TERRAFORM_DIR="infra/terraform/cloud-run-backend"
 readonly CLOUDRUN_PLAN_BASENAME="cloud-run-backend.tfplan"
 readonly CLOUDRUN_PLAN_FILE="${CLOUDRUN_TERRAFORM_DIR}/${CLOUDRUN_PLAN_BASENAME}"
-readonly CLOUDRUN_ENV_FILE_DEFAULT=".env.cloudrun"
 
 print_cloudrun_usage() {
   cat <<'EOF'
 Usage:
   --project <existing-project-id>
-  --region <cloud-run-region>
+  --region <shared-region>
   --image <container-image-uri>
   --invoker <member>
 
@@ -24,20 +23,13 @@ EOF
 
 load_cloudrun_env_file() {
   load_shared_deploy_env_file
-
-  local env_file="${CLOUDRUN_DEPLOY_ENV_FILE:-${CLOUDRUN_ENV_FILE_DEFAULT}}"
-
-  if [[ -f "${env_file}" ]]; then
-    # shellcheck disable=SC1090
-    source "${env_file}"
-  fi
 }
 
 load_cloudrun_args() {
   load_cloudrun_env_file
 
-  CLOUDRUN_PROJECT_ID="${CLOUDRUN_PROJECT_ID:-}"
-  CLOUDRUN_REGION="${CLOUDRUN_REGION:-}"
+  CLOUDRUN_PROJECT_ID="${DEPLOY_PROJECT_ID:-}"
+  CLOUDRUN_REGION="${DEPLOY_REGION:-}"
   CLOUDRUN_SERVICE_NAME="${CLOUDRUN_SERVICE_NAME:-mona-proctor-backend}"
   CLOUDRUN_CONTAINER_IMAGE="${CLOUDRUN_CONTAINER_IMAGE:-}"
   CLOUDRUN_INVOKER_PRINCIPAL="${CLOUDRUN_INVOKER_PRINCIPAL:-}"

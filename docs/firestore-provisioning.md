@@ -17,19 +17,19 @@ This wave does not create a new GCP project, deploy Cloud Run, or host the front
 
 The agent environment does not need live cloud credentials, service account keys, or secrets.
 
-## Optional local operator config
-If you do not want to repeat the project id and Firestore location on every command, create a local config file:
+## Shared local operator config
+If you do not want to repeat the project id and shared region on every command, create a local config file:
 
 ```bash
-cp .env.firestore.example .env.firestore
+cp .env.deploy.example .env.deploy
 ```
 
 Then fill in:
-- `FIRESTORE_PROJECT_ID`
-- `FIRESTORE_LOCATION`
+- `DEPLOY_PROJECT_ID`
+- `DEPLOY_REGION`
 - optionally `FIRESTORE_DATABASE_NAME` if you ever need a non-default override
 
-The Wave 8 deploy scripts automatically load `.env.firestore` when present.
+The deploy scripts automatically load `.env.deploy` when present.
 Explicit CLI flags still win, so you can override the file for one-off runs.
 
 ## Authentication flow
@@ -46,31 +46,31 @@ Terraform uses Application Default Credentials from the human operator's machine
 1. Check prerequisites:
 
 ```bash
-npm run deploy:firestore:check
+npm run deploy -- firestore check
 ```
 
-2. Validate the Terraform root for your target project and Firestore location:
+2. Validate the Terraform root for your target project and shared region:
 
 ```bash
-npm run deploy:firestore:validate
+npm run deploy -- firestore validate
 ```
 
 Or, if you prefer explicit flags:
 
 ```bash
-npm run deploy:firestore:validate -- --project YOUR_PROJECT_ID --location FIRESTORE_LOCATION
+npm run deploy -- firestore validate -- --project YOUR_PROJECT_ID --region SHARED_REGION
 ```
 
 3. Create a reviewable plan file:
 
 ```bash
-npm run deploy:firestore:plan
+npm run deploy -- firestore plan
 ```
 
 Or, with explicit flags:
 
 ```bash
-npm run deploy:firestore:plan -- --project YOUR_PROJECT_ID --location FIRESTORE_LOCATION
+npm run deploy -- firestore plan -- --project YOUR_PROJECT_ID --region SHARED_REGION
 ```
 
 4. Review the plan output carefully. Confirm that it only targets the existing project and the expected Firestore resources.
@@ -78,13 +78,13 @@ npm run deploy:firestore:plan -- --project YOUR_PROJECT_ID --location FIRESTORE_
 5. Apply the exact reviewed plan deliberately:
 
 ```bash
-npm run deploy:firestore:apply
+npm run deploy -- firestore apply
 ```
 
 Or, with explicit flags:
 
 ```bash
-npm run deploy:firestore:apply -- --project YOUR_PROJECT_ID --location FIRESTORE_LOCATION
+npm run deploy -- firestore apply -- --project YOUR_PROJECT_ID --region SHARED_REGION
 ```
 
 The apply script requires an explicit `APPLY` confirmation and reuses the saved plan file instead of replanning.

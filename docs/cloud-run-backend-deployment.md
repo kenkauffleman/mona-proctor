@@ -28,17 +28,14 @@ cp .env.deploy.example .env.deploy
 ```
 
 Then fill in:
-- `FIRESTORE_PROJECT_ID`
-- `FIRESTORE_LOCATION`
+- `DEPLOY_PROJECT_ID`
+- `DEPLOY_REGION`
 - `FIRESTORE_DATABASE_NAME`
-- `CLOUDRUN_PROJECT_ID`
-- `CLOUDRUN_REGION`
 - `CLOUDRUN_SERVICE_NAME`
 - `CLOUDRUN_CONTAINER_IMAGE`
 - `CLOUDRUN_INVOKER_PRINCIPAL`
 
 The deploy scripts automatically load `.env.deploy` when present.
-They still support the older service-specific env files, but `.env.deploy` is now the preferred operator workflow.
 Explicit CLI flags still win, so you can override the file for one-off runs.
 
 ## Authentication flow
@@ -136,7 +133,7 @@ That validation script:
 Start a local proxy:
 
 ```bash
-gcloud run services proxy mona-proctor-backend --project YOUR_PROJECT_ID --region CLOUD_RUN_REGION --port 8080
+gcloud run services proxy mona-proctor-backend --project YOUR_PROJECT_ID --region SHARED_REGION --port 8080
 ```
 
 Then call the private service locally:
@@ -155,7 +152,7 @@ Expected response shape includes:
 Fetch the service URL:
 
 ```bash
-SERVICE_URL="$(gcloud run services describe mona-proctor-backend --project YOUR_PROJECT_ID --region CLOUD_RUN_REGION --format='value(status.url)')"
+SERVICE_URL="$(gcloud run services describe mona-proctor-backend --project YOUR_PROJECT_ID --region SHARED_REGION --format='value(status.url)')"
 ```
 
 Invoke with an identity token:
