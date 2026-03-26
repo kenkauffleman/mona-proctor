@@ -9,7 +9,7 @@ load_shared_deploy_env_file
 print_usage() {
   cat <<'EOF'
 Usage:
-  bash scripts/deploy/manage.sh <build|validate|plan|deploy> [flags]
+  bash scripts/deploy/manage.sh <adopt|build|validate|plan|deploy> [flags]
 EOF
 }
 
@@ -23,6 +23,9 @@ fi
 shift 1
 
 case "${action}" in
+  adopt)
+    exec bash "${script_dir}/hosted-adopt.sh" "$@"
+    ;;
   build)
     exec bash "${script_dir}/hosted-build.sh" "$@"
     ;;

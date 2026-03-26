@@ -12,6 +12,11 @@ variable "firestore_database_name" {
   description = "Firestore database name. Keep the default database for this phase."
   type        = string
   default     = "(default)"
+
+  validation {
+    condition     = var.firestore_database_name == "(default)"
+    error_message = "Wave 9 only supports the default Firestore database named (default)."
+  }
 }
 
 variable "cloud_run_service_name" {

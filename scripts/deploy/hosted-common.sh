@@ -106,6 +106,14 @@ load_hosted_args() {
     exit 1
   fi
 
+  if [[ "${HOSTED_FIRESTORE_DATABASE_NAME}" != "(default)" ]]; then
+    cat >&2 <<'EOF'
+Wave 9 only supports the default Firestore database named (default).
+Set FIRESTORE_DATABASE_NAME="(default)" in your env file before running hosted deploy commands.
+EOF
+    exit 1
+  fi
+
   HOSTED_CONTAINER_IMAGE="${HOSTED_REGION}-docker.pkg.dev/${HOSTED_PROJECT_ID}/${HOSTED_ARTIFACT_REPOSITORY}/${HOSTED_IMAGE_NAME}:${HOSTED_IMAGE_TAG}"
   HOSTED_TFVARS_FILE="${HOSTED_ENVIRONMENTS_DIR}/${DEPLOY_ENVIRONMENT_NAME}.tfvars"
 }
@@ -146,6 +154,66 @@ append_terraform_hosted_var_args() {
   done < <(terraform_hosted_var_args)
 }
 
+terraform_state_has_resource() {
+  local address="$1"
+  terraform -chdir="${HOSTED_TERRAFORM_DIR}" state show "${address}" >/dev/null 2>&1
+}
+
+reconcile_firestore_state() {
+  local terraform_args=()
+  append_terraform_hosted_var_args
+
+  local database_address="module.firestore.google_firestore_database.default"
+  local release_address="module.firestore.google_firebaserules_release.firestore"
+  local firebase_project_address="module.firestore.google_firebase_project.project"
+  local firestore_services=(
+    "firebase.googleapis.com"
+    "firestore.googleapis.com"
+    "firebaserules.googleapis.com"
+  )
+
+  echo "Reconciling existing Firestore resources into hosted Terraform state when needed..."
+
+  for service in "${firestore_services[@]}"; do
+    local service_address="module.firestore.google_project_service.required[\"${service}\"]"
+    if ! terraform_state_has_resource "${service_address}"; then
+      terraform -chdir="${HOSTED_TERRAFORM_DIR}" import "${terraform_args[@]}" \
+        "${service_address}" \
+        "projects/${HOSTED_PROJECT_ID}/services/${service}" >/dev/null 2>&1 || true
+    fi
+  done
+
+  if ! terraform_state_has_resource "${firebase_project_address}"; then
+    terraform -chdir="${HOSTED_TERRAFORM_DIR}" import "${terraform_args[@]}" \
+      "${firebase_project_address}" \
+      "${HOSTED_PROJECT_ID}" >/dev/null 2>&1 || true
+  fi
+
+  if terraform_state_has_resource "${database_address}"; then
+    if ! terraform -chdir="${HOSTED_TERRAFORM_DIR}" state show "${database_address}" | grep -F 'name = "(default)"' >/dev/null 2>&1; then
+      terraform -chdir="${HOSTED_TERRAFORM_DIR}" state rm "${database_address}" >/dev/null 2>&1 || true
+    fi
+  fi
+
+  if ! terraform_state_has_resource "${database_address}"; then
+    terraform -chdir="${HOSTED_TERRAFORM_DIR}" import "${terraform_args[@]}" \
+      "${database_address}" \
+      "(default)" >/dev/null 2>&1 || true
+  fi
+
+  if terraform_state_has_resource "${release_address}"; then
+    if ! terraform -chdir="${HOSTED_TERRAFORM_DIR}" state show "${release_address}" | grep -F 'name = "cloud.firestore"' >/dev/null 2>&1; then
+      terraform -chdir="${HOSTED_TERRAFORM_DIR}" state rm "${release_address}" >/dev/null 2>&1 || true
+    fi
+  fi
+
+  if ! terraform_state_has_resource "${release_address}"; then
+    terraform -chdir="${HOSTED_TERRAFORM_DIR}" import "${terraform_args[@]}" \
+      "${release_address}" \
+      "projects/${HOSTED_PROJECT_ID}/releases/cloud.firestore" >/dev/null 2>&1 || true
+  fi
+}
+
 check_hosted_cloud_prereqs() {
   require_command gcloud
   require_command terraform
@@ -169,7 +237,7 @@ build_and_push_hosted_backend_image() {
   check_hosted_cloud_prereqs
 
   print_hosted_target_summary
-  echo "Bootstrapping required APIs and Artifact Registry repository..."
+  echo "Bootstrapping required Cloud Run APIs and Artifact Registry repository..."
 
   local terraform_args=()
   append_terraform_hosted_var_args
@@ -177,7 +245,6 @@ build_and_push_hosted_backend_image() {
   terraform -chdir="${HOSTED_TERRAFORM_DIR}" apply \
     -input=false \
     -auto-approve \
-    -target="module.firestore.google_project_service.required" \
     -target="module.cloud_run_backend.google_project_service.required" \
     -target="module.cloud_run_backend.google_artifact_registry_repository.backend_images" \
     "${terraform_args[@]}"

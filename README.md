@@ -116,6 +116,7 @@ cp .env.deploy.prod.example .env.deploy.prod
 Then, from a trusted local machine with `terraform` and `gcloud` installed:
 
 ```bash
+npm run deploy -- adopt --env test
 npm run deploy -- build --env test
 npm run deploy -- validate --env test
 npm run deploy -- plan --env test
@@ -125,6 +126,8 @@ npm run deploy -- deploy --env test
 Terraform uses local Application Default Credentials from the human operator's machine. No cloud secrets, service account keys, or live credentials are required in the repo or agent environment.
 
 The service stays non-public by default. The deploy step finishes with a private Cloud Run round-trip validation through Firestore.
+
+Keep `FIRESTORE_DATABASE_NAME="(default)"` for this phase. If your project was already provisioned with the older split Terraform roots, run `npm run deploy -- adopt --env <name>` once before the normal hosted flow.
 
 See [docs/hosted-deployment.md](./docs/hosted-deployment.md) for the full runbook.
 
@@ -143,6 +146,7 @@ See [docs/hosted-deployment.md](./docs/hosted-deployment.md) for the full runboo
 - `npm run emulator:firestore` starts the local Firestore emulator and Emulator UI
 - `npm run emulator:firestore:check` runs the emulator-backed read/write sanity check
 - `npm run emulator:firestore:manualcheck` runs the same sanity check, prints the fetched document, and keeps the emulator UI running
+- `npm run deploy -- adopt --env <name>` imports existing Firestore resources into the unified hosted Terraform state one time during migration
 - `npm run deploy -- build --env <name>` bootstraps hosted prerequisites, then builds and pushes the backend image
 - `npm run deploy -- validate --env <name>` runs repo checks plus hosted Terraform validation
 - `npm run deploy -- plan --env <name>` writes one reviewable Terraform plan for the whole hosted slice

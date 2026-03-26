@@ -26,10 +26,19 @@ The checked-in Terraform environment files live at:
 
 The deploy scripts always target the single hosted Terraform root and then override the checked-in tfvars values with your local env file values.
 
+For this phase, keep:
+
+```bash
+FIRESTORE_DATABASE_NAME="(default)"
+```
+
+The hosted workflow does not support switching to another Firestore database name during Wave 9.
+
 ## Required commands
 From a trusted local machine with `terraform` and `gcloud` installed:
 
 ```bash
+npm run deploy -- adopt --env test
 npm run deploy -- build --env test
 npm run deploy -- validate --env test
 npm run deploy -- plan --env test
@@ -40,9 +49,14 @@ Swap `test` for `prod` when you want the production environment.
 
 ## What each command does
 
+### `npm run deploy -- adopt --env <name>`
+- checks that local Application Default Credentials are ready
+- imports existing Firestore resources from the old split Terraform setup into the new unified hosted Terraform state
+- is a one-time migration step per environment, not part of the normal steady-state deploy loop
+
 ### `npm run deploy -- build --env <name>`
 - loads the selected local env file
-- bootstraps required APIs and Artifact Registry through Terraform
+- bootstraps Cloud Run-side APIs and Artifact Registry through Terraform
 - builds the backend image from `backend/Dockerfile`
 - pushes the image to the Terraform-managed Artifact Registry repository
 
