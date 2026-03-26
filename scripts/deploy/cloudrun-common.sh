@@ -84,11 +84,54 @@ print_cloudrun_target_summary() {
   echo "Terraform root: ${CLOUDRUN_TERRAFORM_DIR}"
 }
 
+warn_if_cloudrun_image_project_differs() {
+  local image_project=""
+
+  if [[ "${CLOUDRUN_CONTAINER_IMAGE}" =~ ^[^/]+/([^/]+)/ ]]; then
+    image_project="${BASH_REMATCH[1]}"
+  fi
+
+  if [[ -n "${image_project}" && "${image_project}" != "${CLOUDRUN_PROJECT_ID}" ]]; then
+    cat >&2 <<EOF
+Warning: DEPLOY_PROJECT_ID and CLOUDRUN_CONTAINER_IMAGE do not point at the same project.
+  DEPLOY_PROJECT_ID: ${CLOUDRUN_PROJECT_ID}
+  image project:     ${image_project}
+
+If this is intentional, you can continue.
+If not, fix .env.deploy before running plan/apply.
+EOF
+  fi
+}
+
 build_and_push_cloudrun_image() {
   require_command gcloud
 
   print_cloudrun_target_summary
+  warn_if_cloudrun_image_project_differs
   echo "Building and pushing backend image with Cloud Build..."
 
-  gcloud builds submit --tag "${CLOUDRUN_CONTAINER_IMAGE}"
+  local build_config
+  build_config="$(mktemp)"
+  trap 'rm -f "${build_config}"' EXIT
+
+  cat > "${build_config}" <<EOF
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - backend/Dockerfile
+      - -t
+      - ${CLOUDRUN_CONTAINER_IMAGE}
+      - .
+images:
+  - ${CLOUDRUN_CONTAINER_IMAGE}
+EOF
+
+  gcloud builds submit \
+    --project="${CLOUDRUN_PROJECT_ID}" \
+    --config="${build_config}" \
+    .
+  trap - EXIT
+  rm -f "${build_config}"
 }
