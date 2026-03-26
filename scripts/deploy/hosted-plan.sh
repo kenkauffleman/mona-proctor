@@ -14,7 +14,8 @@ if [[ -f "${HOSTED_TFVARS_FILE}" ]]; then
   echo "Using checked-in environment tfvars from ${HOSTED_TFVARS_FILE}"
 fi
 
-mapfile -t terraform_args < <(terraform_hosted_var_args)
+terraform_args=()
+append_terraform_hosted_var_args
 
 terraform -chdir="${HOSTED_TERRAFORM_DIR}" init -input=false
 terraform -chdir="${HOSTED_TERRAFORM_DIR}" plan \

@@ -136,6 +136,16 @@ terraform_hosted_var_args() {
     "-var=cloud_run_invoker_principal=${HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL}"
 }
 
+append_terraform_hosted_var_args() {
+  local line
+
+  while IFS= read -r line; do
+    if [[ -n "${line}" ]]; then
+      terraform_args+=("${line}")
+    fi
+  done < <(terraform_hosted_var_args)
+}
+
 check_hosted_cloud_prereqs() {
   require_command gcloud
   require_command terraform
@@ -161,7 +171,8 @@ build_and_push_hosted_backend_image() {
   print_hosted_target_summary
   echo "Bootstrapping required APIs and Artifact Registry repository..."
 
-  mapfile -t terraform_args < <(terraform_hosted_var_args)
+  local terraform_args=()
+  append_terraform_hosted_var_args
   terraform -chdir="${HOSTED_TERRAFORM_DIR}" init -input=false
   terraform -chdir="${HOSTED_TERRAFORM_DIR}" apply \
     -input=false \
