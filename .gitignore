@@ -119,6 +119,12 @@ dist
 # Firebase cache directory
 .firebase/
 
+# Terraform local state and plans
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+
 # TernJS port file
 .tern-port
 

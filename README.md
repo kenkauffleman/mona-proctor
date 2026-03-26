@@ -1,18 +1,15 @@
 # mona-proctor
 
-Wave 6 is focused on validating a small backend API seam against the local Firestore emulator before wiring in the real frontend flow.
+Wave 8 is focused on human-run deployment setup for the existing GCP project: repo-managed Terraform, explicit operator scripts, and Firestore provisioning without giving the agent live cloud credentials.
 
 The repo currently provides:
 
-- a recording page backed by Monaco content-change events
-- a client-generated UUID for each recording session
-- periodic history batch uploads to a local backend API
-- SQLite-backed session history storage
-- a replay page that loads history by UUID and reconstructs the final source
-- deterministic timed replay from backend-loaded history
-- a local Firestore emulator setup for early datastore validation
-- a minimal TypeScript backend validation service for container-to-emulator checks
-- a simple HTTP validation endpoint that can be exercised without the frontend
+- Monaco-based recording and replay pages for browser history capture
+- a local browser ↔ backend ↔ Firestore vertical prototype from Wave 7
+- local Firestore emulator workflows and validation scripts
+- a TypeScript backend history API with Firestore-backed persistence
+- backend container validation scripts aligned with a future Cloud Run shape
+- Wave 8 Terraform and local operator scripts for hosted Firestore provisioning in an existing GCP project
 
 ## Run locally
 
@@ -21,7 +18,7 @@ npm install
 npm run dev
 ```
 
-`npm run dev` starts both the Vite frontend and the local history API backend. The frontend binds to `0.0.0.0`, which works well in Codespaces or other remote container environments, and proxies `/api` requests to the backend on port `3001`.
+`npm run dev` starts both the Vite frontend and the local history API backend. The frontend binds to `0.0.0.0`, which works well in Codespaces or other remote container environments.
 
 ## Firestore emulator
 
@@ -45,7 +42,7 @@ npm run emulator:firestore:manualcheck
 
 These Phase 4-style scripts validate the emulator directly and do not involve the backend container.
 
-## Backend API seam validation
+## Wave 7 local vertical-slice validation
 
 Start the Firestore emulator:
 
@@ -53,7 +50,7 @@ Start the Firestore emulator:
 npm run emulator:firestore
 ```
 
-Start the lightweight backend directly:
+Start the backend directly:
 
 ```bash
 npm run backend:dev
@@ -61,7 +58,7 @@ npm run backend:dev
 
 This direct-run backend script is preconfigured for local emulator use and sets `FIRESTORE_EMULATOR_HOST=127.0.0.1:8080`.
 
-Exercise the validation endpoint without the frontend:
+Exercise the backend history API without the frontend:
 
 ```bash
 npm run backend:api:exercise
@@ -70,19 +67,10 @@ npm run backend:api:exercise
 The endpoint is:
 
 ```text
-POST /api/firestore/validation
+POST /api/history/sessions/:sessionId/batches
 ```
 
-Example request body:
-
-```json
-{
-  "runId": "wave-6-smoke-test",
-  "note": "Local backend API seam validation."
-}
-```
-
-The endpoint writes that validation run to Firestore, reads the same document back, and returns the stored payload. Validation runs are stored in the `backendApiValidationRuns` collection using the provided `runId` as the document id, which makes inspection in the emulator UI straightforward.
+The exercise script appends a tiny history batch to a generated session id and then loads that session back through `GET /api/history/sessions/:sessionId`.
 
 To run the repeatable local workflow that starts the emulator, boots the backend, calls the endpoint, verifies the round trip, and shuts everything down:
 
@@ -113,6 +101,23 @@ npm run backend:container:validate
 
 The container scripts require a local Docker-compatible runtime to be available.
 
+## Wave 8 hosted Firestore provisioning
+
+Wave 8 keeps cloud changes human-controlled and follows [`docs/deployment-safety.md`](./docs/deployment-safety.md).
+
+From a trusted local machine with `terraform` and `gcloud` installed:
+
+```bash
+npm run deploy:firestore:check
+npm run deploy:firestore:validate -- --project YOUR_PROJECT_ID --location FIRESTORE_LOCATION
+npm run deploy:firestore:plan -- --project YOUR_PROJECT_ID --location FIRESTORE_LOCATION
+npm run deploy:firestore:apply -- --project YOUR_PROJECT_ID --location FIRESTORE_LOCATION
+```
+
+Terraform uses local Application Default Credentials from the human operator's machine. No cloud secrets, service account keys, or live credentials are required in the repo or agent environment.
+
+See [docs/firestore-provisioning.md](./docs/firestore-provisioning.md) for the full runbook.
+
 ## Available scripts
 
 - `npm run dev` starts the frontend and backend together
@@ -128,24 +133,27 @@ The container scripts require a local Docker-compatible runtime to be available.
 - `npm run emulator:firestore` starts the local Firestore emulator and Emulator UI
 - `npm run emulator:firestore:check` runs the emulator-backed read/write sanity check
 - `npm run emulator:firestore:manualcheck` runs the same sanity check, prints the fetched document, and keeps the emulator UI running
+- `npm run deploy:firestore:check` checks Terraform and local ADC prerequisites for Wave 8
+- `npm run deploy:firestore:init -- --project ... --location ...` initializes the Wave 8 Terraform root
+- `npm run deploy:firestore:validate -- --project ... --location ...` runs `fmt`, `init`, and `validate`
+- `npm run deploy:firestore:plan -- --project ... --location ...` writes a reviewable Terraform plan for hosted Firestore provisioning
+- `npm run deploy:firestore:apply -- --project ... --location ...` applies the reviewed Terraform plan after explicit confirmation
+- `npm run deploy:firestore:config-check` verifies that the Terraform config still reuses the repo-managed `firestore.rules` file
 - `npm run build` creates a production build
 - `npm run typecheck` runs TypeScript project checks
 - `npm test` runs the test suite
 - `npm run lint` runs ESLint
 
-## Wave 6 scope
+## Current scope
 
-This slice intentionally includes:
+This repo intentionally includes:
 
 - local recording and replay demo pages
+- local and backend Firestore validation paths
 - simple append-oriented history API endpoints
-- SQLite persistence for ordered session events
-- deterministic reconstruction from backend-loaded history alone
 - local Firestore emulator configuration
-- a scriptable emulator-backed read/write validation path
-- a minimal Express + Firebase Admin backend validation API path
 - a local container workflow aligned with the likely future Cloud Run runtime shape
-- tests for batching, API behavior, storage, and replay reconstruction
+- repo-managed Firestore provisioning for an existing hosted GCP project
 
 It intentionally does not include frontend integration with the new backend, final backend API design, submission/grading integration, auth, hosted deployment, or advanced replay controls yet.
 

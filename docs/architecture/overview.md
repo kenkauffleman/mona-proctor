@@ -154,6 +154,7 @@ The project is being built in stages:
    - deploy the app/API on Cloud Run
    - use Firestore as the primary operational datastore for session-oriented history data
    - use Firebase Auth for user identity and access control
+   - manage hosted infrastructure changes through repo-managed Terraform and a human-reviewed local `validate` → `plan` → `apply` workflow
 
 ### Firestore
 Firestore is the primary planned operational datastore for hosted history/session data.

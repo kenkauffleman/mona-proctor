@@ -128,3 +128,30 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 ### `npm run build`
 - Builds the app and runs TypeScript project references as part of the build.
 - Useful as an additional confidence check, but not always necessary for narrow changes if tests, lint, and typecheck already cover the changed area.
+
+## Wave 8 deployment scripts
+
+### `npm run deploy:firestore:check`
+- Checks that `terraform` and `gcloud` are installed locally.
+- Confirms that Application Default Credentials are available through `gcloud`.
+- Use this first on the human operator's machine before any Terraform command.
+
+### `npm run deploy:firestore:init -- --project ... --location ...`
+- Runs `terraform init` for the Wave 8 Firestore Terraform root.
+- Prints the target project and Firestore location before doing any work.
+
+### `npm run deploy:firestore:validate -- --project ... --location ...`
+- Runs `terraform fmt -check`, `terraform init`, and `terraform validate`.
+- This is the preferred repeatable validation command before planning changes.
+
+### `npm run deploy:firestore:plan -- --project ... --location ...`
+- Runs `terraform plan` for the existing project and writes a saved plan file to `infra/terraform/firestore/firestore.tfplan`.
+- Use this for the reviewable human-in-the-loop plan step.
+
+### `npm run deploy:firestore:apply -- --project ... --location ...`
+- Applies the previously saved Terraform plan file only after an explicit `APPLY` confirmation.
+- This is intentionally separate from `plan` and does not auto-plan for you.
+
+### `npm run deploy:firestore:config-check`
+- Runs a small repo-side check that the Terraform config still references the shared [`firestore.rules`](/workspaces/mona-proctor/firestore.rules) file and the expected Firestore resources.
+- Use this as a lightweight regression check when editing the Wave 8 infrastructure config.

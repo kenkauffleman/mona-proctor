@@ -23,7 +23,13 @@
     "preview": "vite preview --host 0.0.0.0",
     "emulator:firestore:manualcheck": "tsx scripts/firestoreEmulatorManualCheck.ts",
     "wave7:validate": "firebase emulators:exec --only firestore \"tsx scripts/historyRoundTripValidate.ts\"",
-    "wave7:manual": "tsx scripts/manualWave7Stack.ts"
+    "wave7:manual": "tsx scripts/manualWave7Stack.ts",
+    "deploy:firestore:check": "bash scripts/deploy/firestore-check-prereqs.sh",
+    "deploy:firestore:init": "bash scripts/deploy/firestore-init.sh",
+    "deploy:firestore:validate": "bash scripts/deploy/firestore-validate.sh",
+    "deploy:firestore:plan": "bash scripts/deploy/firestore-plan.sh",
+    "deploy:firestore:apply": "bash scripts/deploy/firestore-apply.sh",
+    "deploy:firestore:config-check": "tsx scripts/checkFirestoreTerraformConfig.ts"
   },
   "dependencies": {
     "@google-cloud/firestore": "^8.3.0",
