@@ -1,6 +1,6 @@
 # mona-proctor
 
-Wave 9 is focused on human-run backend deployment for the existing GCP project: repo-managed Terraform, explicit operator scripts, private-by-default Cloud Run hosting, and hosted Firestore connectivity without giving the agent live cloud credentials.
+Wave 9 is focused on a unified hosted deployment flow for the validated vertical slice: one Terraform root for Firestore + Artifact Registry + private Cloud Run, plus one top-level operator workflow for `build`, `validate`, `plan`, and `deploy`.
 
 The repo currently provides:
 
@@ -9,8 +9,8 @@ The repo currently provides:
 - local Firestore emulator workflows and validation scripts
 - a TypeScript backend history API with Firestore-backed persistence
 - backend container validation scripts aligned with a future Cloud Run shape
-- Wave 8 Terraform and local operator scripts for hosted Firestore provisioning in an existing GCP project
-- Wave 9 Terraform and local operator scripts for private Cloud Run backend deployment
+- a single hosted Terraform root for Firestore, Artifact Registry, and private Cloud Run
+- one project-level deploy workflow for hosted environments like `test` and `prod`
 
 ## Run locally
 
@@ -102,47 +102,31 @@ npm run backend:container:validate
 
 The container scripts require a local Docker-compatible runtime to be available.
 
-## Wave 8 hosted Firestore provisioning
+## Hosted deployment
 
-Wave 8 keeps cloud changes human-controlled and follows [`docs/deployment-safety.md`](./docs/deployment-safety.md).
-
-From a trusted local machine with `terraform` and `gcloud` installed:
-
-```bash
-npm run deploy -- firestore check
-npm run deploy -- firestore validate
-npm run deploy -- firestore plan
-npm run deploy -- firestore apply
-```
-
-Terraform uses local Application Default Credentials from the human operator's machine. No cloud secrets, service account keys, or live credentials are required in the repo or agent environment.
-
-See [docs/firestore-provisioning.md](./docs/firestore-provisioning.md) for the full runbook.
-
-## Wave 9 private Cloud Run backend deployment
-
-Wave 9 keeps cloud changes human-controlled and follows [`docs/deployment-safety.md`](./docs/deployment-safety.md).
+Hosted deployment keeps cloud changes human-controlled and follows [`docs/deployment-safety.md`](./docs/deployment-safety.md).
 
 Preferred setup:
 
 ```bash
-cp .env.deploy.example .env.deploy
+cp .env.deploy.test.example .env.deploy.test
+cp .env.deploy.prod.example .env.deploy.prod
 ```
 
 Then, from a trusted local machine with `terraform` and `gcloud` installed:
 
 ```bash
-npm run deploy -- cloudrun check
-npm run deploy -- cloudrun build
-npm run deploy -- cloudrun validate
-npm run deploy -- cloudrun plan
-npm run deploy -- cloudrun apply
-npm run deploy -- cloudrun validate-private
+npm run deploy -- build --env test
+npm run deploy -- validate --env test
+npm run deploy -- plan --env test
+npm run deploy -- deploy --env test
 ```
 
-The service stays non-public by default. The private validation step uses `gcloud` plus an identity token to push a tiny history session through Cloud Run and load it back again.
+Terraform uses local Application Default Credentials from the human operator's machine. No cloud secrets, service account keys, or live credentials are required in the repo or agent environment.
 
-See [docs/cloud-run-backend-deployment.md](./docs/cloud-run-backend-deployment.md) for the full runbook.
+The service stays non-public by default. The deploy step finishes with a private Cloud Run round-trip validation through Firestore.
+
+See [docs/hosted-deployment.md](./docs/hosted-deployment.md) for the full runbook.
 
 ## Available scripts
 
@@ -159,11 +143,10 @@ See [docs/cloud-run-backend-deployment.md](./docs/cloud-run-backend-deployment.m
 - `npm run emulator:firestore` starts the local Firestore emulator and Emulator UI
 - `npm run emulator:firestore:check` runs the emulator-backed read/write sanity check
 - `npm run emulator:firestore:manualcheck` runs the same sanity check, prints the fetched document, and keeps the emulator UI running
-- `npm run deploy -- <target> <action>` is the unified deploy entrypoint for Firestore and Cloud Run workflows
-- `npm run deploy -- firestore check|init|validate|plan|apply` manages the hosted Firestore Terraform flow
-- `npm run deploy -- cloudrun check|init|build|validate|plan|apply` manages the private Cloud Run backend deployment flow
-- `npm run deploy -- cloudrun validation-commands` prints private-service validation commands for the deployed backend
-- `npm run deploy -- cloudrun validate-private` exercises the private Cloud Run history API and confirms the session round-trip through Firestore
+- `npm run deploy -- build --env <name>` bootstraps hosted prerequisites, then builds and pushes the backend image
+- `npm run deploy -- validate --env <name>` runs repo checks plus hosted Terraform validation
+- `npm run deploy -- plan --env <name>` writes one reviewable Terraform plan for the whole hosted slice
+- `npm run deploy -- deploy --env <name>` applies the reviewed hosted plan and runs private end-to-end validation
 - `npm run build` creates a production build
 - `npm run typecheck` runs TypeScript project checks
 - `npm test` runs the test suite
@@ -178,8 +161,7 @@ This repo intentionally includes:
 - simple append-oriented history API endpoints
 - local Firestore emulator configuration
 - a local container workflow aligned with the likely future Cloud Run runtime shape
-- repo-managed Firestore provisioning for an existing hosted GCP project
-- repo-managed Cloud Run backend deployment for an existing hosted GCP project
+- repo-managed hosted deployment for Firestore, Artifact Registry, and private Cloud Run in an existing GCP project
 
 It intentionally does not include hosted frontend integration, Firebase Auth browser flow, final backend API design, submission/grading integration, App Check, Cloud Armor, or advanced replay controls yet.
 

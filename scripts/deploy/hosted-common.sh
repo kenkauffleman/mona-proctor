@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(dirname "$0")/common.sh"
+
+readonly HOSTED_TERRAFORM_DIR="infra/terraform/hosted"
+readonly HOSTED_ENVIRONMENTS_DIR="${HOSTED_TERRAFORM_DIR}/environments"
+readonly HOSTED_PLAN_BASENAME="hosted.tfplan"
+readonly HOSTED_PLAN_FILE="${HOSTED_TERRAFORM_DIR}/${HOSTED_PLAN_BASENAME}"
+
+print_hosted_usage() {
+  cat <<'EOF'
+Usage:
+  npm run deploy -- <build|validate|plan|deploy> [--env <name>] [--project <project-id>] [--region <region>] [--tag <image-tag>]
+
+Optional:
+  --service <service-name>     Defaults to mona-proctor-backend
+  --repo <artifact-repository> Defaults to mona-proctor
+  --image-name <image-name>    Defaults to backend
+  --invoker <member>           Required unless set in env file
+  --database <database-name>   Defaults to (default)
+EOF
+}
+
+load_hosted_args() {
+  load_shared_deploy_env_file
+
+  DEPLOY_ENVIRONMENT_NAME="${DEPLOY_ENVIRONMENT:-test}"
+  HOSTED_PROJECT_ID="${DEPLOY_PROJECT_ID:-}"
+  HOSTED_REGION="${DEPLOY_REGION:-}"
+  HOSTED_FIRESTORE_DATABASE_NAME="${FIRESTORE_DATABASE_NAME:-"(default)"}"
+  HOSTED_CLOUD_RUN_SERVICE_NAME="${CLOUDRUN_SERVICE_NAME:-mona-proctor-backend}"
+  HOSTED_ARTIFACT_REPOSITORY="${CLOUDRUN_ARTIFACT_REPOSITORY:-mona-proctor}"
+  HOSTED_IMAGE_NAME="${CLOUDRUN_IMAGE_NAME:-backend}"
+  HOSTED_IMAGE_TAG="${CLOUDRUN_IMAGE_TAG:-wave9}"
+  HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL="${CLOUDRUN_INVOKER_PRINCIPAL:-}"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --env)
+        DEPLOY_ENVIRONMENT_NAME="${2:-}"
+        shift 2
+        ;;
+      --project)
+        HOSTED_PROJECT_ID="${2:-}"
+        shift 2
+        ;;
+      --region)
+        HOSTED_REGION="${2:-}"
+        shift 2
+        ;;
+      --database)
+        HOSTED_FIRESTORE_DATABASE_NAME="${2:-}"
+        shift 2
+        ;;
+      --service)
+        HOSTED_CLOUD_RUN_SERVICE_NAME="${2:-}"
+        shift 2
+        ;;
+      --repo)
+        HOSTED_ARTIFACT_REPOSITORY="${2:-}"
+        shift 2
+        ;;
+      --image-name)
+        HOSTED_IMAGE_NAME="${2:-}"
+        shift 2
+        ;;
+      --tag)
+        HOSTED_IMAGE_TAG="${2:-}"
+        shift 2
+        ;;
+      --invoker)
+        HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL="${2:-}"
+        shift 2
+        ;;
+      --help|-h)
+        print_hosted_usage
+        exit 0
+        ;;
+      *)
+        echo "Unknown argument: $1" >&2
+        print_hosted_usage >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  HOSTED_ENV_FILE=".env.deploy.${DEPLOY_ENVIRONMENT_NAME}"
+  if [[ -f "${HOSTED_ENV_FILE}" ]]; then
+    # shellcheck disable=SC1090
+    source "${HOSTED_ENV_FILE}"
+    HOSTED_PROJECT_ID="${DEPLOY_PROJECT_ID:-${HOSTED_PROJECT_ID}}"
+    HOSTED_REGION="${DEPLOY_REGION:-${HOSTED_REGION}}"
+    HOSTED_FIRESTORE_DATABASE_NAME="${FIRESTORE_DATABASE_NAME:-${HOSTED_FIRESTORE_DATABASE_NAME}}"
+    HOSTED_CLOUD_RUN_SERVICE_NAME="${CLOUDRUN_SERVICE_NAME:-${HOSTED_CLOUD_RUN_SERVICE_NAME}}"
+    HOSTED_ARTIFACT_REPOSITORY="${CLOUDRUN_ARTIFACT_REPOSITORY:-${HOSTED_ARTIFACT_REPOSITORY}}"
+    HOSTED_IMAGE_NAME="${CLOUDRUN_IMAGE_NAME:-${HOSTED_IMAGE_NAME}}"
+    HOSTED_IMAGE_TAG="${CLOUDRUN_IMAGE_TAG:-${HOSTED_IMAGE_TAG}}"
+    HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL="${CLOUDRUN_INVOKER_PRINCIPAL:-${HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL}}"
+  fi
+
+  if [[ -z "${HOSTED_PROJECT_ID}" || -z "${HOSTED_REGION}" || -z "${HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL}" ]]; then
+    echo "project, region, and invoker are required for hosted deployment." >&2
+    print_hosted_usage >&2
+    exit 1
+  fi
+
+  HOSTED_CONTAINER_IMAGE="${HOSTED_REGION}-docker.pkg.dev/${HOSTED_PROJECT_ID}/${HOSTED_ARTIFACT_REPOSITORY}/${HOSTED_IMAGE_NAME}:${HOSTED_IMAGE_TAG}"
+  HOSTED_TFVARS_FILE="${HOSTED_ENVIRONMENTS_DIR}/${DEPLOY_ENVIRONMENT_NAME}.tfvars"
+}
+
+print_hosted_target_summary() {
+  echo "Environment: ${DEPLOY_ENVIRONMENT_NAME}"
+  echo "Target project: ${HOSTED_PROJECT_ID}"
+  echo "Shared region: ${HOSTED_REGION}"
+  echo "Firestore database: ${HOSTED_FIRESTORE_DATABASE_NAME}"
+  echo "Cloud Run service: ${HOSTED_CLOUD_RUN_SERVICE_NAME}"
+  echo "Artifact repository: ${HOSTED_ARTIFACT_REPOSITORY}"
+  echo "Image name: ${HOSTED_IMAGE_NAME}"
+  echo "Image tag: ${HOSTED_IMAGE_TAG}"
+  echo "Container image: ${HOSTED_CONTAINER_IMAGE}"
+  echo "Private invoker: ${HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL}"
+  echo "Terraform root: ${HOSTED_TERRAFORM_DIR}"
+  echo "Terraform tfvars: ${HOSTED_TFVARS_FILE}"
+}
+
+terraform_hosted_var_args() {
+  printf '%s\n' \
+    "-var=project_id=${HOSTED_PROJECT_ID}" \
+    "-var=region=${HOSTED_REGION}" \
+    "-var=firestore_database_name=${HOSTED_FIRESTORE_DATABASE_NAME}" \
+    "-var=cloud_run_service_name=${HOSTED_CLOUD_RUN_SERVICE_NAME}" \
+    "-var=artifact_repository_name=${HOSTED_ARTIFACT_REPOSITORY}" \
+    "-var=cloud_run_container_image=${HOSTED_CONTAINER_IMAGE}" \
+    "-var=cloud_run_invoker_principal=${HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL}"
+}
+
+check_hosted_cloud_prereqs() {
+  require_command gcloud
+  require_command terraform
+
+  echo "Checking Google Cloud authentication status..."
+  if ! gcloud auth application-default print-access-token >/dev/null 2>&1; then
+    cat >&2 <<'EOF'
+Application Default Credentials are not ready.
+Run:
+  gcloud auth login
+  gcloud auth application-default login
+EOF
+    exit 1
+  fi
+
+  echo "Checking active gcloud account..."
+  gcloud auth list --filter=status:ACTIVE --format="value(account)"
+}
+
+build_and_push_hosted_backend_image() {
+  check_hosted_cloud_prereqs
+
+  print_hosted_target_summary
+  echo "Bootstrapping required APIs and Artifact Registry repository..."
+
+  mapfile -t terraform_args < <(terraform_hosted_var_args)
+  terraform -chdir="${HOSTED_TERRAFORM_DIR}" init -input=false
+  terraform -chdir="${HOSTED_TERRAFORM_DIR}" apply \
+    -input=false \
+    -auto-approve \
+    -target="module.firestore.google_project_service.required" \
+    -target="module.cloud_run_backend.google_project_service.required" \
+    -target="module.cloud_run_backend.google_artifact_registry_repository.backend_images" \
+    "${terraform_args[@]}"
+
+  echo "Building and pushing backend image with Cloud Build..."
+
+  local build_config
+  build_config="$(mktemp)"
+  trap 'rm -f "${build_config}"' EXIT
+
+  cat > "${build_config}" <<EOF
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - backend/Dockerfile
+      - -t
+      - ${HOSTED_CONTAINER_IMAGE}
+      - .
+images:
+  - ${HOSTED_CONTAINER_IMAGE}
+EOF
+
+  gcloud builds submit \
+    --project="${HOSTED_PROJECT_ID}" \
+    --config="${build_config}" \
+    .
+
+  trap - EXIT
+  rm -f "${build_config}"
+}

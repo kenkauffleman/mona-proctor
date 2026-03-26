@@ -12,6 +12,16 @@ resource "google_project_service" "required" {
   disable_on_destroy = false
 }
 
+resource "google_artifact_registry_repository" "backend_images" {
+  project       = var.project_id
+  location      = var.region
+  repository_id = var.artifact_repository_name
+  description   = "Docker images for the Mona Proctor backend service."
+  format        = "DOCKER"
+
+  depends_on = [google_project_service.required]
+}
+
 resource "google_cloud_run_v2_service" "backend" {
   name     = var.service_name
   location = var.region
@@ -41,7 +51,10 @@ resource "google_cloud_run_v2_service" "backend" {
     }
   }
 
-  depends_on = [google_project_service.required]
+  depends_on = [
+    google_project_service.required,
+    google_artifact_registry_repository.backend_images,
+  ]
 }
 
 resource "google_cloud_run_v2_service_iam_member" "private_invoker" {

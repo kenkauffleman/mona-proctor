@@ -9,78 +9,34 @@ load_shared_deploy_env_file
 print_usage() {
   cat <<'EOF'
 Usage:
-  bash scripts/deploy/manage.sh <target> <action>
-
-Targets:
-  firestore
-  cloudrun
-
-Actions:
-  check
-  init
-  validate
-  plan
-  apply
-
-Cloud Run-only actions:
-  build
-  validation-commands
-  validate-private
+  bash scripts/deploy/manage.sh <build|validate|plan|deploy> [flags]
 EOF
 }
 
-target="${1:-}"
-action="${2:-}"
+action="${1:-}"
 
-if [[ -z "${target}" || -z "${action}" ]]; then
+if [[ -z "${action}" ]]; then
   print_usage >&2
   exit 1
 fi
 
-shift 2
+shift 1
 
-case "${target}:${action}" in
-  firestore:check)
-    exec bash "${script_dir}/firestore-check-prereqs.sh" "$@"
+case "${action}" in
+  build)
+    exec bash "${script_dir}/hosted-build.sh" "$@"
     ;;
-  firestore:init)
-    exec bash "${script_dir}/firestore-init.sh" "$@"
+  validate)
+    exec bash "${script_dir}/hosted-validate.sh" "$@"
     ;;
-  firestore:validate)
-    exec bash "${script_dir}/firestore-validate.sh" "$@"
+  plan)
+    exec bash "${script_dir}/hosted-plan.sh" "$@"
     ;;
-  firestore:plan)
-    exec bash "${script_dir}/firestore-plan.sh" "$@"
-    ;;
-  firestore:apply)
-    exec bash "${script_dir}/firestore-apply.sh" "$@"
-    ;;
-  cloudrun:check)
-    exec bash "${script_dir}/cloudrun-check-prereqs.sh" "$@"
-    ;;
-  cloudrun:init)
-    exec bash "${script_dir}/cloudrun-init.sh" "$@"
-    ;;
-  cloudrun:build)
-    exec bash "${script_dir}/cloudrun-build.sh" "$@"
-    ;;
-  cloudrun:validate)
-    exec bash "${script_dir}/cloudrun-validate.sh" "$@"
-    ;;
-  cloudrun:plan)
-    exec bash "${script_dir}/cloudrun-plan.sh" "$@"
-    ;;
-  cloudrun:apply)
-    exec bash "${script_dir}/cloudrun-apply.sh" "$@"
-    ;;
-  cloudrun:validation-commands)
-    exec bash "${script_dir}/cloudrun-print-validation-commands.sh" "$@"
-    ;;
-  cloudrun:validate-private)
-    exec bash "${script_dir}/cloudrun-validate-private.sh" "$@"
+  deploy)
+    exec bash "${script_dir}/hosted-deploy.sh" "$@"
     ;;
   *)
-    echo "Unsupported target/action: ${target} ${action}" >&2
+    echo "Unsupported deploy action: ${action}" >&2
     print_usage >&2
     exit 1
     ;;

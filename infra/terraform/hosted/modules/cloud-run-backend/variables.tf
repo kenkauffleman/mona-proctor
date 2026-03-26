@@ -11,7 +11,11 @@ variable "region" {
 variable "service_name" {
   description = "Cloud Run service name for the backend."
   type        = string
-  default     = "mona-proctor-backend"
+}
+
+variable "artifact_repository_name" {
+  description = "Artifact Registry Docker repository name for backend images."
+  type        = string
 }
 
 variable "container_image" {
@@ -27,11 +31,9 @@ variable "invoker_principal" {
 variable "max_instance_count" {
   description = "Maximum number of Cloud Run instances for this prototype backend."
   type        = number
-  default     = 2
 }
 
 variable "min_instance_count" {
   description = "Minimum number of Cloud Run instances for this prototype backend."
   type        = number
-  default     = 0
 }

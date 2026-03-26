@@ -130,16 +130,27 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - Builds the app and runs TypeScript project references as part of the build.
 - Useful as an additional confidence check, but not always necessary for narrow changes if tests, lint, and typecheck already cover the changed area.
 
-## Wave 8 deployment scripts
+## Hosted deployment scripts
 
-## Wave 9 deployment scripts
+### `npm run deploy -- build --env <name>`
+- Preferred first step for hosted environments like `test` and `prod`.
+- Bootstraps required APIs and the Artifact Registry repository through the single hosted Terraform root.
+- Builds the backend container from [backend/Dockerfile](/workspaces/mona-proctor/backend/Dockerfile) and pushes it to Artifact Registry.
 
-### `npm run deploy -- <target> <action>`
-- Unified deploy entrypoint for repo-managed infrastructure workflows.
-- Preferred operator path for both Firestore and Cloud Run.
-- Automatically loads `.env.deploy` when present.
-- Shared env keys are `DEPLOY_PROJECT_ID` and `DEPLOY_REGION`, with service-specific additions only where needed.
-- Firestore actions are `check`, `init`, `validate`, `plan`, and `apply`.
-- Cloud Run actions are `check`, `init`, `build`, `validate`, `plan`, `apply`, `validation-commands`, and `validate-private`.
-- `npm run deploy -- cloudrun build` builds and pushes the backend image through Cloud Build.
-- `npm run deploy -- cloudrun validate-private` performs a private Cloud Run → Firestore → Cloud Run history round-trip using `gcloud` and an identity token.
+### `npm run deploy -- validate --env <name>`
+- Checks that local Application Default Credentials are ready.
+- Runs `npm test`, `npm run lint`, and `npm run typecheck`.
+- Runs the hosted Terraform config check, `terraform fmt -check`, `terraform init`, and `terraform validate`.
+- Use this before planning hosted changes.
+
+### `npm run deploy -- plan --env <name>`
+- Checks that local Application Default Credentials are ready.
+- Generates one Terraform plan for the entire hosted vertical slice.
+- Uses the single hosted Terraform root under [infra/terraform/hosted](/workspaces/mona-proctor/infra/terraform/hosted).
+- Writes the saved plan file to `infra/terraform/hosted/hosted.tfplan`.
+
+### `npm run deploy -- deploy --env <name>`
+- Checks that local Application Default Credentials are ready.
+- Applies the previously reviewed hosted plan file.
+- Does not silently re-plan.
+- Runs the private Cloud Run → Firestore → Cloud Run history round-trip validation after apply.

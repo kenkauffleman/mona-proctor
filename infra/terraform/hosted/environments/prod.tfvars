@@ -1,0 +1,7 @@
+project_id                  = "your-prod-project-id"
+region                      = "us-central1"
+firestore_database_name     = "(default)"
+cloud_run_service_name      = "mona-proctor-backend"
+artifact_repository_name    = "mona-proctor"
+cloud_run_container_image   = "us-central1-docker.pkg.dev/your-prod-project-id/mona-proctor/backend:wave9"
+cloud_run_invoker_principal = "user:you@example.com"
