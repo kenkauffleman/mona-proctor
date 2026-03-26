@@ -1,77 +1,89 @@
 # Current Phase
 
 ## Active phase
-Phase 6: Backend API seam validation
+Phase 7: Local client/backend/Firestore vertical prototype
 
 ## Goal
-Validate the backend API shape independently of the frontend before wiring in the full browser flow.
+Prove the full local round trip from browser client to backend container to Firestore and back again.
 
-This phase is intentionally narrow. The purpose is to prove that the backend can expose a simple HTTP API that talks to Firestore correctly, and that this API can be exercised and validated without involving the real frontend.
+This phase should validate that the browser can send recorded history through the backend API, the backend can persist and retrieve it through Firestore, and the replay path can reconstruct the session from backend-loaded data alone.
 
 ## In scope
-- add at least one simple HTTP endpoint on the backend
-- make the endpoint exercise Firestore read/write behavior
-- ensure the backend API can be called locally without the frontend
-- add a small test harness or script for exercising the endpoint
-- document the local validation endpoint(s) and how to run them
-- keep the setup aligned with the future client ↔ backend ↔ Firestore architecture
+- connect the browser client to the backend API
+- send recorded history batches from the recording page through the backend
+- persist and retrieve session history through Firestore
+- load session history back through the backend for replay
+- validate the full local client ↔ backend ↔ Firestore round trip
+- keep the local setup scriptable and repeatable
+- introduce a small persistence abstraction layer so Firestore usage is isolated behind a backend interface
+- use that abstraction layer to improve testing seams and future storage flexibility
 
 ## Out of scope
-- full frontend integration
-- full production API design
+- hosted deployment
 - Firebase Auth integration
 - Firestore security rules design
-- hosted deployment
-- final Firestore schema design
-- replay feature changes
+- final production API design
+- final production Firestore schema design
+- advanced replay controls
+- client-side persistence and crash recovery
 - grading integration
 - admin or instructor feature work
 
 ## Desired qualities
-- simple and understandable API surface
-- minimal moving parts
+- simple and understandable API shape
+- deterministic replay from backend-loaded history
+- clear separation between API logic and persistence logic
+- minimal Firestore-specific code outside the persistence layer
 - easy local debugging
-- easy-to-run validation without the browser
-- backend behavior that is easy to evolve later toward the real client flow
+- repeatable local validation workflow
 
-## Recommended implementation direction
-- continue using the existing lightweight backend stack from Phase 5
-- keep the API small and explicit
-- favor one narrow validation endpoint over prematurely designing the full future API
-- keep the Firestore interaction simple and easy to inspect
+## Design constraints
+- keep the API intentionally small:
+  - one append-style write path for history batches
+  - one read path for loading a full session for replay
+- keep session metadata separate from uploaded history batches
+- preserve the canonical Monaco content-change payload as much as practical
+- include explicit sequence information so retries and ordering are understandable
+- optimize for correctness, simplicity, inspectability, and easy evolution later
 
-## Script expectations
-- preserve existing scripts unless a small adjustment is clearly necessary
-- add or update scripts so there is a repeatable way to:
-  - start the Firestore emulator
-  - run the backend in its container
-  - exercise the backend validation endpoint without the frontend
-- keep script names clear and explicit
-- update the agent script guide so it accurately reflects the new API-validation workflow
+## Persistence abstraction guidance
+- isolate Firestore access behind a small backend abstraction layer
+- define the abstraction around current use cases, not around a speculative generic storage framework
+- keep the abstraction narrow and explicit
+- prefer a small interface such as:
+  - create or update session metadata
+  - append history batch
+  - load session history for replay
+- provide a Firestore-backed implementation for this phase
+- structure code so tests can use a fake or in-memory implementation without requiring Firestore
 
 ## Suggested deliverables
-- at least one simple backend HTTP endpoint
-- endpoint-level Firestore read/write behavior
-- a small test harness or script for exercising the endpoint
-- updated scripts for repeatable local API validation
-- updated agent script guide
-- basic API documentation for the local validation endpoint(s)
+- recording page that sends history through the backend API
+- replay or retrieval path that loads data back through the backend
+- persistence interface or repository layer for session/history storage
+- Firestore-backed implementation of that persistence layer
+- visible end-to-end validation of client ↔ backend ↔ Firestore
+- tests for the local vertical slice and its core logic
+- updated scripts and documentation for repeatable local validation
 
 ## Exit criteria
-- the backend API can be called locally without the real frontend
-- an API request can trigger Firestore read/write behavior successfully
-- the API seam is documented and testable independently of the UI
+- the client can successfully call the backend locally
+- the backend stores and retrieves data through Firestore
+- the full local round trip works end-to-end
+- replay reconstructs from backend-loaded history alone
+- Firestore usage is isolated behind a small persistence abstraction
+- the vertical prototype is scriptable and repeatable in local development
 
 ## Notes for the agent
 - keep this phase narrowly scoped
-- do not start full frontend integration yet
-- do not overdesign the long-term API surface yet
-- do not add auth or unrelated infrastructure concerns
-- prioritize simplicity, repeatability, and confidence in the local API seam
-- structure the endpoint and supporting code so it can be reused or evolved in later phases
+- do not overdesign the final production API
+- do not add auth, submission/grading, or unrelated infrastructure concerns
+- do not turn the persistence abstraction into a large framework
+- prioritize replay correctness, retry tolerance, and inspectability
+- structure the code so the persistence boundary is easy to test independently from the page-level UI
 
 ## Handoff to the next phase
 At the end of this phase, the codebase should make it easy to:
-- connect the browser client to the backend validation API
-- validate the full local client ↔ backend ↔ Firestore round trip
-- continue toward the local vertical prototype in the next phase
+- validate the hosted deployment of the same vertical slice
+- swap or extend the persistence implementation later if needed
+- continue toward client persistence and sync hardening
