@@ -22,4 +22,4 @@ if [[ "${confirmation}" != "APPLY" ]]; then
   exit 1
 fi
 
-terraform -chdir="${FIRESTORE_TERRAFORM_DIR}" apply "${FIRESTORE_PLAN_FILE}"
+terraform -chdir="${FIRESTORE_TERRAFORM_DIR}" apply "${FIRESTORE_PLAN_BASENAME}"

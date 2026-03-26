@@ -3,6 +3,7 @@
 set -euo pipefail
 
 readonly FIRESTORE_TERRAFORM_DIR="infra/terraform/firestore"
+readonly FIRESTORE_PLAN_BASENAME="firestore.tfplan"
 readonly FIRESTORE_PLAN_FILE="${FIRESTORE_TERRAFORM_DIR}/firestore.tfplan"
 readonly FIRESTORE_ENV_FILE_DEFAULT=".env.firestore"
 
