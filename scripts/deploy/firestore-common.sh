@@ -4,6 +4,7 @@ set -euo pipefail
 
 readonly FIRESTORE_TERRAFORM_DIR="infra/terraform/firestore"
 readonly FIRESTORE_PLAN_FILE="${FIRESTORE_TERRAFORM_DIR}/firestore.tfplan"
+readonly FIRESTORE_ENV_FILE_DEFAULT=".env.firestore"
 
 print_usage() {
   cat <<'EOF'
@@ -25,10 +26,21 @@ require_command() {
   fi
 }
 
+load_firestore_env_file() {
+  local env_file="${FIRESTORE_DEPLOY_ENV_FILE:-${FIRESTORE_ENV_FILE_DEFAULT}}"
+
+  if [[ -f "${env_file}" ]]; then
+    # shellcheck disable=SC1090
+    source "${env_file}"
+  fi
+}
+
 load_firestore_args() {
-  FIRESTORE_PROJECT_ID=""
-  FIRESTORE_LOCATION=""
-  FIRESTORE_DATABASE_NAME="(default)"
+  load_firestore_env_file
+
+  FIRESTORE_PROJECT_ID="${FIRESTORE_PROJECT_ID:-}"
+  FIRESTORE_LOCATION="${FIRESTORE_LOCATION:-}"
+  FIRESTORE_DATABASE_NAME="${FIRESTORE_DATABASE_NAME:-"(default)"}"
 
   while [[ $# -gt 0 ]]; do
     case "$1" in

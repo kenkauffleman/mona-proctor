@@ -17,6 +17,21 @@ This wave does not create a new GCP project, deploy Cloud Run, or host the front
 
 The agent environment does not need live cloud credentials, service account keys, or secrets.
 
+## Optional local operator config
+If you do not want to repeat the project id and Firestore location on every command, create a local config file:
+
+```bash
+cp .env.firestore.example .env.firestore
+```
+
+Then fill in:
+- `FIRESTORE_PROJECT_ID`
+- `FIRESTORE_LOCATION`
+- optionally `FIRESTORE_DATABASE_NAME` if you ever need a non-default override
+
+The Wave 8 deploy scripts automatically load `.env.firestore` when present.
+Explicit CLI flags still win, so you can override the file for one-off runs.
+
 ## Authentication flow
 Run the auth steps from your trusted local machine:
 
@@ -37,10 +52,22 @@ npm run deploy:firestore:check
 2. Validate the Terraform root for your target project and Firestore location:
 
 ```bash
+npm run deploy:firestore:validate
+```
+
+Or, if you prefer explicit flags:
+
+```bash
 npm run deploy:firestore:validate -- --project YOUR_PROJECT_ID --location FIRESTORE_LOCATION
 ```
 
 3. Create a reviewable plan file:
+
+```bash
+npm run deploy:firestore:plan
+```
+
+Or, with explicit flags:
 
 ```bash
 npm run deploy:firestore:plan -- --project YOUR_PROJECT_ID --location FIRESTORE_LOCATION
@@ -49,6 +76,12 @@ npm run deploy:firestore:plan -- --project YOUR_PROJECT_ID --location FIRESTORE_
 4. Review the plan output carefully. Confirm that it only targets the existing project and the expected Firestore resources.
 
 5. Apply the exact reviewed plan deliberately:
+
+```bash
+npm run deploy:firestore:apply
+```
+
+Or, with explicit flags:
 
 ```bash
 npm run deploy:firestore:apply -- --project YOUR_PROJECT_ID --location FIRESTORE_LOCATION

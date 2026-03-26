@@ -139,18 +139,22 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 ### `npm run deploy:firestore:init -- --project ... --location ...`
 - Runs `terraform init` for the Wave 8 Firestore Terraform root.
 - Prints the target project and Firestore location before doing any work.
+- The deploy scripts also auto-load `.env.firestore` if present, so the flags are optional once that file is filled in.
 
 ### `npm run deploy:firestore:validate -- --project ... --location ...`
 - Runs `terraform fmt -check`, `terraform init`, and `terraform validate`.
 - This is the preferred repeatable validation command before planning changes.
+- The deploy scripts also auto-load `.env.firestore` if present, so the flags are optional once that file is filled in.
 
 ### `npm run deploy:firestore:plan -- --project ... --location ...`
 - Runs `terraform plan` for the existing project and writes a saved plan file to `infra/terraform/firestore/firestore.tfplan`.
 - Use this for the reviewable human-in-the-loop plan step.
+- The deploy scripts also auto-load `.env.firestore` if present, so the flags are optional once that file is filled in.
 
 ### `npm run deploy:firestore:apply -- --project ... --location ...`
 - Applies the previously saved Terraform plan file only after an explicit `APPLY` confirmation.
 - This is intentionally separate from `plan` and does not auto-plan for you.
+- The deploy scripts also auto-load `.env.firestore` if present, so the flags are optional once that file is filled in.
 
 ### `npm run deploy:firestore:config-check`
 - Runs a small repo-side check that the Terraform config still references the shared [`firestore.rules`](/workspaces/mona-proctor/firestore.rules) file and the expected Firestore resources.
