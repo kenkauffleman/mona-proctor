@@ -8,6 +8,7 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - Do not use Firestore emulator scripts to justify backend-container or frontend integration work yet.
 - In Codespaces or another remote container, remember that `0.0.0.0` bindings may still require port forwarding or the browser preview URL.
 - Before finishing non-trivial work, run the relevant tests plus `npm run lint` and `npm run typecheck`.
+- For hosted deployment waves, prefer the repo's human-run deploy scripts over ad hoc `terraform` commands.
 
 ## Core development scripts
 
@@ -159,3 +160,39 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 ### `npm run deploy:firestore:config-check`
 - Runs a small repo-side check that the Terraform config still references the shared [`firestore.rules`](/workspaces/mona-proctor/firestore.rules) file and the expected Firestore resources.
 - Use this as a lightweight regression check when editing the Wave 8 infrastructure config.
+
+## Wave 9 deployment scripts
+
+### `npm run deploy:cloudrun:check`
+- Checks that `terraform` and `gcloud` are installed locally.
+- Confirms that Application Default Credentials are available through `gcloud`.
+- Use this first on the human operator's machine before any Wave 9 Terraform command.
+
+### `npm run deploy:cloudrun:init -- --project ... --region ... --image ... --invoker ...`
+- Runs `terraform init` for the Wave 9 Cloud Run backend Terraform root.
+- Prints the target project, region, service name, image, and private invoker principal before doing any work.
+- The deploy scripts also auto-load `.env.cloudrun` if present, so the flags are optional once that file is filled in.
+
+### `npm run deploy:cloudrun:validate -- --project ... --region ... --image ... --invoker ...`
+- Runs `terraform fmt -check`, `terraform init`, and `terraform validate`.
+- This is the preferred repeatable validation command before planning Cloud Run changes.
+- The deploy scripts also auto-load `.env.cloudrun` if present, so the flags are optional once that file is filled in.
+
+### `npm run deploy:cloudrun:plan -- --project ... --region ... --image ... --invoker ...`
+- Runs `terraform plan` for the Cloud Run backend root and writes a saved plan file to `infra/terraform/cloud-run-backend/cloud-run-backend.tfplan`.
+- Use this for the reviewable human-in-the-loop plan step.
+- The deploy scripts also auto-load `.env.cloudrun` if present, so the flags are optional once that file is filled in.
+
+### `npm run deploy:cloudrun:apply -- --project ... --region ... --image ... --invoker ...`
+- Applies the previously saved Terraform plan file only after an explicit `APPLY` confirmation.
+- This is intentionally separate from `plan` and does not auto-plan for you.
+- The deploy scripts also auto-load `.env.cloudrun` if present, so the flags are optional once that file is filled in.
+
+### `npm run deploy:cloudrun:validation-commands -- --project ... --region ... --image ... --invoker ...`
+- Prints the human-usable private validation commands for the deployed Cloud Run service.
+- Includes both a `gcloud run services proxy` workflow and a `curl` workflow using `gcloud auth print-identity-token`.
+- Use this after deploy when you want a copy-paste validation path without making the service public.
+
+### `npm run deploy:cloudrun:config-check`
+- Runs a small repo-side check that the Cloud Run Terraform config still uses a private invoker binding and does not grant public access.
+- Use this as a lightweight regression check when editing the Wave 9 infrastructure config.

@@ -1,6 +1,6 @@
 # mona-proctor
 
-Wave 8 is focused on human-run deployment setup for the existing GCP project: repo-managed Terraform, explicit operator scripts, and Firestore provisioning without giving the agent live cloud credentials.
+Wave 9 is focused on human-run backend deployment for the existing GCP project: repo-managed Terraform, explicit operator scripts, private-by-default Cloud Run hosting, and hosted Firestore connectivity without giving the agent live cloud credentials.
 
 The repo currently provides:
 
@@ -10,6 +10,7 @@ The repo currently provides:
 - a TypeScript backend history API with Firestore-backed persistence
 - backend container validation scripts aligned with a future Cloud Run shape
 - Wave 8 Terraform and local operator scripts for hosted Firestore provisioning in an existing GCP project
+- Wave 9 Terraform and local operator scripts for private Cloud Run backend deployment
 
 ## Run locally
 
@@ -118,6 +119,29 @@ Terraform uses local Application Default Credentials from the human operator's m
 
 See [docs/firestore-provisioning.md](./docs/firestore-provisioning.md) for the full runbook.
 
+## Wave 9 private Cloud Run backend deployment
+
+Wave 9 keeps cloud changes human-controlled and follows [`docs/deployment-safety.md`](./docs/deployment-safety.md).
+
+From a trusted local machine with `terraform` and `gcloud` installed:
+
+```bash
+npm run deploy:cloudrun:check
+npm run deploy:cloudrun:validate -- --project YOUR_PROJECT_ID --region CLOUD_RUN_REGION --image YOUR_CONTAINER_IMAGE_URI --invoker user:you@example.com
+npm run deploy:cloudrun:plan -- --project YOUR_PROJECT_ID --region CLOUD_RUN_REGION --image YOUR_CONTAINER_IMAGE_URI --invoker user:you@example.com
+npm run deploy:cloudrun:apply -- --project YOUR_PROJECT_ID --region CLOUD_RUN_REGION --image YOUR_CONTAINER_IMAGE_URI --invoker user:you@example.com
+```
+
+After deploy, print the private validation commands:
+
+```bash
+npm run deploy:cloudrun:validation-commands -- --project YOUR_PROJECT_ID --region CLOUD_RUN_REGION --image YOUR_CONTAINER_IMAGE_URI --invoker user:you@example.com
+```
+
+The service stays non-public by default. Validation is intended to happen with either `gcloud run services proxy` or `curl` plus an identity token.
+
+See [docs/cloud-run-backend-deployment.md](./docs/cloud-run-backend-deployment.md) for the full runbook.
+
 ## Available scripts
 
 - `npm run dev` starts the frontend and backend together
@@ -139,6 +163,13 @@ See [docs/firestore-provisioning.md](./docs/firestore-provisioning.md) for the f
 - `npm run deploy:firestore:plan -- --project ... --location ...` writes a reviewable Terraform plan for hosted Firestore provisioning
 - `npm run deploy:firestore:apply -- --project ... --location ...` applies the reviewed Terraform plan after explicit confirmation
 - `npm run deploy:firestore:config-check` verifies that the Terraform config still reuses the repo-managed `firestore.rules` file
+- `npm run deploy:cloudrun:check` checks Terraform and local ADC prerequisites for Wave 9 Cloud Run deployment
+- `npm run deploy:cloudrun:init -- --project ... --region ... --image ... --invoker ...` initializes the Wave 9 Terraform root
+- `npm run deploy:cloudrun:validate -- --project ... --region ... --image ... --invoker ...` runs `fmt`, `init`, and `validate` for the Cloud Run backend root
+- `npm run deploy:cloudrun:plan -- --project ... --region ... --image ... --invoker ...` writes a reviewable Terraform plan for private Cloud Run backend deployment
+- `npm run deploy:cloudrun:apply -- --project ... --region ... --image ... --invoker ...` applies the reviewed Cloud Run plan after explicit confirmation
+- `npm run deploy:cloudrun:validation-commands -- --project ... --region ... --image ... --invoker ...` prints private-service validation commands for the deployed backend
+- `npm run deploy:cloudrun:config-check` verifies that the Wave 9 Terraform config keeps the service private by default
 - `npm run build` creates a production build
 - `npm run typecheck` runs TypeScript project checks
 - `npm test` runs the test suite
@@ -154,7 +185,8 @@ This repo intentionally includes:
 - local Firestore emulator configuration
 - a local container workflow aligned with the likely future Cloud Run runtime shape
 - repo-managed Firestore provisioning for an existing hosted GCP project
+- repo-managed Cloud Run backend deployment for an existing hosted GCP project
 
-It intentionally does not include frontend integration with the new backend, final backend API design, submission/grading integration, auth, hosted deployment, or advanced replay controls yet.
+It intentionally does not include hosted frontend integration, Firebase Auth browser flow, final backend API design, submission/grading integration, App Check, Cloud Armor, or advanced replay controls yet.
 
 Prototype event shape details live in [docs/history-prototype.md](./docs/history-prototype.md).

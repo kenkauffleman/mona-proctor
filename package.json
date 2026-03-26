@@ -29,7 +29,14 @@
     "deploy:firestore:validate": "bash scripts/deploy/firestore-validate.sh",
     "deploy:firestore:plan": "bash scripts/deploy/firestore-plan.sh",
     "deploy:firestore:apply": "bash scripts/deploy/firestore-apply.sh",
-    "deploy:firestore:config-check": "tsx scripts/checkFirestoreTerraformConfig.ts"
+    "deploy:firestore:config-check": "tsx scripts/checkFirestoreTerraformConfig.ts",
+    "deploy:cloudrun:check": "bash scripts/deploy/cloudrun-check-prereqs.sh",
+    "deploy:cloudrun:init": "bash scripts/deploy/cloudrun-init.sh",
+    "deploy:cloudrun:validate": "bash scripts/deploy/cloudrun-validate.sh",
+    "deploy:cloudrun:plan": "bash scripts/deploy/cloudrun-plan.sh",
+    "deploy:cloudrun:apply": "bash scripts/deploy/cloudrun-apply.sh",
+    "deploy:cloudrun:validation-commands": "bash scripts/deploy/cloudrun-print-validation-commands.sh",
+    "deploy:cloudrun:config-check": "tsx scripts/checkCloudRunTerraformConfig.ts"
   },
   "dependencies": {
     "@google-cloud/firestore": "^8.3.0",

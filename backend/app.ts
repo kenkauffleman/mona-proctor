@@ -52,7 +52,13 @@ function validateBatchOrdering(request: AppendHistoryBatchRequest) {
 
 export function createBackendApp(
   historyRepository: HistoryRepository,
-  options: { firestoreEmulatorHost?: string; projectId: string },
+  options: {
+    cloudRunConfiguration?: string
+    cloudRunRevision?: string
+    cloudRunService?: string
+    firestoreEmulatorHost?: string
+    projectId: string
+  },
 ) {
   const app = express()
   app.use(express.json())
@@ -60,6 +66,9 @@ export function createBackendApp(
   app.get('/health', (_request, response) => {
     response.json({
       ok: true,
+      cloudRunConfiguration: options.cloudRunConfiguration ?? null,
+      cloudRunRevision: options.cloudRunRevision ?? null,
+      cloudRunService: options.cloudRunService ?? null,
       projectId: options.projectId,
       firestoreEmulatorHost: options.firestoreEmulatorHost ?? null,
     })

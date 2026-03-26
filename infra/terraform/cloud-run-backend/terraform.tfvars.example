@@ -1,0 +1,5 @@
+project_id        = "your-existing-project-id"
+region            = "us-central1"
+service_name      = "mona-proctor-backend"
+container_image   = "us-central1-docker.pkg.dev/your-existing-project-id/mona-proctor/backend:wave9"
+invoker_principal = "user:you@example.com"

@@ -33,6 +33,9 @@ function createContentChangeEvent(
 async function startTestServer() {
   const repository = new InMemoryHistoryRepository()
   const app = createBackendApp(repository, {
+    cloudRunConfiguration: undefined,
+    cloudRunRevision: undefined,
+    cloudRunService: undefined,
     projectId: 'demo-mona-proctor',
     firestoreEmulatorHost: '127.0.0.1:8080',
   })
@@ -57,6 +60,9 @@ describe('backend history app', () => {
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({
       ok: true,
+      cloudRunConfiguration: null,
+      cloudRunRevision: null,
+      cloudRunService: null,
       projectId: 'demo-mona-proctor',
       firestoreEmulatorHost: '127.0.0.1:8080',
     })
