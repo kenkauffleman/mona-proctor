@@ -1,3 +1,4 @@
+import { getCurrentUserIdToken } from '../auth/firebaseAuth'
 import type {
   AppendHistoryBatchRequest,
   AppendHistoryBatchResponse,
@@ -13,15 +14,22 @@ async function parseJsonResponse<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>
 }
 
+async function createAuthHeaders() {
+  const idToken = await getCurrentUserIdToken()
+
+  return {
+    'content-type': 'application/json',
+    ...(idToken ? { authorization: `Bearer ${idToken}` } : {}),
+  }
+}
+
 export async function appendSessionHistoryBatch(
   sessionId: string,
   request: AppendHistoryBatchRequest,
 ) {
   const response = await fetch(`/api/history/sessions/${sessionId}/batches`, {
     method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-    },
+    headers: await createAuthHeaders(),
     body: JSON.stringify(request),
   })
 
@@ -29,7 +37,9 @@ export async function appendSessionHistoryBatch(
 }
 
 export async function fetchSessionHistory(sessionId: string) {
-  const response = await fetch(`/api/history/sessions/${sessionId}`)
+  const response = await fetch(`/api/history/sessions/${sessionId}`, {
+    headers: await createAuthHeaders(),
+  })
 
   return parseJsonResponse<HistorySessionResponse>(response)
 }

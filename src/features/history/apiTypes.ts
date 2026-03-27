@@ -21,6 +21,7 @@ export type AppendHistoryBatchResponse = {
   acceptedEvents: number
   totalEvents: number
   totalBatches: number
+  ownerUid: string
 }
 
 export type AppendHistoryRequest = AppendHistoryBatchRequest
@@ -29,6 +30,7 @@ export type AppendHistoryResponse = AppendHistoryBatchResponse
 export type HistorySessionResponse = {
   sessionId: string
   language: EditorLanguage
+  ownerUid: string
   batches: HistoryBatchRecord[]
   events: RecordedMonacoEvent[]
 }

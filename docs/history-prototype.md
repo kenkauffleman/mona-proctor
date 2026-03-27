@@ -1,7 +1,7 @@
-# Local Client/Backend/Firestore Prototype
+# Local Authenticated History Prototype
 
 ## Purpose
-Wave 7 proves that Monaco model content-change events can remain the canonical edit-history stream while crossing the browser/client, backend API, and Firestore boundary.
+Wave 10 proves that Monaco model content-change events can remain the canonical edit-history stream while crossing the authenticated browser/client, backend API, and Firestore boundary.
 
 ## Event shape
 Each recorded event stores:
@@ -59,7 +59,8 @@ Response body:
   "batchSequence": 1,
   "acceptedEvents": 1,
   "totalEvents": 1,
-  "totalBatches": 1
+  "totalBatches": 1,
+  "ownerUid": "firebase-uid"
 }
 ```
 
@@ -72,6 +73,7 @@ Response body:
 {
   "sessionId": "uuid",
   "language": "python",
+  "ownerUid": "firebase-uid",
   "batches": [
     {
       "batchSequence": 1,
@@ -87,13 +89,16 @@ Response body:
 ## Recording approach
 - The recording page starts each session from an empty document.
 - The client generates a UUID with `crypto.randomUUID()`.
+- The user signs in locally with the Firebase Auth emulator before using the history flow.
 - The record editor subscribes to Monaco `model.onDidChangeContent`.
-- Recorded events are queued into a reusable batcher and uploaded to the backend every few seconds as append-only batches.
+- Recorded events are queued into a reusable batcher and uploaded to the backend every few seconds as append-only authenticated batches.
 - Each uploaded batch includes a `batchSequence` and `eventOffset` so retries and ordering stay inspectable.
-- The backend stores session metadata and history batches separately in Firestore.
+- The frontend sends a Firebase ID token as a bearer token with each history request.
+- The backend verifies the token and stores session metadata and history batches separately in Firestore.
+- Each session metadata document now includes the authenticated owner's Firebase `uid` as `ownerUid`.
 
 ## Replay approach
-- The replay page fetches a complete session by UUID.
+- The replay page fetches a complete session by UUID for the currently authenticated user.
 - Reconstruction starts from an empty document and applies events in `sequence` order.
 - Each change uses Monaco's `rangeOffset`, `rangeLength`, and `text` fields to rebuild the document deterministically.
 - Timed replay reuses the original timestamp gaps for playback.
@@ -101,9 +106,11 @@ Response body:
 
 ## Storage approach
 - Firestore stores one metadata document per session in `historySessions`.
+- Each session metadata document stores `ownerUid` for basic ownership enforcement.
 - Each session stores uploaded history batches in a `batches` subcollection keyed by `batchSequence`.
 - Retrying the same batch sequence with the same payload is idempotent.
 - Reusing a batch sequence with different payload is rejected as a conflict.
+- Access from a different authenticated Firebase `uid` is rejected.
 - Replay loads batches ordered by `batchSequence` and flattens their canonical Monaco events for deterministic reconstruction.
 
 ## Current limitations

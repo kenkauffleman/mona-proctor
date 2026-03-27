@@ -6,10 +6,13 @@ import type {
   HistoryRepository,
   HistorySessionRecord,
 } from './historyRepository.js'
+import type { AuthenticatedUser } from './auth.js'
+import { AuthorizationError } from './errors.js'
 
 type FirestoreSessionDocument = {
   createdAt: string
   language: AppendHistoryBatchInput['language']
+  ownerUid: string
   sessionId: string
   updatedAt: string
 }
@@ -36,6 +39,7 @@ export class FirestoreHistoryRepository implements HistoryRepository {
 
   async appendHistoryBatch(
     sessionId: string,
+    owner: AuthenticatedUser,
     batch: AppendHistoryBatchInput,
   ): Promise<AppendHistoryBatchResult> {
     const sessionReference = this.firestore.collection(sessionsCollection).doc(sessionId)
@@ -48,6 +52,10 @@ export class FirestoreHistoryRepository implements HistoryRepository {
 
       if (sessionData?.language && sessionData.language !== batch.language) {
         throw new Error('Session language cannot change after the first uploaded batch.')
+      }
+
+      if (sessionData?.ownerUid && sessionData.ownerUid !== owner.uid) {
+        throw new AuthorizationError('Authenticated user does not own this session.')
       }
     }
 
@@ -67,6 +75,9 @@ export class FirestoreHistoryRepository implements HistoryRepository {
       {
         sessionId,
         language: batch.language,
+        ownerUid: sessionSnapshot.exists
+          ? (sessionSnapshot.data() as FirestoreSessionDocument | undefined)?.ownerUid ?? owner.uid
+          : owner.uid,
         createdAt: sessionSnapshot.exists
           ? (sessionSnapshot.data() as FirestoreSessionDocument | undefined)?.createdAt ?? now
           : now,
@@ -81,10 +92,13 @@ export class FirestoreHistoryRepository implements HistoryRepository {
       acceptedEvents: batch.events.length,
       totalEvents: batch.eventOffset + batch.events.length,
       totalBatches: batch.batchSequence,
+      ownerUid: sessionSnapshot.exists
+        ? (sessionSnapshot.data() as FirestoreSessionDocument | undefined)?.ownerUid ?? owner.uid
+        : owner.uid,
     }
   }
 
-  async loadSessionHistory(sessionId: string): Promise<HistorySessionRecord | null> {
+  async loadSessionHistory(sessionId: string, owner: AuthenticatedUser): Promise<HistorySessionRecord | null> {
     const sessionReference = this.firestore.collection(sessionsCollection).doc(sessionId)
     const sessionSnapshot = await sessionReference.get()
 
@@ -98,6 +112,10 @@ export class FirestoreHistoryRepository implements HistoryRepository {
       throw new Error('Stored session metadata was empty.')
     }
 
+    if (sessionData.ownerUid !== owner.uid) {
+      throw new AuthorizationError('Authenticated user does not own this session.')
+    }
+
     const batchesSnapshot = await sessionReference
       .collection(batchesSubcollection)
       .orderBy('batchSequence', 'asc')
@@ -108,6 +126,7 @@ export class FirestoreHistoryRepository implements HistoryRepository {
     return {
       sessionId,
       language: sessionData.language,
+      ownerUid: sessionData.ownerUid,
       batches: batches.map((batch): HistoryBatchRecord => ({
         batchSequence: batch.batchSequence,
         eventOffset: batch.eventOffset,

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { createRecordedMonacoEvent, replayRecordedMonacoEvents } from '../src/features/history/history.js'
 import type { RecordedMonacoEvent } from '../src/features/history/types.js'
 import type { MonacoContentChangeEvent } from '../src/features/history/types.js'
+import type { AuthVerifier } from './auth.js'
 import { createBackendApp } from './app.js'
 import { InMemoryHistoryRepository } from './inMemoryHistoryRepository.js'
 
@@ -32,10 +33,24 @@ function createContentChangeEvent(
 
 async function startTestServer() {
   const repository = new InMemoryHistoryRepository()
-  const app = createBackendApp(repository, {
+  const authVerifier: AuthVerifier = {
+    async verifyIdToken(idToken) {
+      if (idToken === 'valid-owner-token') {
+        return { uid: 'owner-1', email: 'owner@example.com' }
+      }
+
+      if (idToken === 'valid-other-token') {
+        return { uid: 'owner-2', email: 'other@example.com' }
+      }
+
+      throw new Error('Invalid token')
+    },
+  }
+  const app = createBackendApp(repository, authVerifier, {
     cloudRunConfiguration: undefined,
     cloudRunRevision: undefined,
     cloudRunService: undefined,
+    firebaseAuthEmulatorHost: '127.0.0.1:9099',
     projectId: 'demo-mona-proctor',
     firestoreEmulatorHost: '127.0.0.1:8080',
   })
@@ -51,6 +66,13 @@ async function startTestServer() {
   }
 }
 
+function createAuthHeaders(token = 'valid-owner-token') {
+  return {
+    authorization: `Bearer ${token}`,
+    'content-type': 'application/json',
+  }
+}
+
 describe('backend history app', () => {
   it('reports health metadata for the backend runtime', async () => {
     const { baseUrl } = await startTestServer()
@@ -63,6 +85,7 @@ describe('backend history app', () => {
       cloudRunConfiguration: null,
       cloudRunRevision: null,
       cloudRunService: null,
+      firebaseAuthEmulatorHost: '127.0.0.1:9099',
       projectId: 'demo-mona-proctor',
       firestoreEmulatorHost: '127.0.0.1:8080',
     })
@@ -108,9 +131,7 @@ describe('backend history app', () => {
 
     const appendFirstResponse = await fetch(`${baseUrl}/api/history/sessions/${sessionId}/batches`, {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
+      headers: createAuthHeaders(),
       body: JSON.stringify({
         language: 'python',
         batchSequence: 1,
@@ -126,13 +147,12 @@ describe('backend history app', () => {
       acceptedEvents: 1,
       totalEvents: 1,
       totalBatches: 1,
+      ownerUid: 'owner-1',
     })
 
     const appendSecondResponse = await fetch(`${baseUrl}/api/history/sessions/${sessionId}/batches`, {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
+      headers: createAuthHeaders(),
       body: JSON.stringify({
         language: 'python',
         batchSequence: 2,
@@ -148,21 +168,26 @@ describe('backend history app', () => {
       acceptedEvents: 1,
       totalEvents: 2,
       totalBatches: 2,
+      ownerUid: 'owner-1',
     })
 
-    const sessionResponse = await fetch(`${baseUrl}/api/history/sessions/${sessionId}`)
+    const sessionResponse = await fetch(`${baseUrl}/api/history/sessions/${sessionId}`, {
+      headers: createAuthHeaders(),
+    })
 
     expect(sessionResponse.status).toBe(200)
 
     const session = await sessionResponse.json() as {
       sessionId: string
       language: string
+      ownerUid: string
       batches: Array<{ batchSequence: number; eventOffset: number; eventCount: number; uploadedAt: string }>
       events: RecordedMonacoEvent[]
     }
 
     expect(session.sessionId).toBe(sessionId)
     expect(session.language).toBe('python')
+    expect(session.ownerUid).toBe('owner-1')
     expect(session.batches).toHaveLength(2)
     expect(session.batches.map((batch) => ({
       batchSequence: batch.batchSequence,
@@ -197,16 +222,12 @@ describe('backend history app', () => {
 
     const firstResponse = await fetch(`${baseUrl}/api/history/sessions/retry-session/batches`, {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
+      headers: createAuthHeaders(),
       body: JSON.stringify(body),
     })
     const retryResponse = await fetch(`${baseUrl}/api/history/sessions/retry-session/batches`, {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
+      headers: createAuthHeaders(),
       body: JSON.stringify(body),
     })
 
@@ -218,6 +239,42 @@ describe('backend history app', () => {
       acceptedEvents: 1,
       totalEvents: 1,
       totalBatches: 1,
+      ownerUid: 'owner-1',
+    })
+  })
+
+  it('rejects missing or invalid bearer tokens', async () => {
+    const { baseUrl } = await startTestServer()
+
+    const missingTokenResponse = await fetch(`${baseUrl}/api/history/sessions/test/batches`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        language: 'python',
+        batchSequence: 1,
+        eventOffset: 0,
+        events: [],
+      }),
+    })
+
+    expect(missingTokenResponse.status).toBe(401)
+    expect(await missingTokenResponse.json()).toEqual({
+      ok: false,
+      error: 'Missing Bearer token.',
+    })
+
+    const invalidTokenResponse = await fetch(`${baseUrl}/api/history/sessions/test`, {
+      headers: {
+        authorization: 'Bearer invalid-token',
+      },
+    })
+
+    expect(invalidTokenResponse.status).toBe(401)
+    expect(await invalidTokenResponse.json()).toEqual({
+      ok: false,
+      error: 'Invalid Firebase ID token.',
     })
   })
 
@@ -226,9 +283,7 @@ describe('backend history app', () => {
 
     const response = await fetch(`${baseUrl}/api/history/sessions/bad-order/batches`, {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
+      headers: createAuthHeaders(),
       body: JSON.stringify({
         language: 'python',
         batchSequence: 1,
@@ -248,9 +303,7 @@ describe('backend history app', () => {
 
     await fetch(`${baseUrl}/api/history/sessions/conflict-session/batches`, {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
+      headers: createAuthHeaders(),
       body: JSON.stringify({
         language: 'python',
         batchSequence: 1,
@@ -271,9 +324,7 @@ describe('backend history app', () => {
 
     const response = await fetch(`${baseUrl}/api/history/sessions/conflict-session/batches`, {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
+      headers: createAuthHeaders(),
       body: JSON.stringify({
         language: 'python',
         batchSequence: 1,
@@ -296,6 +347,71 @@ describe('backend history app', () => {
     expect(await response.json()).toEqual({
       ok: false,
       error: 'Batch sequence already exists with different history payload.',
+    })
+  })
+
+  it('rejects access to a session owned by another authenticated user', async () => {
+    const { baseUrl } = await startTestServer()
+    const sessionId = 'owned-session'
+
+    const createResponse = await fetch(`${baseUrl}/api/history/sessions/${sessionId}/batches`, {
+      method: 'POST',
+      headers: createAuthHeaders('valid-owner-token'),
+      body: JSON.stringify({
+        language: 'python',
+        batchSequence: 1,
+        eventOffset: 0,
+        events: [{
+          sequence: 1,
+          timestamp: 100,
+          versionId: 1,
+          isUndoing: false,
+          isRedoing: false,
+          isFlush: false,
+          isEolChange: false,
+          eol: '\n',
+          changes: [],
+        }],
+      }),
+    })
+
+    expect(createResponse.status).toBe(200)
+
+    const appendAsOtherUser = await fetch(`${baseUrl}/api/history/sessions/${sessionId}/batches`, {
+      method: 'POST',
+      headers: createAuthHeaders('valid-other-token'),
+      body: JSON.stringify({
+        language: 'python',
+        batchSequence: 2,
+        eventOffset: 1,
+        events: [{
+          sequence: 2,
+          timestamp: 200,
+          versionId: 2,
+          isUndoing: false,
+          isRedoing: false,
+          isFlush: false,
+          isEolChange: false,
+          eol: '\n',
+          changes: [],
+        }],
+      }),
+    })
+
+    expect(appendAsOtherUser.status).toBe(403)
+    expect(await appendAsOtherUser.json()).toEqual({
+      ok: false,
+      error: 'Authenticated user does not own this session.',
+    })
+
+    const loadAsOtherUser = await fetch(`${baseUrl}/api/history/sessions/${sessionId}`, {
+      headers: createAuthHeaders('valid-other-token'),
+    })
+
+    expect(loadAsOtherUser.status).toBe(403)
+    expect(await loadAsOtherUser.json()).toEqual({
+      ok: false,
+      error: 'Authenticated user does not own this session.',
     })
   })
 })

@@ -1,5 +1,6 @@
 import type { EditorLanguage } from '../src/features/editor/languages.js'
 import type { RecordedMonacoEvent } from '../src/features/history/types.js'
+import type { AuthenticatedUser } from './auth.js'
 
 export type HistoryBatchRecord = {
   batchSequence: number
@@ -21,16 +22,22 @@ export type AppendHistoryBatchResult = {
   acceptedEvents: number
   totalEvents: number
   totalBatches: number
+  ownerUid: string
 }
 
 export type HistorySessionRecord = {
   sessionId: string
   language: EditorLanguage
+  ownerUid: string
   events: RecordedMonacoEvent[]
   batches: HistoryBatchRecord[]
 }
 
 export interface HistoryRepository {
-  appendHistoryBatch(sessionId: string, batch: AppendHistoryBatchInput): Promise<AppendHistoryBatchResult>
-  loadSessionHistory(sessionId: string): Promise<HistorySessionRecord | null>
+  appendHistoryBatch(
+    sessionId: string,
+    owner: AuthenticatedUser,
+    batch: AppendHistoryBatchInput,
+  ): Promise<AppendHistoryBatchResult>
+  loadSessionHistory(sessionId: string, owner: AuthenticatedUser): Promise<HistorySessionRecord | null>
 }

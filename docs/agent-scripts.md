@@ -9,6 +9,7 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - In Codespaces or another remote container, remember that `0.0.0.0` bindings may still require port forwarding or the browser preview URL.
 - Before finishing non-trivial work, run the relevant tests plus `npm run lint` and `npm run typecheck`.
 - For hosted deployment waves, prefer the repo's human-run deploy scripts over ad hoc `terraform` commands.
+- For Wave 10 local auth work, prefer the repo's emulator and seed scripts instead of manually creating Auth emulator users.
 
 ## Core development scripts
 
@@ -17,19 +18,19 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - Run this before using any other script in a fresh environment.
 
 ### `npm run dev`
-- Starts the Wave 7 local prototype stack:
+- Starts the Wave 10 local prototype app stack:
   - Vite frontend on a container-friendly host
-  - Firestore-backed backend history API on port `8081`
-- Use this for the browser client ↔ backend ↔ Firestore vertical slice.
-- Pair it with `npm run emulator:firestore` when you want the browser flow working against the local Firestore emulator.
+  - Firebase-authenticated backend history API on port `8081`
+- Use this for the browser client ↔ backend ↔ Firestore vertical slice after the local emulators are already running.
+- Pair it with `npm run emulator:local` and `npm run auth:seed` when you want the authenticated browser flow working locally.
 
 ### `npm run dev:web`
 - Starts only the Vite frontend.
 - Use when working only on frontend behavior or UI.
 
 ### `npm run dev:api`
-- Starts only the Wave 7 backend history API with Firestore-emulator settings.
-- Use when working only on the backend history API or Firestore persistence behavior.
+- Starts only the backend history API with Firestore and Auth emulator settings.
+- Use when working only on backend token verification, authorization, or Firestore persistence behavior.
 
 ### `npm run preview`
 - Serves the built frontend preview on a container-friendly host.
@@ -44,6 +45,21 @@ It summarizes the current npm scripts, when to use them, and what each one is me
   - Firestore emulator: `0.0.0.0:8080`
   - Emulator UI: `127.0.0.1:4000/firestore`
 - This is the long-running command to use when you want the UI available.
+
+### `npm run emulator:local`
+- Starts both the Firestore and Firebase Auth emulators plus the Firebase Emulator UI.
+- Use this for the full Wave 10 local authenticated flow.
+- Expected endpoints:
+  - Firestore emulator: `0.0.0.0:8080`
+  - Auth emulator: `0.0.0.0:9099`
+  - Emulator UI: `0.0.0.0:4000`
+
+### `npm run auth:seed`
+- Creates the default local email/password users in the running Auth emulator.
+- Run this after `npm run emulator:local`.
+- Default users created:
+  - `student1@example.com` / `pass1234`
+  - `student2@example.com` / `pass1234`
 
 ### `npm run emulator:firestore:check`
 - Starts the Firestore emulator, runs the trivial read/write sanity check, then shuts the emulator down.
@@ -102,6 +118,11 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 ### `npm run wave7:validate`
 - Alias for the repeatable non-Docker Wave 7 round-trip validation.
 - Use this when you want the fastest pass/fail check for append → Firestore persistence → load → replay reconstruction.
+
+### `npm run wave10:validate`
+- Starts the Firestore and Auth emulators, seeds local users, boots the backend directly with `tsx`, signs in through the Auth emulator, appends and loads authenticated history, verifies `ownerUid` persistence in Firestore, verifies cross-user access rejection, and shuts everything down.
+- This is the preferred repeatable Wave 10 validation script.
+- Use this to validate sign-in → ID token acquisition → backend verification → ownership enforcement.
 
 ### `npm run wave7:manual`
 - Starts the Firestore emulator and UI, builds and runs the backend in its Docker container, and starts the Vite client.

@@ -117,11 +117,11 @@ export function RecordingPage() {
   return (
     <main className="app-shell">
       <section className="hero">
-        <p className="eyebrow">Phase 7</p>
-        <h1>Local Client/Backend/Firestore Prototype</h1>
+        <p className="eyebrow">Phase 10</p>
+        <h1>Local authenticated history recording</h1>
         <p className="hero-copy">
-          Record Monaco content-change events, batch them to a local backend,
-          and persist session history in Firestore for later replay.
+          Record Monaco content-change events, send Firebase-authenticated history batches to the backend,
+          and persist per-user session history in Firestore for later replay.
         </p>
       </section>
 
@@ -129,7 +129,7 @@ export function RecordingPage() {
         <div className="workspace-toolbar">
           <div>
             <h2>Recording Page</h2>
-            <p>Each page session gets a client-generated UUID and uploads append-only history batches through the backend API.</p>
+            <p>Each page session gets a client-generated UUID and uploads append-only history batches through the authenticated backend API.</p>
           </div>
           <LanguageSelector
             languages={editorLanguages}
