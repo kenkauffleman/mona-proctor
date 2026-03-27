@@ -1,23 +1,16 @@
 import process from 'node:process'
 import { getApps, initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
-
-type UserSeed = {
-  email: string
-  password: string
-}
+import { parseAuthSeedUsers, type AuthSeedUser } from './authSeedUsers.js'
 
 type Config = {
   projectId: string
-  users: UserSeed[]
+  users: AuthSeedUser[]
 }
 
 function parseArgs(argv: string[]): Config {
   const projectId = process.env.DEPLOY_PROJECT_ID ?? process.env.GCLOUD_PROJECT
-  const users: UserSeed[] = [
-    { email: 'student1@example.com', password: 'pass1234' },
-    { email: 'student2@example.com', password: 'pass1234' },
-  ]
+  const users = parseAuthSeedUsers(process.env.AUTH_SEED_USERS_JSON, { required: true })
 
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index]
@@ -48,7 +41,7 @@ function parseArgs(argv: string[]): Config {
   }
 }
 
-async function ensureUser(user: UserSeed) {
+async function ensureUser(user: AuthSeedUser) {
   const auth = getAuth()
 
   try {

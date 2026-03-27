@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import process from 'node:process'
 import { replayRecordedMonacoEvents } from '../src/features/history/history.js'
 import type { AppendHistoryBatchRequest, HistorySessionResponse } from '../src/features/history/apiTypes.js'
+import { parseAuthSeedUsers } from './authSeedUsers.js'
 
 type TerraformOutputs = {
   firebase_web_app: {
@@ -108,8 +109,12 @@ async function main() {
   const frontendOrigin = outputs.frontend_hosting_origins.value[0]
   const backendBaseUrl = outputs.service_uri.value
   const apiKey = outputs.firebase_web_app.value.api_key
-  const ownerUser = { email: 'student1@example.com', password: 'pass1234' }
-  const otherUser = { email: 'student2@example.com', password: 'pass1234' }
+  const [ownerUser, otherUser] = parseAuthSeedUsers(process.env.AUTH_SEED_USERS_JSON, { required: true })
+
+  if (!ownerUser || !otherUser) {
+    throw new Error('AUTH_SEED_USERS_JSON must contain at least two users for Wave 11 validation.')
+  }
+
   const sessionId = `wave-11-${Date.now()}`
 
   console.log(`Validating hosted frontend availability at ${frontendOrigin}`)

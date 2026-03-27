@@ -1,16 +1,14 @@
+import { defaultLocalAuthSeedUsers, type AuthSeedUser, parseAuthSeedUsers } from './authSeedUsers.js'
+
 const defaultAuthEmulatorHost = process.env.FIREBASE_AUTH_EMULATOR_HOST ?? '127.0.0.1:9099'
 const authEmulatorBaseUrl = `http://${defaultAuthEmulatorHost}/identitytoolkit.googleapis.com/v1`
 const fakeApiKey = 'demo-mona-proctor-local-key'
 
-export type LocalAuthUser = {
-  email: string
-  password: string
-}
+export type LocalAuthUser = AuthSeedUser
 
-export const localAuthUsers: LocalAuthUser[] = [
-  { email: 'student1@example.com', password: 'pass1234' },
-  { email: 'student2@example.com', password: 'pass1234' },
-]
+export const localAuthUsers = parseAuthSeedUsers(process.env.AUTH_SEED_USERS_JSON, {
+  fallbackUsers: defaultLocalAuthSeedUsers,
+})
 
 async function authRequest<T>(path: string, body: Record<string, unknown>) {
   const response = await fetch(`${authEmulatorBaseUrl}/${path}?key=${fakeApiKey}`, {

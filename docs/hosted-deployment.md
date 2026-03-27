@@ -34,6 +34,7 @@ For this phase, keep:
 ```bash
 FIRESTORE_DATABASE_NAME="(default)"
 DEPLOY_QUOTA_PROJECT_ID="<same-as-deploy-project-id>"
+AUTH_SEED_USERS_JSON='[{"email":"replace-me@example.com","password":"replace-me"}]'
 ```
 
 The hosted workflow does not support switching to another Firestore database name during Wave 11.
@@ -69,7 +70,7 @@ Swap `test` for `prod` when you want the production environment.
 
 ### `npm run deploy -- seed-auth --env <name>`
 - uses the hosted Firebase project through Application Default Credentials
-- creates or updates the default Wave 11 email/password users
+- creates or updates the hosted email/password users listed in `AUTH_SEED_USERS_JSON`
 - keeps the human validation flow repeatable without storing credentials in the repo
 
 ### `npm run deploy -- validate --env <name>`
@@ -115,7 +116,7 @@ The deploy step finishes by running the hosted auth validator.
 That validator:
 - reads the Firebase web app config and backend URL from Terraform outputs
 - fetches the hosted frontend origin to confirm Hosting is serving the app
-- signs in the default hosted users through Firebase Auth using email/password
+- signs in the first two users from `AUTH_SEED_USERS_JSON` through Firebase Auth using email/password
 - sends Firebase ID tokens to the hosted backend with the hosted frontend `Origin`
 - appends and reloads history through the backend
 - verifies replay reconstruction through Firestore-backed data
@@ -130,10 +131,10 @@ https://<project-id>.web.app
 ```
 
 Then:
-1. Sign in as `student1@example.com` / `pass1234`.
+1. Sign in as the first user from `AUTH_SEED_USERS_JSON`.
 2. Type in the editor and wait for a successful sync.
 3. Open the replay page for the same session and verify it loads.
-4. Sign out and sign back in as `student2@example.com` / `pass1234`.
+4. Sign out and sign back in as the second user from `AUTH_SEED_USERS_JSON`.
 5. Try loading the first session UUID and confirm the backend denies access.
 
 ## Safety notes

@@ -60,6 +60,7 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - Default users created:
   - `student1@example.com` / `pass1234`
   - `student2@example.com` / `pass1234`
+- You can override those defaults by setting `AUTH_SEED_USERS_JSON` in the shell before running the script.
 
 ### `npm run emulator:firestore:check`
 - Starts the Firestore emulator, runs the trivial read/write sanity check, then shuts the emulator down.
@@ -164,7 +165,7 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - Builds the backend container from [backend/Dockerfile](/workspaces/mona-proctor/backend/Dockerfile) and pushes it to Artifact Registry.
 
 ### `npm run deploy -- seed-auth --env <name>`
-- Creates or updates the default hosted Firebase email/password users for Wave 11.
+- Creates or updates the hosted Firebase email/password users listed in `AUTH_SEED_USERS_JSON`.
 - Uses Application Default Credentials and the repo's Firebase Admin-based seeding script.
 - Run this after Terraform has configured hosted Firebase Auth and before the hosted auth validator.
 
@@ -194,6 +195,10 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 ### `npm run hosted:auth:seed`
 - Runs the hosted Firebase Auth user seeding script directly.
 - Use this only when you want the lower-level command outside the top-level deploy wrapper.
+
+### `npm run hosted:auth:delete`
+- Deletes the hosted Firebase Auth users listed in `AUTH_SEED_USERS_JSON`.
+- Useful for one-off cleanup when a previously seeded account should no longer exist.
 
 ### `npm run wave11:validate`
 - Validates the hosted Firebase-authenticated frontend/API/Firestore flow using Terraform outputs from the hosted root.

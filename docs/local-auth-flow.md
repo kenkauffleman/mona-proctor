@@ -24,6 +24,8 @@ Default users:
 - `student1@example.com` / `pass1234`
 - `student2@example.com` / `pass1234`
 
+You can override those defaults for local work by setting `AUTH_SEED_USERS_JSON` before running the seed script.
+
 ## Manual local workflow
 1. Start the emulators with `npm run emulator:local`
 2. In another terminal, seed the auth users with `npm run auth:seed`

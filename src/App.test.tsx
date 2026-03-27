@@ -66,7 +66,8 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { name: 'Local Firebase Auth validation' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument()
-    expect(screen.getByDisplayValue('student1@example.com')).toBeInTheDocument()
+    expect(screen.getByLabelText('Email')).toHaveValue('')
+    expect(screen.getByLabelText('Password')).toHaveValue('')
   })
 
   it('renders the recording page once a user is authenticated', () => {

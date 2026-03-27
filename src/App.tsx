@@ -11,8 +11,8 @@ function getPathname() {
 
 function AuthenticatedApp() {
   const [pathname, setPathname] = useState(getPathname)
-  const [email, setEmail] = useState('student1@example.com')
-  const [password, setPassword] = useState('pass1234')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const { error, isLoading, isSigningIn, signIn, signOut, user } = useAuth()
 
   useEffect(() => {
@@ -91,11 +91,6 @@ function AuthenticatedApp() {
               {isSigningIn ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
-          {!runtimeConfig.isHostedAuth ? (
-            <p className="auth-hint">
-              Seeded default: <code>student1@example.com</code> / <code>pass1234</code>
-            </p>
-          ) : null}
           {error ? <p className="auth-error">{error}</p> : null}
         </section>
       </main>
