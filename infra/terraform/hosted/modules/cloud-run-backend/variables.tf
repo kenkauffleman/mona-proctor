@@ -39,6 +39,41 @@ variable "allowed_origins" {
   type        = list(string)
 }
 
+variable "execution_backend" {
+  description = "Backend execution implementation name."
+  type        = string
+}
+
+variable "execution_cloud_run_job_name" {
+  description = "Cloud Run Job name used for Python execution."
+  type        = string
+}
+
+variable "execution_global_active_job_limit" {
+  description = "Maximum number of active execution jobs across the system."
+  type        = number
+}
+
+variable "execution_max_source_bytes" {
+  description = "Maximum UTF-8 source size accepted by the backend."
+  type        = number
+}
+
+variable "execution_max_stderr_bytes" {
+  description = "Maximum stderr bytes retained by the execution runner."
+  type        = number
+}
+
+variable "execution_max_stdout_bytes" {
+  description = "Maximum stdout bytes retained by the execution runner."
+  type        = number
+}
+
+variable "execution_timeout_ms" {
+  description = "Execution timeout in milliseconds."
+  type        = number
+}
+
 variable "max_instance_count" {
   description = "Maximum number of Cloud Run instances for this prototype backend."
   type        = number

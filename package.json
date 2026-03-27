@@ -31,6 +31,10 @@
     "hosted:auth:seed": "tsx scripts/seedHostedAuthUsers.ts",
     "hosted:auth:delete": "tsx scripts/deleteHostedAuthUsers.ts",
     "wave11:validate": "tsx scripts/validateHostedAuthFlow.ts",
+    "execution:container:validate": "firebase emulators:exec --only firestore \"tsx scripts/pythonExecutionContainerValidate.ts\"",
+    "execution:submit": "tsx scripts/submitExecutionJob.ts",
+    "execution:get": "tsx scripts/getExecutionJob.ts",
+    "wave12:validate": "tsx scripts/validateHostedPythonExecution.ts",
     "deploy": "bash scripts/deploy/manage.sh"
   },
   "dependencies": {

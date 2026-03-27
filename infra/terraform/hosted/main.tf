@@ -31,16 +31,41 @@ module "firebase_frontend" {
 module "cloud_run_backend" {
   source = "./modules/cloud-run-backend"
 
-  project_id               = var.project_id
-  region                   = var.region
-  service_name             = var.cloud_run_service_name
-  artifact_repository_name = var.artifact_repository_name
-  container_image          = var.cloud_run_container_image
-  allow_public_invocation  = true
-  allowed_origins          = local.hosted_frontend_origins
-  invoker_principal        = var.cloud_run_invoker_principal
-  max_instance_count       = var.cloud_run_max_instance_count
-  min_instance_count       = var.cloud_run_min_instance_count
+  project_id                        = var.project_id
+  region                            = var.region
+  service_name                      = var.cloud_run_service_name
+  artifact_repository_name          = var.artifact_repository_name
+  container_image                   = var.cloud_run_container_image
+  allow_public_invocation           = true
+  allowed_origins                   = local.hosted_frontend_origins
+  invoker_principal                 = var.cloud_run_invoker_principal
+  execution_backend                 = var.execution_backend
+  execution_cloud_run_job_name      = var.execution_cloud_run_job_name
+  execution_global_active_job_limit = var.execution_global_active_job_limit
+  execution_max_source_bytes        = var.execution_max_source_bytes
+  execution_max_stderr_bytes        = var.execution_max_stderr_bytes
+  execution_max_stdout_bytes        = var.execution_max_stdout_bytes
+  execution_timeout_ms              = var.execution_timeout_ms
+  max_instance_count                = var.cloud_run_max_instance_count
+  min_instance_count                = var.cloud_run_min_instance_count
 
   depends_on = [module.firestore, module.firebase_frontend]
+}
+
+module "cloud_run_execution_job" {
+  source = "./modules/cloud-run-execution-job"
+
+  project_id                            = var.project_id
+  region                                = var.region
+  job_name                              = var.execution_cloud_run_job_name
+  artifact_repository_name              = var.artifact_repository_name
+  container_image                       = var.execution_cloud_run_container_image
+  backend_runtime_service_account_email = module.cloud_run_backend.runtime_service_account_email
+  execution_global_active_job_limit     = var.execution_global_active_job_limit
+  execution_max_source_bytes            = var.execution_max_source_bytes
+  execution_max_stderr_bytes            = var.execution_max_stderr_bytes
+  execution_max_stdout_bytes            = var.execution_max_stdout_bytes
+  execution_timeout_ms                  = var.execution_timeout_ms
+
+  depends_on = [module.cloud_run_backend]
 }

@@ -5,7 +5,10 @@ import type { RecordedMonacoEvent } from '../src/features/history/types.js'
 import type { MonacoContentChangeEvent } from '../src/features/history/types.js'
 import type { AuthVerifier } from './auth.js'
 import { createBackendApp } from './app.js'
+import type { ExecutionBackend } from './executionBackend.js'
+import { ExecutionService } from './executionService.js'
 import { InMemoryHistoryRepository } from './inMemoryHistoryRepository.js'
+import { InMemoryExecutionRepository } from './inMemoryExecutionRepository.js'
 
 const servers: Array<{ close: () => void }> = []
 
@@ -33,6 +36,7 @@ function createContentChangeEvent(
 
 async function startTestServer() {
   const repository = new InMemoryHistoryRepository()
+  const executionRepository = new InMemoryExecutionRepository()
   const authVerifier: AuthVerifier = {
     async verifyIdToken(idToken) {
       if (idToken === 'valid-owner-token') {
@@ -46,11 +50,39 @@ async function startTestServer() {
       throw new Error('Invalid token')
     },
   }
-  const app = createBackendApp(repository, authVerifier, {
+  const executionBackend: ExecutionBackend = {
+    name: 'test-execution-backend',
+    async dispatch(job) {
+      return {
+        backendJobName: `dispatched-${job.jobId}`,
+      }
+    },
+  }
+  const executionService = new ExecutionService(
+    executionRepository,
+    executionBackend,
+    {
+      maxSourceBytes: 4096,
+      timeoutMs: 5_000,
+      maxStdoutBytes: 1024,
+      maxStderrBytes: 1024,
+      globalActiveJobLimit: 2,
+    },
+  )
+  const app = createBackendApp(repository, authVerifier, executionService, {
     allowedOrigins: ['https://test.web.app'],
     cloudRunConfiguration: undefined,
     cloudRunRevision: undefined,
     cloudRunService: undefined,
+    executionBackend: executionBackend.name,
+    executionCloudRunJobName: 'mona-proctor-python-executor',
+    executionCloudRunProjectId: 'demo-mona-proctor',
+    executionCloudRunRegion: 'us-central1',
+    executionGlobalActiveJobLimit: 2,
+    executionMaxSourceBytes: 4096,
+    executionMaxStderrBytes: 1024,
+    executionMaxStdoutBytes: 1024,
+    executionTimeoutMs: 5000,
     firebaseAuthEmulatorHost: '127.0.0.1:9099',
     projectId: 'demo-mona-proctor',
     firestoreEmulatorHost: '127.0.0.1:8080',
@@ -87,6 +119,15 @@ describe('backend history app', () => {
       cloudRunConfiguration: null,
       cloudRunRevision: null,
       cloudRunService: null,
+      executionBackend: 'test-execution-backend',
+      executionCloudRunJobName: 'mona-proctor-python-executor',
+      executionCloudRunProjectId: 'demo-mona-proctor',
+      executionCloudRunRegion: 'us-central1',
+      executionGlobalActiveJobLimit: 2,
+      executionMaxSourceBytes: 4096,
+      executionMaxStderrBytes: 1024,
+      executionMaxStdoutBytes: 1024,
+      executionTimeoutMs: 5000,
       firebaseAuthEmulatorHost: '127.0.0.1:9099',
       projectId: 'demo-mona-proctor',
       firestoreEmulatorHost: '127.0.0.1:8080',
@@ -460,6 +501,124 @@ describe('backend history app', () => {
     expect(await loadAsOtherUser.json()).toEqual({
       ok: false,
       error: 'Authenticated user does not own this session.',
+    })
+  })
+
+  it('submits an execution job and allows the owner to fetch it', async () => {
+    const { baseUrl } = await startTestServer()
+
+    const createResponse = await fetch(`${baseUrl}/api/execution/jobs`, {
+      method: 'POST',
+      headers: createAuthHeaders(),
+      body: JSON.stringify({
+        language: 'python',
+        source: 'print("hello from job")',
+      }),
+    })
+
+    expect(createResponse.status).toBe(202)
+
+    const createBody = await createResponse.json() as {
+      job: {
+        jobId: string
+        ownerUid: string
+        language: string
+        source: string
+        status: string
+        backend: string
+        backendJobName: string
+        result: null
+      }
+    }
+
+    expect(createBody.job.ownerUid).toBe('owner-1')
+    expect(createBody.job.language).toBe('python')
+    expect(createBody.job.status).toBe('queued')
+    expect(createBody.job.backend).toBe('test-execution-backend')
+    expect(createBody.job.backendJobName).toContain(`dispatched-${createBody.job.jobId}`)
+
+    const loadResponse = await fetch(`${baseUrl}/api/execution/jobs/${createBody.job.jobId}`, {
+      headers: createAuthHeaders(),
+    })
+
+    expect(loadResponse.status).toBe(200)
+    expect(await loadResponse.json()).toMatchObject({
+      job: {
+        jobId: createBody.job.jobId,
+        ownerUid: 'owner-1',
+        language: 'python',
+        source: 'print("hello from job")',
+        status: 'queued',
+      },
+    })
+  })
+
+  it('rejects a second active execution for the same authenticated user', async () => {
+    const { baseUrl } = await startTestServer()
+
+    const firstResponse = await fetch(`${baseUrl}/api/execution/jobs`, {
+      method: 'POST',
+      headers: createAuthHeaders(),
+      body: JSON.stringify({
+        language: 'python',
+        source: 'print("first")',
+      }),
+    })
+
+    expect(firstResponse.status).toBe(202)
+
+    const secondResponse = await fetch(`${baseUrl}/api/execution/jobs`, {
+      method: 'POST',
+      headers: createAuthHeaders(),
+      body: JSON.stringify({
+        language: 'python',
+        source: 'print("second")',
+      }),
+    })
+
+    expect(secondResponse.status).toBe(409)
+    expect(await secondResponse.json()).toEqual({
+      ok: false,
+      error: 'Authenticated user already has an active execution job.',
+    })
+  })
+
+  it('rejects invalid execution requests and cross-user execution access', async () => {
+    const { baseUrl } = await startTestServer()
+
+    const invalidResponse = await fetch(`${baseUrl}/api/execution/jobs`, {
+      method: 'POST',
+      headers: createAuthHeaders(),
+      body: JSON.stringify({
+        language: 'java',
+        source: '',
+      }),
+    })
+
+    expect(invalidResponse.status).toBe(400)
+    expect(await invalidResponse.json()).toEqual({
+      ok: false,
+      error: 'Invalid execution job request.',
+    })
+
+    const createResponse = await fetch(`${baseUrl}/api/execution/jobs`, {
+      method: 'POST',
+      headers: createAuthHeaders('valid-owner-token'),
+      body: JSON.stringify({
+        language: 'python',
+        source: 'print("owner")',
+      }),
+    })
+    const createBody = await createResponse.json() as { job: { jobId: string } }
+
+    const loadAsOtherUser = await fetch(`${baseUrl}/api/execution/jobs/${createBody.job.jobId}`, {
+      headers: createAuthHeaders('valid-other-token'),
+    })
+
+    expect(loadAsOtherUser.status).toBe(403)
+    expect(await loadAsOtherUser.json()).toEqual({
+      ok: false,
+      error: 'Authenticated user does not own this execution job.',
     })
   })
 })

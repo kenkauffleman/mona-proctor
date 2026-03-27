@@ -3,6 +3,8 @@ import type { EditorLanguage } from '../src/features/editor/languages.js'
 import type { AppendHistoryBatchRequest } from '../src/features/history/apiTypes.js'
 import type { AuthVerifier } from './auth.js'
 import { AuthorizationError } from './errors.js'
+import { executionErrorStatusCode, ExecutionService } from './executionService.js'
+import type { CreateExecutionJobRequest } from './executionApiTypes.js'
 import type { HistoryRepository } from './historyRepository.js'
 
 const supportedLanguages = new Set<EditorLanguage>(['python', 'javascript', 'java'])
@@ -27,6 +29,14 @@ function isAppendHistoryBatchRequest(value: unknown): value is AppendHistoryBatc
     && value.eventOffset >= 0
     && Array.isArray(value.events)
   )
+}
+
+function isCreateExecutionJobRequest(value: unknown): value is CreateExecutionJobRequest {
+  if (!isObject(value)) {
+    return false
+  }
+
+  return value.language === 'python' && typeof value.source === 'string'
 }
 
 function validateBatchOrdering(request: AppendHistoryBatchRequest) {
@@ -55,11 +65,21 @@ function validateBatchOrdering(request: AppendHistoryBatchRequest) {
 export function createBackendApp(
   historyRepository: HistoryRepository,
   authVerifier: AuthVerifier,
+  executionService: ExecutionService,
   options: {
     allowedOrigins?: string[]
     cloudRunConfiguration?: string
     cloudRunRevision?: string
     cloudRunService?: string
+    executionBackend?: string
+    executionCloudRunJobName?: string
+    executionCloudRunProjectId?: string
+    executionCloudRunRegion?: string
+    executionGlobalActiveJobLimit?: number
+    executionMaxSourceBytes?: number
+    executionMaxStderrBytes?: number
+    executionMaxStdoutBytes?: number
+    executionTimeoutMs?: number
     firebaseAuthEmulatorHost?: string
     firestoreEmulatorHost?: string
     projectId: string
@@ -105,13 +125,22 @@ export function createBackendApp(
       cloudRunConfiguration: options.cloudRunConfiguration ?? null,
       cloudRunRevision: options.cloudRunRevision ?? null,
       cloudRunService: options.cloudRunService ?? null,
+      executionBackend: options.executionBackend ?? null,
+      executionCloudRunJobName: options.executionCloudRunJobName ?? null,
+      executionCloudRunProjectId: options.executionCloudRunProjectId ?? null,
+      executionCloudRunRegion: options.executionCloudRunRegion ?? null,
+      executionGlobalActiveJobLimit: options.executionGlobalActiveJobLimit ?? null,
+      executionMaxSourceBytes: options.executionMaxSourceBytes ?? null,
+      executionMaxStderrBytes: options.executionMaxStderrBytes ?? null,
+      executionMaxStdoutBytes: options.executionMaxStdoutBytes ?? null,
+      executionTimeoutMs: options.executionTimeoutMs ?? null,
       firebaseAuthEmulatorHost: options.firebaseAuthEmulatorHost ?? null,
       projectId: options.projectId,
       firestoreEmulatorHost: options.firestoreEmulatorHost ?? null,
     })
   })
 
-  app.use('/api/history', async (request, response, next) => {
+  app.use(['/api/history', '/api/execution'], async (request, response, next) => {
     const authorizationHeader = request.header('authorization')
 
     if (!authorizationHeader?.startsWith('Bearer ')) {
@@ -207,6 +236,65 @@ export function createBackendApp(
       response.json(session)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown session load error.'
+      response.status(error instanceof AuthorizationError ? 403 : 500).json({
+        ok: false,
+        error: message,
+      })
+    }
+  })
+
+  app.post('/api/execution/jobs', async (request, response) => {
+    if (!isCreateExecutionJobRequest(request.body)) {
+      response.status(400).json({
+        ok: false,
+        error: 'Invalid execution job request.',
+      })
+      return
+    }
+
+    try {
+      const job = await executionService.submitExecution(
+        response.locals.authenticatedUser,
+        request.body,
+      )
+      response.status(202).json({ job })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown execution submission error.'
+      response.status(executionErrorStatusCode(error)).json({
+        ok: false,
+        error: message,
+      })
+    }
+  })
+
+  app.get('/api/execution/jobs/:jobId', async (request, response) => {
+    const jobId = request.params.jobId
+
+    if (typeof jobId !== 'string' || jobId.trim().length === 0) {
+      response.status(400).json({
+        ok: false,
+        error: 'Execution job ID is required.',
+      })
+      return
+    }
+
+    try {
+      const job = await executionService.getExecutionJob(
+        jobId.trim(),
+        response.locals.authenticatedUser,
+      )
+
+      if (!job) {
+        response.status(404).json({
+          ok: false,
+          error: 'Execution job not found.',
+        })
+        return
+      }
+
+      response.json({ job })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown execution load error.'
       response.status(error instanceof AuthorizationError ? 403 : 500).json({
         ok: false,
         error: message,

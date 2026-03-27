@@ -17,3 +17,8 @@ output "service_uri" {
   description = "Cloud Run backend URI. The service remains IAM-protected by default."
   value       = google_cloud_run_v2_service.backend.uri
 }
+
+output "runtime_service_account_email" {
+  description = "Service account used by the backend runtime."
+  value       = google_service_account.backend_runtime.email
+}

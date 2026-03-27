@@ -215,6 +215,15 @@ Compared with submission-only history upload, chunking:
 8. grader runs tests in isolation
 9. backend stores result and returns status to client/admin views
 
+### Wave 12 execution prototype
+Before UI integration or hidden tests, Python execution now uses a narrower prototype flow:
+1. authenticated script submits Python source to the backend
+2. backend stores a Firestore execution record separate from history/session data
+3. backend dispatches an execution backend through an abstraction layer
+4. Cloud Run Job runner claims queued work from Firestore
+5. runner executes Python and stores stdout/stderr/result metadata back in Firestore
+6. script polls the execution record until a terminal result is available
+
 ## Isolation model
 
 ### Main app environment

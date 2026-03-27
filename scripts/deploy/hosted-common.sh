@@ -16,8 +16,10 @@ Usage:
 
 Optional:
   --service <service-name>     Defaults to mona-proctor-backend
+  --execution-job <job-name>   Defaults to mona-proctor-python-executor
   --repo <artifact-repository> Defaults to mona-proctor
   --image-name <image-name>    Defaults to backend
+  --execution-image-name <n>   Defaults to python-runner
   --web-app-name <name>        Defaults to mona-proctor-web
   --quota-project <project-id> Defaults to the deploy project
   --invoker <member>           Optional extra direct invoker member
@@ -34,8 +36,10 @@ load_hosted_args() {
   HOSTED_REGION="${DEPLOY_REGION:-}"
   HOSTED_FIRESTORE_DATABASE_NAME="${FIRESTORE_DATABASE_NAME:-"(default)"}"
   HOSTED_CLOUD_RUN_SERVICE_NAME="${CLOUDRUN_SERVICE_NAME:-mona-proctor-backend}"
+  HOSTED_EXECUTION_CLOUD_RUN_JOB_NAME="${EXECUTION_CLOUDRUN_JOB_NAME:-mona-proctor-python-executor}"
   HOSTED_ARTIFACT_REPOSITORY="${CLOUDRUN_ARTIFACT_REPOSITORY:-mona-proctor}"
   HOSTED_IMAGE_NAME="${CLOUDRUN_IMAGE_NAME:-backend}"
+  HOSTED_EXECUTION_IMAGE_NAME="${EXECUTION_CLOUDRUN_IMAGE_NAME:-python-runner}"
   HOSTED_IMAGE_TAG="${CLOUDRUN_IMAGE_TAG:-wave11}"
   HOSTED_FIREBASE_WEB_APP_NAME="${FIREBASE_WEB_APP_NAME:-mona-proctor-web}"
   HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL="${CLOUDRUN_INVOKER_PRINCIPAL:-}"
@@ -66,12 +70,20 @@ load_hosted_args() {
         HOSTED_CLOUD_RUN_SERVICE_NAME="${2:-}"
         shift 2
         ;;
+      --execution-job)
+        HOSTED_EXECUTION_CLOUD_RUN_JOB_NAME="${2:-}"
+        shift 2
+        ;;
       --repo)
         HOSTED_ARTIFACT_REPOSITORY="${2:-}"
         shift 2
         ;;
       --image-name)
         HOSTED_IMAGE_NAME="${2:-}"
+        shift 2
+        ;;
+      --execution-image-name)
+        HOSTED_EXECUTION_IMAGE_NAME="${2:-}"
         shift 2
         ;;
       --tag)
@@ -109,8 +121,10 @@ load_hosted_args() {
     HOSTED_REGION="${DEPLOY_REGION:-${HOSTED_REGION}}"
     HOSTED_FIRESTORE_DATABASE_NAME="${FIRESTORE_DATABASE_NAME:-${HOSTED_FIRESTORE_DATABASE_NAME}}"
     HOSTED_CLOUD_RUN_SERVICE_NAME="${CLOUDRUN_SERVICE_NAME:-${HOSTED_CLOUD_RUN_SERVICE_NAME}}"
+    HOSTED_EXECUTION_CLOUD_RUN_JOB_NAME="${EXECUTION_CLOUDRUN_JOB_NAME:-${HOSTED_EXECUTION_CLOUD_RUN_JOB_NAME}}"
     HOSTED_ARTIFACT_REPOSITORY="${CLOUDRUN_ARTIFACT_REPOSITORY:-${HOSTED_ARTIFACT_REPOSITORY}}"
     HOSTED_IMAGE_NAME="${CLOUDRUN_IMAGE_NAME:-${HOSTED_IMAGE_NAME}}"
+    HOSTED_EXECUTION_IMAGE_NAME="${EXECUTION_CLOUDRUN_IMAGE_NAME:-${HOSTED_EXECUTION_IMAGE_NAME}}"
     HOSTED_IMAGE_TAG="${CLOUDRUN_IMAGE_TAG:-${HOSTED_IMAGE_TAG}}"
     HOSTED_FIREBASE_WEB_APP_NAME="${FIREBASE_WEB_APP_NAME:-${HOSTED_FIREBASE_WEB_APP_NAME}}"
     HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL="${CLOUDRUN_INVOKER_PRINCIPAL:-${HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL}}"
@@ -131,6 +145,7 @@ EOF
   fi
 
   HOSTED_CONTAINER_IMAGE="${HOSTED_REGION}-docker.pkg.dev/${HOSTED_PROJECT_ID}/${HOSTED_ARTIFACT_REPOSITORY}/${HOSTED_IMAGE_NAME}:${HOSTED_IMAGE_TAG}"
+  HOSTED_EXECUTION_CONTAINER_IMAGE="${HOSTED_REGION}-docker.pkg.dev/${HOSTED_PROJECT_ID}/${HOSTED_ARTIFACT_REPOSITORY}/${HOSTED_EXECUTION_IMAGE_NAME}:${HOSTED_IMAGE_TAG}"
   HOSTED_TFVARS_FILE="${HOSTED_ENVIRONMENTS_DIR}/${DEPLOY_ENVIRONMENT_NAME}.tfvars"
 }
 
@@ -141,11 +156,14 @@ print_hosted_target_summary() {
   echo "Shared region: ${HOSTED_REGION}"
   echo "Firestore database: ${HOSTED_FIRESTORE_DATABASE_NAME}"
   echo "Cloud Run service: ${HOSTED_CLOUD_RUN_SERVICE_NAME}"
+  echo "Execution job: ${HOSTED_EXECUTION_CLOUD_RUN_JOB_NAME}"
   echo "Artifact repository: ${HOSTED_ARTIFACT_REPOSITORY}"
   echo "Image name: ${HOSTED_IMAGE_NAME}"
+  echo "Execution image name: ${HOSTED_EXECUTION_IMAGE_NAME}"
   echo "Image tag: ${HOSTED_IMAGE_TAG}"
   echo "Firebase web app name: ${HOSTED_FIREBASE_WEB_APP_NAME}"
   echo "Container image: ${HOSTED_CONTAINER_IMAGE}"
+  echo "Execution container image: ${HOSTED_EXECUTION_CONTAINER_IMAGE}"
   echo "Extra direct invoker: ${HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL:-<none>}"
   echo "Terraform root: ${HOSTED_TERRAFORM_DIR}"
   echo "Terraform tfvars: ${HOSTED_TFVARS_FILE}"
@@ -158,9 +176,11 @@ terraform_hosted_var_args() {
     "-var=region=${HOSTED_REGION}" \
     "-var=firestore_database_name=${HOSTED_FIRESTORE_DATABASE_NAME}" \
     "-var=cloud_run_service_name=${HOSTED_CLOUD_RUN_SERVICE_NAME}" \
+    "-var=execution_cloud_run_job_name=${HOSTED_EXECUTION_CLOUD_RUN_JOB_NAME}" \
     "-var=firebase_web_app_display_name=${HOSTED_FIREBASE_WEB_APP_NAME}" \
     "-var=artifact_repository_name=${HOSTED_ARTIFACT_REPOSITORY}" \
-    "-var=cloud_run_container_image=${HOSTED_CONTAINER_IMAGE}"
+    "-var=cloud_run_container_image=${HOSTED_CONTAINER_IMAGE}" \
+    "-var=execution_cloud_run_container_image=${HOSTED_EXECUTION_CONTAINER_IMAGE}"
 
   if [[ -n "${HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL}" ]]; then
     printf '%s\n' "-var=cloud_run_invoker_principal=${HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL}"
@@ -320,8 +340,17 @@ steps:
       - -t
       - ${HOSTED_CONTAINER_IMAGE}
       - .
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - execution/python-runner/Dockerfile
+      - -t
+      - ${HOSTED_EXECUTION_CONTAINER_IMAGE}
+      - .
 images:
   - ${HOSTED_CONTAINER_IMAGE}
+  - ${HOSTED_EXECUTION_CONTAINER_IMAGE}
 EOF
 
   gcloud builds submit \

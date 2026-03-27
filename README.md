@@ -1,6 +1,6 @@
 # mona-proctor
 
-Wave 9 is focused on a unified hosted deployment flow for the validated vertical slice: one Terraform root for Firestore + Artifact Registry + private Cloud Run, plus one top-level operator workflow for `build`, `validate`, `plan`, and `deploy`.
+Wave 12 focuses on a Python execution prototype: authenticated script submission, Firestore-backed execution records, and a Cloud Run Job-based Python runner behind a swappable backend execution interface.
 
 The repo currently provides:
 
@@ -8,8 +8,10 @@ The repo currently provides:
 - a local browser ↔ backend ↔ Firestore vertical prototype from Wave 7
 - local Firestore emulator workflows and validation scripts
 - a TypeScript backend history API with Firestore-backed persistence
+- a TypeScript backend execution API for script-driven Python submission and result retrieval
 - backend container validation scripts aligned with a future Cloud Run shape
-- a single hosted Terraform root for Firestore, Artifact Registry, and private Cloud Run
+- a Python runner container validated locally before hosted execution use
+- a single hosted Terraform root for Firestore, Artifact Registry, Cloud Run service, and Cloud Run Job
 - one project-level deploy workflow for hosted environments like `test` and `prod`
 
 ## Run locally
@@ -125,7 +127,7 @@ npm run deploy -- deploy --env test
 
 Terraform uses local Application Default Credentials from the human operator's machine. No cloud secrets, service account keys, or live credentials are required in the repo or agent environment.
 
-The service stays non-public by default. The deploy step finishes with a private Cloud Run round-trip validation through Firestore.
+The deploy flow now builds and pushes both the backend image and the Python execution runner image. The service stays non-public by default. After deploy, run the Wave 12 execution validator to confirm the hosted Python path.
 
 Keep `FIRESTORE_DATABASE_NAME="(default)"` for this phase. If your project was already provisioned with the older split Terraform roots, run `npm run deploy -- adopt --env <name>` once before the normal hosted flow.
 
@@ -148,6 +150,10 @@ See [docs/hosted-deployment.md](./docs/hosted-deployment.md) for the full runboo
 - `npm run emulator:firestore:manualcheck` runs the same sanity check, prints the fetched document, and keeps the emulator UI running
 - `npm run deploy -- adopt --env <name>` imports existing Firestore resources into the unified hosted Terraform state one time during migration
 - `npm run deploy -- build --env <name>` bootstraps hosted prerequisites, then builds and pushes the backend image
+- `npm run execution:container:validate` validates the Python runner container locally against the Firestore emulator
+- `npm run execution:submit -- --email <email> --password <password> --source-file <path>` submits a hosted Python execution job
+- `npm run execution:get -- --email <email> --password <password> --job-id <id>` fetches a hosted execution job record
+- `npm run wave12:validate` validates the hosted Python execution prototype end to end
 - `npm run deploy -- validate --env <name>` runs repo checks plus hosted Terraform validation
 - `npm run deploy -- plan --env <name>` writes one reviewable Terraform plan for the whole hosted slice
 - `npm run deploy -- deploy --env <name>` applies the reviewed hosted plan and runs private end-to-end validation
@@ -163,10 +169,12 @@ This repo intentionally includes:
 - local recording and replay demo pages
 - local and backend Firestore validation paths
 - simple append-oriented history API endpoints
+- simple append-oriented execution API endpoints for scripts
 - local Firestore emulator configuration
-- a local container workflow aligned with the likely future Cloud Run runtime shape
-- repo-managed hosted deployment for Firestore, Artifact Registry, and private Cloud Run in an existing GCP project
+- a local container workflow aligned with the execution runner shape
+- repo-managed hosted deployment for Firestore, Artifact Registry, private Cloud Run, and a Python execution Cloud Run Job in an existing GCP project
 
-It intentionally does not include hosted frontend integration, Firebase Auth browser flow, final backend API design, submission/grading integration, App Check, Cloud Armor, or advanced replay controls yet.
+It intentionally does not include UI integration for execution results, hidden tests, grading semantics, Java execution, App Check, Cloud Armor, or advanced replay controls yet.
 
 Prototype event shape details live in [docs/history-prototype.md](./docs/history-prototype.md).
+Wave 12 execution flow details live in [docs/python-execution-prototype.md](./docs/python-execution-prototype.md).

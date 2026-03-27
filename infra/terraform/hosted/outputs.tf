@@ -42,3 +42,8 @@ output "service_uri" {
   description = "Cloud Run backend URI. The service remains IAM-protected by default."
   value       = module.cloud_run_backend.service_uri
 }
+
+output "execution_job_name" {
+  description = "Deployed Cloud Run Job name for Python execution."
+  value       = module.cloud_run_execution_job.job_name
+}

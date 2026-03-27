@@ -203,3 +203,22 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 ### `npm run wave11:validate`
 - Validates the hosted Firebase-authenticated frontend/API/Firestore flow using Terraform outputs from the hosted root.
 - Confirms the hosted frontend is reachable, signs in through hosted Firebase Auth, appends and loads history with Firebase ID tokens, and checks at least one denied case.
+
+### `npm run execution:container:validate`
+- Starts the Firestore emulator, seeds a queued execution record, builds the Python runner container, runs it against the emulator, verifies that the stored execution result becomes terminal, and shuts everything down.
+- This is the preferred repeatable local validation for the Wave 12 execution container before relying on hosted Cloud Run Jobs.
+- Requires a local Docker-compatible runtime.
+
+### `npm run execution:submit -- --email <email> --password <password> --source-file <path>`
+- Reads hosted Terraform outputs, signs in through hosted Firebase Auth, and submits a Python execution job to the hosted backend.
+- Prints the created execution record as JSON.
+- You can use `--source <code>` instead of `--source-file <path>`.
+
+### `npm run execution:get -- --email <email> --password <password> --job-id <id>`
+- Reads hosted Terraform outputs, signs in through hosted Firebase Auth, and fetches a stored execution record from the hosted backend.
+- Add `--wait` to poll until a terminal result is available.
+
+### `npm run wave12:validate`
+- Validates the hosted Wave 12 Python execution prototype using Terraform outputs from the hosted root.
+- Signs in with a seeded hosted Firebase user, submits `print("wave12 ok")`, polls until completion, and verifies the stored result contract.
+- Use this after the human operator has deployed both the backend service and the execution job image.
