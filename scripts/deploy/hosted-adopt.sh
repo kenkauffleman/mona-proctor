@@ -9,7 +9,7 @@ check_hosted_cloud_prereqs
 
 print_hosted_target_summary
 
-echo "This command is only for adopting existing hosted Firestore resources into the unified Terraform state."
+echo "This command is for adopting existing hosted singleton resources into the unified Terraform state."
 echo "Use it once per environment when migrating from the old split Terraform roots."
 echo
 read -r -p "Type ADOPT to continue: " confirmation
@@ -21,3 +21,4 @@ fi
 
 terraform -chdir="${HOSTED_TERRAFORM_DIR}" init -input=false
 reconcile_firestore_state
+reconcile_firebase_frontend_state

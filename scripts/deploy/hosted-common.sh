@@ -235,6 +235,34 @@ reconcile_firestore_state() {
   fi
 }
 
+reconcile_firebase_frontend_state() {
+  local terraform_args=()
+  append_terraform_hosted_var_args
+
+  local auth_config_address="module.firebase_frontend.google_identity_platform_config.auth"
+  local hosted_services=(
+    "firebasehosting.googleapis.com"
+    "identitytoolkit.googleapis.com"
+  )
+
+  echo "Reconciling existing Firebase frontend resources into hosted Terraform state when needed..."
+
+  for service in "${hosted_services[@]}"; do
+    local service_address="module.firebase_frontend.google_project_service.required[\"${service}\"]"
+    if ! terraform_state_has_resource "${service_address}"; then
+      terraform -chdir="${HOSTED_TERRAFORM_DIR}" import "${terraform_args[@]}" \
+        "${service_address}" \
+        "projects/${HOSTED_PROJECT_ID}/services/${service}" >/dev/null 2>&1 || true
+    fi
+  done
+
+  if ! terraform_state_has_resource "${auth_config_address}"; then
+    terraform -chdir="${HOSTED_TERRAFORM_DIR}" import "${terraform_args[@]}" \
+      "${auth_config_address}" \
+      "projects/${HOSTED_PROJECT_ID}/config" >/dev/null 2>&1 || true
+  fi
+}
+
 check_hosted_cloud_prereqs() {
   require_command gcloud
   require_command terraform

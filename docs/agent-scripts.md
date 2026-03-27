@@ -155,7 +155,7 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 
 ### `npm run deploy -- adopt --env <name>`
 - Checks that local Application Default Credentials are ready.
-- Imports existing Firestore resources from the old split Terraform setup into the unified hosted Terraform state.
+- Imports existing Firestore resources plus hosted Firebase singleton resources into the unified hosted Terraform state.
 - Use this once per environment during migration, not as part of the normal steady-state deploy loop.
 
 ### `npm run deploy -- build --env <name>`

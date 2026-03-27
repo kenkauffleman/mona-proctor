@@ -58,7 +58,7 @@ Swap `test` for `prod` when you want the production environment.
 
 ### `npm run deploy -- adopt --env <name>`
 - checks that local Application Default Credentials are ready
-- imports existing Firestore resources from the old split Terraform setup into the new unified hosted Terraform state
+- imports existing Firestore and hosted Firebase singleton resources into the new unified hosted Terraform state
 - is a one-time migration step per environment, not part of the normal steady-state deploy loop
 
 ### `npm run deploy -- build --env <name>`
