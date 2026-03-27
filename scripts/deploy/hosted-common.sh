@@ -100,8 +100,10 @@ load_hosted_args() {
 
   HOSTED_ENV_FILE=".env.deploy.${DEPLOY_ENVIRONMENT_NAME}"
   if [[ -f "${HOSTED_ENV_FILE}" ]]; then
+    set -a
     # shellcheck disable=SC1090
     source "${HOSTED_ENV_FILE}"
+    set +a
     HOSTED_PROJECT_ID="${DEPLOY_PROJECT_ID:-${HOSTED_PROJECT_ID}}"
     HOSTED_QUOTA_PROJECT_ID="${DEPLOY_QUOTA_PROJECT_ID:-${HOSTED_QUOTA_PROJECT_ID}}"
     HOSTED_REGION="${DEPLOY_REGION:-${HOSTED_REGION}}"

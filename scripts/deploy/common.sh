@@ -17,7 +17,9 @@ load_shared_deploy_env_file() {
   local env_file="${DEPLOY_ENV_FILE:-${DEPLOY_ENV_FILE_DEFAULT}}"
 
   if [[ -f "${env_file}" ]]; then
+    set -a
     # shellcheck disable=SC1090
     source "${env_file}"
+    set +a
   fi
 }
