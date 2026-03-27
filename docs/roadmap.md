@@ -187,7 +187,7 @@ Exit criteria:
 - authenticated local browser ↔ backend ↔ Firestore behavior is validated
 - the local auth workflow is documented and repeatable
 
-### Phase 11: Hosted frontend and authenticated cloud flow
+### Phase 11 (completed): Hosted frontend and authenticated cloud flow
 Goal: deploy the frontend in a hosted form and validate the full hosted browser ↔ backend ↔ Firestore path using authenticated access rather than a publicly writable backend.
 
 Deliverables:
@@ -203,7 +203,93 @@ Exit criteria:
 - the full hosted vertical slice works end-to-end
 - the hosting and authenticated access flow are documented and repeatable
 
-### Phase 12: Client persistence and sync hardening
+### Phase 12: Python execution prototype
+Goal: run user-submitted Python code in a restricted remote execution environment and return stdout/stderr results without yet integrating the flow into the UI.
+
+Deliverables:
+- execution submission flow behind a backend abstraction layer
+- Cloud Run Job-based execution path for Python
+- tiny async execution contract
+- Firestore-backed storage for execution job metadata and results
+- script-driven submission and result retrieval flow
+- configurable limits via `.env` for:
+  - source size
+  - timeout
+  - stdout/stderr truncation
+  - global concurrency-related settings
+- documentation for the execution prototype flow
+
+Exit criteria:
+- an authenticated user can submit Python code through a script-driven flow
+- execution is performed remotely through the configured execution backend
+- stdout/stderr, exit status, duration, and truncation state are returned and stored
+- no UI integration is required in this phase
+- one active execution per authenticated user is enforced
+- the execution prototype is documented and repeatable
+
+### Phase 13: Python execution result integration
+Goal: connect the Python execution prototype into the product flow and display execution results in the UI.
+
+Deliverables:
+- backend endpoints for execution submission/result retrieval suitable for the app flow
+- UI integration for submitting Python code for execution
+- UI display of stdout/stderr, exit status, duration, and truncation
+- documentation for the integrated Python execution flow
+
+Exit criteria:
+- authenticated users can submit Python code from the UI
+- execution results are displayed correctly in the UI
+- result retrieval works against the stored execution records
+- the UI-integrated execution flow is documented and repeatable
+
+### Phase 14: Python hidden tests and grading
+Goal: extend the Python execution system from raw code execution into real grading against hidden tests.
+
+Deliverables:
+- hidden test execution flow for Python
+- structured grading result format
+- grading-oriented result storage and retrieval
+- documentation for the Python grading flow
+
+Exit criteria:
+- sample Python problems can be graded end-to-end
+- structured grading results are returned correctly
+- grading flow is documented and repeatable
+
+### Phase 15: Java execution prototype
+Goal: run user-submitted Java code in a restricted remote execution environment and return stdout/stderr results without yet integrating the flow into the UI.
+
+Deliverables:
+- Java execution submission flow behind the same execution abstraction layer
+- Cloud Run Job-based execution path for Java
+- Firestore-backed storage for Java execution job metadata and results
+- script-driven submission and result retrieval flow
+- configurable limits via `.env` for Java execution
+- documentation for the Java execution prototype flow
+
+Exit criteria:
+- an authenticated user can submit Java code through a script-driven flow
+- execution is performed remotely through the configured execution backend
+- stdout/stderr, exit status, duration, and truncation state are returned and stored
+- no UI integration is required in this phase
+- one active execution per authenticated user is enforced
+- the Java execution prototype is documented and repeatable
+
+### Phase 16: Java hidden tests and grading
+Goal: extend the Java execution system from raw code execution into real grading against hidden tests.
+
+Deliverables:
+- hidden test execution flow for Java
+- structured grading result format for Java
+- grading-oriented result storage and retrieval
+- documentation for the Java grading flow
+
+Exit criteria:
+- sample Java problems can be graded end-to-end
+- structured grading results are returned correctly
+- grading flow is documented and repeatable
+
+### Phase 17: Client persistence and sync hardening
 Goal: make edit history more durable on the client and prepare the client/server flow for more reliable real-world use.
 
 Deliverables:
@@ -219,37 +305,7 @@ Exit criteria:
 - replay remains accurate when combining persisted and synced history
 - the local persistence and sync model are documented
 
-### Phase 13: Remote grader
-Goal: run hidden tests in an isolated execution environment and return results.
-
-Deliverables:
-- queue or job submission model
-- isolated grader runtime
-- per-language execution path
-- structured test result format
-- resource limits and timeout behavior
-
-Exit criteria:
-- sample Python and JavaScript problems can be graded end-to-end
-- Java support is either included or explicitly deferred
-- grader artifacts and logs are saved for debugging
-
-### Phase 13.5: Load and cost planning
-Goal: understand expected scale, queueing behavior, and likely cost.
-
-Deliverables:
-- baseline traffic assumptions
-- submission concurrency model
-- grading duration estimates
-- storage growth estimates
-- stress test harness and sizing report
-
-Exit criteria:
-- can estimate peak grading concurrency
-- can estimate storage growth per term
-- can identify likely bottlenecks and cost drivers
-
-### Phase 14: Admin attempt listing
+### Phase 18: Admin attempt listing
 Goal: allow instructors/admins to view saved attempts.
 
 Deliverables:
@@ -262,7 +318,7 @@ Exit criteria:
 - saved attempts can be found quickly
 - metadata indexing is sufficient for normal class use
 
-### Phase 15: Instructor replay and inspection UI
+### Phase 19: Instructor replay and inspection UI
 Goal: provide draggable playback of student edit history for instructor review.
 
 Deliverables:
@@ -276,7 +332,7 @@ Exit criteria:
 - reconstruction fidelity is trustworthy
 - instructors can inspect suspicious transitions
 
-### Phase 16: User accounts and roster system
+### Phase 20: User accounts and roster system
 Goal: support real student login and class management.
 
 Deliverables:
@@ -289,7 +345,7 @@ Exit criteria:
 - students can log in and access assigned work
 - instructors can manage rosters and exam availability
 
-### Phase 17: Results and instructor dashboards
+### Phase 21: Results and instructor dashboards
 Goal: present grades and replayable attempts together.
 
 Deliverables:
@@ -301,7 +357,7 @@ Deliverables:
 Exit criteria:
 - instructors can see both outcomes and development history in one workflow
 
-### Phase 18: Git-based test management
+### Phase 22: Git-based test management
 Goal: make problem and test authoring manageable and reproducible.
 
 Deliverables:

@@ -1,87 +1,107 @@
 # Current Phase
 
 ## Active phase
-Phase 11: Hosted frontend and authenticated cloud flow
+Phase 12: Python execution prototype
 
 ## Goal
-Deploy the frontend in a hosted form and validate the full hosted browser ↔ backend ↔ Firestore path using authenticated access rather than a publicly writable backend.
+Run user-submitted Python code in a restricted remote execution environment and return stdout/stderr results without yet integrating the flow into the UI.
 
-This phase should prove that the same application-level auth model validated locally also works in the hosted environment: the browser signs in with Firebase Auth, acquires a Firebase ID token, sends it to the backend, and the backend verifies the token and enforces authorization against the hosted data model.
+This phase is intentionally narrow. The purpose is to validate the remote execution path, the execution abstraction layer, the result contract, and the Firestore-backed execution record flow before adding UI integration or hidden-test grading.
 
 ## In scope
-- host the static frontend in the cloud
-- keep the hosted frontend flow Terraform-managed
-- configure the hosted frontend for Firebase Auth
-- connect the hosted frontend to the hosted backend/API
-- send Firebase ID tokens from the browser to the backend
-- verify authenticated browser ↔ backend ↔ Firestore behavior in the hosted environment
-- validate that backend authorization still works correctly with hosted clients
-- configure CORS explicitly for the hosted frontend origin(s)
-- document the hosted frontend and authenticated access flow
+- add a backend abstraction layer for submitting and retrieving execution jobs
+- implement a Cloud Run Job-based execution path for Python
+- keep the execution backend swappable so Cloud Run Jobs are not hardcoded throughout the app
+- define and implement a tiny async execution contract
+- store execution job metadata and results in Firestore
+- support script-driven submission and result retrieval
+- configure `.env`-driven limits for:
+  - source size
+  - timeout
+  - stdout/stderr truncation
+  - global concurrency-related settings
+- enforce one active execution per authenticated user
+- validate the execution container locally before relying on Cloud Run Job deployment for first execution testing
+- document the execution prototype flow
 
 ## Out of scope
+- UI integration for execution
+- hidden tests
+- grading semantics
+- Java execution
 - App Check
 - Cloud Armor
-- custom domain setup
-- advanced auth UX polish
-- multiple auth providers beyond what is needed for this phase
-- role-system expansion beyond the existing minimal model
-- grader deployment or integration
+- spam protection beyond the stated active-job and global-cap rules
+- polished logging/observability systems
 - client persistence changes
-- admin/instructor feature expansion
 
 ## Desired qualities
-- simple and repeatable hosted deployment flow
-- Terraform-managed hosting and configuration
-- explicit and minimal CORS configuration
-- authenticated browser access rather than anonymous writable access
-- reuse of the already validated local auth/authz model
-- easy human validation of the hosted end-to-end flow
+- strong separation between app logic and execution backend
+- simple and inspectable execution result contract
+- repeatable script-driven validation
+- Firestore-backed job/result records that are easy to inspect
+- restrictive defaults with configurable limits
+- clear path to swap the execution backend later if Cloud Run Jobs prove too slow or awkward
+- local execution-container validation before hosted job integration
 
 ## Design constraints
-- keep the frontend statically hosted
-- use Firebase Hosting for the hosted frontend
-- keep the backend browser-reachable only for authenticated application requests
-- require Firebase ID tokens for meaningful backend access
-- rely on backend token verification and authorization checks
-- keep the implementation Terraform-only for hosted infrastructure and configuration where practical
-- do not add custom domains or unrelated production hardening in this phase
+- use a small Python runtime image for execution
+- use Cloud Run Jobs for the first execution backend
+- place an abstraction layer between job submission and the Cloud Run Job implementation
+- use a tiny async model rather than direct UI-driven synchronous execution
+- use no network during execution
+- use empty stdin and argv
+- use an empty working directory as the default execution environment
+- treat “stdlib only”, “no file creation”, and “no process spawning” as desirable if they are easy to enforce with simple runtime/container flags, but do not overcomplicate this phase if they are not trivial
+- use Firestore to store execution metadata and results
+- enforce one active execution per authenticated user
+- keep global caps configurable via `.env`, while using platform/service configuration for coarse global ceilings where practical
 
-## Recommended implementation direction
-- use Firebase Hosting for the static frontend
-- keep the existing Cloud Run backend and hosted Firestore path
-- use the existing user account model and ownership-based authorization logic
-- reuse the auth provider already validated locally
-- configure frontend runtime/environment values explicitly for the hosted deployment
-- scope CORS to the hosted frontend origin(s), not broad wildcards unless absolutely necessary
+## Result contract guidance
+The execution result shape should include at least:
+- `status`
+- `stdout`
+- `stderr`
+- `exitCode`
+- `durationMs`
+- `truncated`
+
+Output truncation should:
+- be controlled by configurable limits
+- set `truncated = true`
+- not require a special truncation marker in the returned output
 
 ## Suggested deliverables
-- Terraform-managed hosting configuration for the static frontend
-- deployment scripts and documentation for hosted frontend deployment
-- hosted frontend configured for Firebase Auth
-- hosted frontend configured to call the hosted backend
-- explicit backend CORS configuration for the hosted frontend origin(s)
-- end-to-end hosted validation path
-- updated docs and scripts for repeatable human-run deployment and validation
+- execution service abstraction
+- Cloud Run Job-backed Python execution implementation
+- Firestore-backed execution job/result records
+- script(s) for submission and polling/result retrieval
+- local validation path for the execution container
+- `.env`-driven execution limit configuration
+- documentation for running and validating the Python execution prototype
 
 ## Exit criteria
-- the frontend is hosted successfully
-- authenticated browser clients can communicate with the hosted backend
-- the backend verifies Firebase ID tokens from hosted clients
-- the backend enforces authorization correctly for hosted clients
-- the full hosted vertical slice works end-to-end
-- the hosting and authenticated access flow are documented and repeatable
+- an authenticated user can submit Python code through a script-driven flow
+- execution is performed remotely through the configured execution backend
+- the execution container is validated locally before relying on hosted execution
+- stdout/stderr, exit status, duration, and truncation state are returned and stored
+- no UI integration is required in this phase
+- one active execution per authenticated user is enforced
+- the execution prototype is documented and repeatable
 
 ## Notes for the agent
 - keep this phase narrowly scoped
-- do not redesign the auth model; carry forward the one already validated locally
-- do not add App Check, Cloud Armor, or custom domains in this phase
-- do not weaken backend authorization just to simplify frontend integration
-- treat CORS as an explicit part of the hosted design
-- keep the hosted infrastructure and configuration Terraform-managed
+- do not add UI integration yet
+- do not add hidden tests or grading yet
+- do not bake Cloud Run Job details directly into unrelated app code
+- prioritize execution/backend abstraction, clear limits, and result correctness
+- keep the Firestore model for execution records separate from the session/history model
+- prefer simple script-driven validation over broad product integration
+- do not treat Cloud Run Job deployment as the first time the execution container is exercised
+- validate the execution container locally first so failures in the runtime image, entrypoint, or result-capture logic are caught before hosted execution is involved
 
 ## Handoff to the next phase
 At the end of this phase, the codebase should make it easy to:
-- harden the hosted browser/client flow further later if needed
-- build on a working authenticated hosted vertical slice
-- continue toward client persistence and sync hardening
+- connect execution submission and result retrieval into the UI
+- reuse the same result contract for later grading
+- swap the execution backend later if needed without invasive changes
