@@ -86,7 +86,7 @@ describe('App', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: 'Local authenticated history recording',
+        name: 'Authenticated history recording',
       }),
     ).toBeInTheDocument()
     expect(screen.getByText('student1@example.com')).toBeInTheDocument()

@@ -3,6 +3,7 @@ import { AuthProvider } from './features/auth/AuthProvider'
 import { useAuth } from './features/auth/useAuth'
 import { RecordingPage } from './features/history/RecordingPage'
 import { ReplayPage } from './features/history/ReplayPage'
+import { runtimeConfig } from './config/runtime'
 
 function getPathname() {
   return window.location.pathname
@@ -35,9 +36,13 @@ function AuthenticatedApp() {
     return (
       <main className="app-shell">
         <section className="hero">
-          <p className="eyebrow">Phase 10</p>
-          <h1>Local Firebase Auth validation</h1>
-          <p className="hero-copy">Waiting for the local auth emulator session...</p>
+          <p className="eyebrow">Phase 11</p>
+          <h1>{runtimeConfig.appModeLabel}</h1>
+          <p className="hero-copy">
+            {runtimeConfig.isHostedAuth
+              ? 'Waiting for the hosted Firebase Auth session...'
+              : 'Waiting for the local auth emulator session...'}
+          </p>
         </section>
       </main>
     )
@@ -47,16 +52,22 @@ function AuthenticatedApp() {
     return (
       <main className="app-shell">
         <section className="hero">
-          <p className="eyebrow">Phase 10</p>
-          <h1>Local Firebase Auth validation</h1>
+          <p className="eyebrow">Phase 11</p>
+          <h1>{runtimeConfig.appModeLabel}</h1>
           <p className="hero-copy">
-            Sign in with a local Firebase Auth emulator user before recording or replaying session history.
+            {runtimeConfig.isHostedAuth
+              ? 'Sign in with a hosted Firebase Auth user before recording or replaying session history.'
+              : 'Sign in with a local Firebase Auth emulator user before recording or replaying session history.'}
           </p>
         </section>
 
         <section className="auth-card" aria-label="Sign in form">
-          <h2>Local sign-in</h2>
-          <p>Default seeded users for this wave use email/password in the Auth emulator.</p>
+          <h2>{runtimeConfig.isHostedAuth ? 'Hosted sign-in' : 'Local sign-in'}</h2>
+          <p>
+            {runtimeConfig.isHostedAuth
+              ? 'This wave uses Firebase email/password accounts in the hosted project.'
+              : 'Default seeded users for this wave use email/password in the Auth emulator.'}
+          </p>
           <form className="auth-form" onSubmit={handleSignIn}>
             <label>
               <span>Email</span>
@@ -80,9 +91,11 @@ function AuthenticatedApp() {
               {isSigningIn ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
-          <p className="auth-hint">
-            Seeded default: <code>student1@example.com</code> / <code>pass1234</code>
-          </p>
+          {!runtimeConfig.isHostedAuth ? (
+            <p className="auth-hint">
+              Seeded default: <code>student1@example.com</code> / <code>pass1234</code>
+            </p>
+          ) : null}
           {error ? <p className="auth-error">{error}</p> : null}
         </section>
       </main>

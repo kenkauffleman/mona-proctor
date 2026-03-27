@@ -56,6 +56,7 @@ export function createBackendApp(
   historyRepository: HistoryRepository,
   authVerifier: AuthVerifier,
   options: {
+    allowedOrigins?: string[]
     cloudRunConfiguration?: string
     cloudRunRevision?: string
     cloudRunService?: string
@@ -67,8 +68,39 @@ export function createBackendApp(
   const app = express()
   app.use(express.json())
 
+  app.use((request, response, next) => {
+    const requestOrigin = request.header('origin')
+    const allowedOrigin = requestOrigin && options.allowedOrigins?.includes(requestOrigin)
+      ? requestOrigin
+      : null
+
+    if (allowedOrigin) {
+      response.header('Access-Control-Allow-Origin', allowedOrigin)
+      response.header('Access-Control-Allow-Headers', 'Authorization, Content-Type')
+      response.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+      response.header('Access-Control-Allow-Credentials', 'true')
+      response.header('Vary', 'Origin')
+    }
+
+    if (request.method === 'OPTIONS') {
+      if (allowedOrigin) {
+        response.status(204).end()
+        return
+      }
+
+      response.status(403).json({
+        ok: false,
+        error: 'Origin not allowed.',
+      })
+      return
+    }
+
+    next()
+  })
+
   app.get('/health', (_request, response) => {
     response.json({
+      allowedOrigins: options.allowedOrigins ?? [],
       ok: true,
       cloudRunConfiguration: options.cloudRunConfiguration ?? null,
       cloudRunRevision: options.cloudRunRevision ?? null,

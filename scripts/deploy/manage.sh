@@ -9,7 +9,7 @@ load_shared_deploy_env_file
 print_usage() {
   cat <<'EOF'
 Usage:
-  bash scripts/deploy/manage.sh <adopt|build|validate|plan|deploy> [flags]
+  bash scripts/deploy/manage.sh <adopt|build|seed-auth|validate|plan|deploy> [flags]
 EOF
 }
 
@@ -28,6 +28,9 @@ case "${action}" in
     ;;
   build)
     exec bash "${script_dir}/hosted-build.sh" "$@"
+    ;;
+  seed-auth)
+    exec bash "${script_dir}/hosted-seed-auth.sh" "$@"
     ;;
   validate)
     exec bash "${script_dir}/hosted-validate.sh" "$@"

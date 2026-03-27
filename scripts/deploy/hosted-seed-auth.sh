@@ -5,5 +5,4 @@ set -euo pipefail
 source "$(dirname "$0")/hosted-common.sh"
 
 load_hosted_args "$@"
-
-exec npx tsx scripts/validateHostedAuthFlow.ts
+seed_hosted_auth_users

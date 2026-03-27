@@ -163,6 +163,11 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - Bootstraps Cloud Run-side APIs and the Artifact Registry repository through the single hosted Terraform root.
 - Builds the backend container from [backend/Dockerfile](/workspaces/mona-proctor/backend/Dockerfile) and pushes it to Artifact Registry.
 
+### `npm run deploy -- seed-auth --env <name>`
+- Creates or updates the default hosted Firebase email/password users for Wave 11.
+- Uses Application Default Credentials and the repo's Firebase Admin-based seeding script.
+- Run this after Terraform has configured hosted Firebase Auth and before the hosted auth validator.
+
 ### `npm run deploy -- validate --env <name>`
 - Checks that local Application Default Credentials are ready.
 - Runs `npm test`, `npm run lint`, and `npm run typecheck`.
@@ -178,5 +183,18 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 ### `npm run deploy -- deploy --env <name>`
 - Checks that local Application Default Credentials are ready.
 - Applies the previously reviewed hosted plan file.
-- Does not silently re-plan.
-- Runs the private Cloud Run → Firestore → Cloud Run history round-trip validation after apply.
+- Renders the hosted frontend's Firebase/Auth/API runtime values from Terraform outputs.
+- Builds the static frontend and deploys it to Firebase Hosting.
+- Runs the hosted Wave 11 auth validation after apply.
+
+### `npm run hosted:frontend:env`
+- Writes a local env file for the hosted frontend build using Terraform outputs from `infra/terraform/hosted`.
+- Used by the hosted deploy flow before `npm run build`.
+
+### `npm run hosted:auth:seed`
+- Runs the hosted Firebase Auth user seeding script directly.
+- Use this only when you want the lower-level command outside the top-level deploy wrapper.
+
+### `npm run wave11:validate`
+- Validates the hosted Firebase-authenticated frontend/API/Firestore flow using Terraform outputs from the hosted root.
+- Confirms the hosted frontend is reachable, signs in through hosted Firebase Auth, appends and loads history with Firebase ID tokens, and checks at least one denied case.

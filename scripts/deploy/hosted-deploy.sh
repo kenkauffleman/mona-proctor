@@ -24,4 +24,5 @@ if [[ "${confirmation}" != "DEPLOY" ]]; then
 fi
 
 terraform -chdir="${HOSTED_TERRAFORM_DIR}" apply "${HOSTED_PLAN_BASENAME}"
+deploy_hosted_frontend
 bash "$(dirname "$0")/hosted-validate-private.sh" "$@"

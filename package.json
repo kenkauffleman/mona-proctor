@@ -27,6 +27,9 @@
     "wave7:validate": "firebase emulators:exec --only firestore \"tsx scripts/historyRoundTripValidate.ts\"",
     "wave7:manual": "tsx scripts/manualWave7Stack.ts",
     "wave10:validate": "firebase emulators:exec --only firestore,auth \"tsx scripts/localAuthValidate.ts\"",
+    "hosted:frontend:env": "tsx scripts/renderHostedFrontendEnv.ts",
+    "hosted:auth:seed": "tsx scripts/seedHostedAuthUsers.ts",
+    "wave11:validate": "tsx scripts/validateHostedAuthFlow.ts",
     "deploy": "bash scripts/deploy/manage.sh"
   },
   "dependencies": {

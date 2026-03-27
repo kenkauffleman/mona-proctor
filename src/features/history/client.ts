@@ -1,4 +1,5 @@
 import { getCurrentUserIdToken } from '../auth/firebaseAuth'
+import { runtimeConfig } from '../../config/runtime'
 import type {
   AppendHistoryBatchRequest,
   AppendHistoryBatchResponse,
@@ -27,7 +28,7 @@ export async function appendSessionHistoryBatch(
   sessionId: string,
   request: AppendHistoryBatchRequest,
 ) {
-  const response = await fetch(`/api/history/sessions/${sessionId}/batches`, {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/history/sessions/${sessionId}/batches`, {
     method: 'POST',
     headers: await createAuthHeaders(),
     body: JSON.stringify(request),
@@ -37,7 +38,7 @@ export async function appendSessionHistoryBatch(
 }
 
 export async function fetchSessionHistory(sessionId: string) {
-  const response = await fetch(`/api/history/sessions/${sessionId}`, {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/history/sessions/${sessionId}`, {
     headers: await createAuthHeaders(),
   })
 

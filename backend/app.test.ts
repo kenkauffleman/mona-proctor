@@ -47,6 +47,7 @@ async function startTestServer() {
     },
   }
   const app = createBackendApp(repository, authVerifier, {
+    allowedOrigins: ['https://test.web.app'],
     cloudRunConfiguration: undefined,
     cloudRunRevision: undefined,
     cloudRunService: undefined,
@@ -81,6 +82,7 @@ describe('backend history app', () => {
 
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({
+      allowedOrigins: ['https://test.web.app'],
       ok: true,
       cloudRunConfiguration: null,
       cloudRunRevision: null,
@@ -88,6 +90,52 @@ describe('backend history app', () => {
       firebaseAuthEmulatorHost: '127.0.0.1:9099',
       projectId: 'demo-mona-proctor',
       firestoreEmulatorHost: '127.0.0.1:8080',
+    })
+  })
+
+  it('returns CORS headers only for explicitly allowed origins', async () => {
+    const { baseUrl } = await startTestServer()
+
+    const allowedResponse = await fetch(`${baseUrl}/health`, {
+      headers: {
+        origin: 'https://test.web.app',
+      },
+    })
+
+    const deniedResponse = await fetch(`${baseUrl}/health`, {
+      headers: {
+        origin: 'https://evil.example.com',
+      },
+    })
+
+    expect(allowedResponse.headers.get('access-control-allow-origin')).toBe('https://test.web.app')
+    expect(allowedResponse.headers.get('vary')).toBe('Origin')
+    expect(deniedResponse.headers.get('access-control-allow-origin')).toBeNull()
+  })
+
+  it('accepts preflight requests only for explicitly allowed origins', async () => {
+    const { baseUrl } = await startTestServer()
+
+    const allowedResponse = await fetch(`${baseUrl}/api/history/sessions/test-session`, {
+      method: 'OPTIONS',
+      headers: {
+        origin: 'https://test.web.app',
+      },
+    })
+
+    const deniedResponse = await fetch(`${baseUrl}/api/history/sessions/test-session`, {
+      method: 'OPTIONS',
+      headers: {
+        origin: 'https://evil.example.com',
+      },
+    })
+
+    expect(allowedResponse.status).toBe(204)
+    expect(allowedResponse.headers.get('access-control-allow-origin')).toBe('https://test.web.app')
+    expect(deniedResponse.status).toBe(403)
+    expect(await deniedResponse.json()).toEqual({
+      ok: false,
+      error: 'Origin not allowed.',
     })
   })
 

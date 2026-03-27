@@ -4,11 +4,14 @@ This runbook covers the unified hosted deployment workflow for the current verti
 
 ## Scope
 - provision hosted Firestore
+- provision hosted Firebase Auth configuration for email/password sign-in
+- provision a Firebase web app for the hosted frontend build
 - provision Artifact Registry for backend images
-- deploy the backend/API to private Cloud Run
-- validate the private Cloud Run service all the way through Firestore
+- deploy the backend/API to Cloud Run for browser-reachable authenticated requests
+- deploy the static frontend to Firebase Hosting
+- validate the hosted browser-style auth flow through the backend and Firestore
 
-This wave does not host the frontend, add browser auth, make the backend public, or add App Check / Cloud Armor.
+This wave does not add App Check, Cloud Armor, or custom domains.
 
 ## Local operator config
 The hosted workflow is environment-based.
@@ -32,7 +35,7 @@ For this phase, keep:
 FIRESTORE_DATABASE_NAME="(default)"
 ```
 
-The hosted workflow does not support switching to another Firestore database name during Wave 9.
+The hosted workflow does not support switching to another Firestore database name during Wave 11.
 
 ## Required commands
 From a trusted local machine with `terraform` and `gcloud` installed:
@@ -42,6 +45,7 @@ npm run deploy -- adopt --env test
 npm run deploy -- build --env test
 npm run deploy -- validate --env test
 npm run deploy -- plan --env test
+npm run deploy -- seed-auth --env test
 npm run deploy -- deploy --env test
 ```
 
@@ -59,6 +63,11 @@ Swap `test` for `prod` when you want the production environment.
 - bootstraps Cloud Run-side APIs and Artifact Registry through Terraform
 - builds the backend image from `backend/Dockerfile`
 - pushes the image to the Terraform-managed Artifact Registry repository
+
+### `npm run deploy -- seed-auth --env <name>`
+- uses the hosted Firebase project through Application Default Credentials
+- creates or updates the default Wave 11 email/password users
+- keeps the human validation flow repeatable without storing credentials in the repo
 
 ### `npm run deploy -- validate --env <name>`
 - checks that local Application Default Credentials are ready
@@ -79,23 +88,53 @@ Swap `test` for `prod` when you want the production environment.
 ### `npm run deploy -- deploy --env <name>`
 - checks that local Application Default Credentials are ready
 - applies the previously reviewed Terraform plan
-- does not silently re-plan
-- runs the private Cloud Run end-to-end validation afterward
+- renders the frontend Firebase/Auth/API runtime config from Terraform outputs
+- builds the static frontend
+- deploys the static frontend to Firebase Hosting
+- runs the hosted authenticated validation afterward
 
-## Private validation flow
-The deploy step finishes by running the private history round-trip validator.
+## Hosted auth design
+Wave 11 intentionally changes the backend exposure model:
+
+- Cloud Run is browser-reachable at the network layer so the hosted frontend can call it directly.
+- Meaningful history access still requires a Firebase ID token on every `/api/history/...` request.
+- The backend verifies Firebase ID tokens with `firebase-admin`.
+- Ownership-based authorization from Wave 10 is unchanged.
+- CORS is explicitly limited to:
+  - `https://<project-id>.web.app`
+  - `https://<project-id>.firebaseapp.com`
+
+This wave deliberately does not rely on Cloud Run IAM as the browser auth mechanism.
+
+## Hosted validation flow
+The deploy step finishes by running the hosted auth validator.
 
 That validator:
-- finds the private Cloud Run URL with `gcloud`
-- gets an identity token with `gcloud auth print-identity-token`
-- appends two history batches through the private Cloud Run backend
-- loads the session back through the same backend
-- verifies the replayed source matches the expected result
+- reads the Firebase web app config and backend URL from Terraform outputs
+- fetches the hosted frontend origin to confirm Hosting is serving the app
+- signs in the default hosted users through Firebase Auth using email/password
+- sends Firebase ID tokens to the hosted backend with the hosted frontend `Origin`
+- appends and reloads history through the backend
+- verifies replay reconstruction through Firestore-backed data
+- verifies cross-user access denial with a second user
+- verifies an unauthenticated request is rejected
 
-Your operator identity must have `roles/run.invoker` on the Cloud Run service. The hosted Terraform config grants that to the configured invoker principal.
+## Human validation after deploy
+After `npm run deploy -- deploy --env test`, open the hosted frontend in a browser:
+
+```text
+https://<project-id>.web.app
+```
+
+Then:
+1. Sign in as `student1@example.com` / `pass1234`.
+2. Type in the editor and wait for a successful sync.
+3. Open the replay page for the same session and verify it loads.
+4. Sign out and sign back in as `student2@example.com` / `pass1234`.
+5. Try loading the first session UUID and confirm the backend denies access.
 
 ## Safety notes
-- Terraform manages API enablement, Firestore, Artifact Registry, and Cloud Run in one hosted root.
-- The backend remains private by default.
-- The build step is outside Terraform, but it is part of the same top-level operator workflow.
+- Terraform manages Firestore, Firebase Auth configuration, the Firebase web app, Artifact Registry, and Cloud Run in one hosted root.
+- Firebase Hosting serves the static frontend, but the static asset deploy itself is still a human-run step after Terraform apply.
 - The deploy step applies a saved plan rather than silently recalculating changes.
+- Hosted users are seeded by a human-run script and are not stored in Terraform state.

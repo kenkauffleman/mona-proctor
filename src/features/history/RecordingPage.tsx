@@ -117,11 +117,11 @@ export function RecordingPage() {
   return (
     <main className="app-shell">
       <section className="hero">
-        <p className="eyebrow">Phase 10</p>
-        <h1>Local authenticated history recording</h1>
+        <p className="eyebrow">Phase 11</p>
+        <h1>Authenticated history recording</h1>
         <p className="hero-copy">
           Record Monaco content-change events, send Firebase-authenticated history batches to the backend,
-          and persist per-user session history in Firestore for later replay.
+          and persist per-user session history in Firestore for later replay across local and hosted environments.
         </p>
       </section>
 

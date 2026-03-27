@@ -24,8 +24,19 @@ variable "container_image" {
 }
 
 variable "invoker_principal" {
-  description = "IAM principal allowed to invoke the private Cloud Run service for operator validation."
+  description = "Optional additional IAM principal allowed to invoke the backend service directly."
   type        = string
+  default     = null
+}
+
+variable "allow_public_invocation" {
+  description = "Whether the backend should be publicly reachable at the network layer for browser clients."
+  type        = bool
+}
+
+variable "allowed_origins" {
+  description = "Exact browser origins allowed to call the backend."
+  type        = list(string)
 }
 
 variable "max_instance_count" {

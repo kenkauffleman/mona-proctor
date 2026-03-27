@@ -18,7 +18,8 @@ Optional:
   --service <service-name>     Defaults to mona-proctor-backend
   --repo <artifact-repository> Defaults to mona-proctor
   --image-name <image-name>    Defaults to backend
-  --invoker <member>           Required unless set in env file
+  --web-app-name <name>        Defaults to mona-proctor-web
+  --invoker <member>           Optional extra direct invoker member
   --database <database-name>   Defaults to (default)
 EOF
 }
@@ -33,7 +34,8 @@ load_hosted_args() {
   HOSTED_CLOUD_RUN_SERVICE_NAME="${CLOUDRUN_SERVICE_NAME:-mona-proctor-backend}"
   HOSTED_ARTIFACT_REPOSITORY="${CLOUDRUN_ARTIFACT_REPOSITORY:-mona-proctor}"
   HOSTED_IMAGE_NAME="${CLOUDRUN_IMAGE_NAME:-backend}"
-  HOSTED_IMAGE_TAG="${CLOUDRUN_IMAGE_TAG:-wave9}"
+  HOSTED_IMAGE_TAG="${CLOUDRUN_IMAGE_TAG:-wave11}"
+  HOSTED_FIREBASE_WEB_APP_NAME="${FIREBASE_WEB_APP_NAME:-mona-proctor-web}"
   HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL="${CLOUDRUN_INVOKER_PRINCIPAL:-}"
 
   while [[ $# -gt 0 ]]; do
@@ -70,6 +72,10 @@ load_hosted_args() {
         HOSTED_IMAGE_TAG="${2:-}"
         shift 2
         ;;
+      --web-app-name)
+        HOSTED_FIREBASE_WEB_APP_NAME="${2:-}"
+        shift 2
+        ;;
       --invoker)
         HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL="${2:-}"
         shift 2
@@ -97,11 +103,12 @@ load_hosted_args() {
     HOSTED_ARTIFACT_REPOSITORY="${CLOUDRUN_ARTIFACT_REPOSITORY:-${HOSTED_ARTIFACT_REPOSITORY}}"
     HOSTED_IMAGE_NAME="${CLOUDRUN_IMAGE_NAME:-${HOSTED_IMAGE_NAME}}"
     HOSTED_IMAGE_TAG="${CLOUDRUN_IMAGE_TAG:-${HOSTED_IMAGE_TAG}}"
+    HOSTED_FIREBASE_WEB_APP_NAME="${FIREBASE_WEB_APP_NAME:-${HOSTED_FIREBASE_WEB_APP_NAME}}"
     HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL="${CLOUDRUN_INVOKER_PRINCIPAL:-${HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL}}"
   fi
 
-  if [[ -z "${HOSTED_PROJECT_ID}" || -z "${HOSTED_REGION}" || -z "${HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL}" ]]; then
-    echo "project, region, and invoker are required for hosted deployment." >&2
+  if [[ -z "${HOSTED_PROJECT_ID}" || -z "${HOSTED_REGION}" ]]; then
+    echo "project and region are required for hosted deployment." >&2
     print_hosted_usage >&2
     exit 1
   fi
@@ -127,8 +134,9 @@ print_hosted_target_summary() {
   echo "Artifact repository: ${HOSTED_ARTIFACT_REPOSITORY}"
   echo "Image name: ${HOSTED_IMAGE_NAME}"
   echo "Image tag: ${HOSTED_IMAGE_TAG}"
+  echo "Firebase web app name: ${HOSTED_FIREBASE_WEB_APP_NAME}"
   echo "Container image: ${HOSTED_CONTAINER_IMAGE}"
-  echo "Private invoker: ${HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL}"
+  echo "Extra direct invoker: ${HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL:-<none>}"
   echo "Terraform root: ${HOSTED_TERRAFORM_DIR}"
   echo "Terraform tfvars: ${HOSTED_TFVARS_FILE}"
 }
@@ -139,9 +147,13 @@ terraform_hosted_var_args() {
     "-var=region=${HOSTED_REGION}" \
     "-var=firestore_database_name=${HOSTED_FIRESTORE_DATABASE_NAME}" \
     "-var=cloud_run_service_name=${HOSTED_CLOUD_RUN_SERVICE_NAME}" \
+    "-var=firebase_web_app_display_name=${HOSTED_FIREBASE_WEB_APP_NAME}" \
     "-var=artifact_repository_name=${HOSTED_ARTIFACT_REPOSITORY}" \
-    "-var=cloud_run_container_image=${HOSTED_CONTAINER_IMAGE}" \
-    "-var=cloud_run_invoker_principal=${HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL}"
+    "-var=cloud_run_container_image=${HOSTED_CONTAINER_IMAGE}"
+
+  if [[ -n "${HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL}" ]]; then
+    printf '%s\n' "-var=cloud_run_invoker_principal=${HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL}"
+  fi
 }
 
 append_terraform_hosted_var_args() {
@@ -233,6 +245,10 @@ EOF
   gcloud auth list --filter=status:ACTIVE --format="value(account)"
 }
 
+check_hosted_frontend_prereqs() {
+  require_command npx
+}
+
 build_and_push_hosted_backend_image() {
   check_hosted_cloud_prereqs
 
@@ -276,4 +292,28 @@ EOF
 
   trap - EXIT
   rm -f "${build_config}"
+}
+
+seed_hosted_auth_users() {
+  check_hosted_cloud_prereqs
+  print_hosted_target_summary
+  npx tsx scripts/seedHostedAuthUsers.ts --project "${HOSTED_PROJECT_ID}"
+}
+
+deploy_hosted_frontend() {
+  check_hosted_frontend_prereqs
+
+  print_hosted_target_summary
+  echo "Rendering hosted frontend runtime config from Terraform outputs..."
+  npx tsx scripts/renderHostedFrontendEnv.ts --terraform-dir "${HOSTED_TERRAFORM_DIR}"
+
+  echo "Building frontend with hosted Firebase and backend configuration..."
+  set -a
+  # shellcheck disable=SC1091
+  source .firebase/hosting.frontend.env
+  set +a
+  npm run build
+
+  echo "Deploying static frontend to Firebase Hosting..."
+  npx firebase-tools deploy --project "${HOSTED_PROJECT_ID}" --only hosting
 }

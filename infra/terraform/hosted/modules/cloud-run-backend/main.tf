@@ -48,6 +48,11 @@ resource "google_cloud_run_v2_service" "backend" {
         name  = "GCLOUD_PROJECT"
         value = var.project_id
       }
+
+      env {
+        name  = "ALLOWED_ORIGINS"
+        value = join(",", var.allowed_origins)
+      }
     }
   }
 
@@ -57,7 +62,19 @@ resource "google_cloud_run_v2_service" "backend" {
   ]
 }
 
-resource "google_cloud_run_v2_service_iam_member" "private_invoker" {
+resource "google_cloud_run_v2_service_iam_member" "public_invoker" {
+  count = var.allow_public_invocation ? 1 : 0
+
+  project  = var.project_id
+  location = var.region
+  name     = google_cloud_run_v2_service.backend.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
+resource "google_cloud_run_v2_service_iam_member" "direct_invoker" {
+  count = var.invoker_principal == null ? 0 : 1
+
   project  = var.project_id
   location = var.region
   name     = google_cloud_run_v2_service.backend.name

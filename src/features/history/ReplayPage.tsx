@@ -102,7 +102,7 @@ export function ReplayPage() {
   return (
     <main className="app-shell">
       <section className="hero">
-        <p className="eyebrow">Phase 10</p>
+        <p className="eyebrow">Phase 11</p>
         <h1>Session Replay</h1>
         <p className="hero-copy">
           Load one of your authenticated sessions by UUID, fetch the full backend history from Firestore, and replay it into a separate Monaco editor.

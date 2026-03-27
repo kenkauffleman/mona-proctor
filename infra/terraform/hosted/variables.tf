@@ -25,6 +25,12 @@ variable "cloud_run_service_name" {
   default     = "mona-proctor-backend"
 }
 
+variable "firebase_web_app_display_name" {
+  description = "Display name for the hosted Firebase web app."
+  type        = string
+  default     = "mona-proctor-web"
+}
+
 variable "artifact_repository_name" {
   description = "Artifact Registry Docker repository name for backend images."
   type        = string
@@ -37,8 +43,9 @@ variable "cloud_run_container_image" {
 }
 
 variable "cloud_run_invoker_principal" {
-  description = "IAM principal allowed to invoke the private Cloud Run service for operator validation."
+  description = "Optional additional IAM principal allowed to invoke the backend service directly."
   type        = string
+  default     = null
 }
 
 variable "cloud_run_max_instance_count" {

@@ -54,6 +54,15 @@ This wave intentionally does not add:
 - roster or class membership logic
 - hosted auth/browser deployment concerns
 
+## Carry-forward into Wave 11
+Wave 11 reuses this same identity and authorization model in the hosted environment:
+- the browser still acquires a Firebase ID token
+- the backend still verifies that token
+- session ownership still relies on `ownerUid`
+- cross-user access to another user's session is still denied
+
+The main Wave 11 changes are hosting, explicit CORS, and using real hosted Firebase/Auth and Firestore services instead of emulators.
+
 ## Repeatable validation
 Use `npm run wave10:validate`.
 

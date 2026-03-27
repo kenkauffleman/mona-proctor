@@ -7,9 +7,10 @@ async function main() {
   const rootMainTf = await readFile(path.join(root, 'main.tf'), 'utf8')
   const firestoreMainTf = await readFile(path.join(root, 'modules/firestore/main.tf'), 'utf8')
   const cloudRunMainTf = await readFile(path.join(root, 'modules/cloud-run-backend/main.tf'), 'utf8')
+  const frontendMainTf = await readFile(path.join(root, 'modules/firebase-frontend/main.tf'), 'utf8')
 
-  if (!rootMainTf.includes('module "firestore"') || !rootMainTf.includes('module "cloud_run_backend"')) {
-    throw new Error('Expected the hosted Terraform root to include both firestore and cloud_run_backend modules.')
+  if (!rootMainTf.includes('module "firestore"') || !rootMainTf.includes('module "cloud_run_backend"') || !rootMainTf.includes('module "firebase_frontend"')) {
+    throw new Error('Expected the hosted Terraform root to include firestore, firebase_frontend, and cloud_run_backend modules.')
   }
 
   if (!firestoreMainTf.includes('google_firestore_database')) {
@@ -28,12 +29,24 @@ async function main() {
     throw new Error('Expected the hosted Cloud Run module to manage a Cloud Run service.')
   }
 
-  if (!cloudRunMainTf.includes('google_cloud_run_v2_service_iam_member')) {
-    throw new Error('Expected the hosted Cloud Run module to manage private invoker IAM.')
+  if (!cloudRunMainTf.includes('ALLOWED_ORIGINS')) {
+    throw new Error('Expected the hosted Cloud Run module to pass explicit ALLOWED_ORIGINS runtime configuration.')
   }
 
-  if (cloudRunMainTf.includes('allUsers')) {
-    throw new Error('Hosted Cloud Run Terraform config must not grant public access to allUsers.')
+  if (!cloudRunMainTf.includes('member   = "allUsers"')) {
+    throw new Error('Expected the hosted Cloud Run module to grant public network reachability for browser clients in Wave 11.')
+  }
+
+  if (!frontendMainTf.includes('google_identity_platform_config')) {
+    throw new Error('Expected the hosted frontend module to manage Firebase Authentication configuration.')
+  }
+
+  if (!frontendMainTf.includes('google_firebase_web_app')) {
+    throw new Error('Expected the hosted frontend module to manage a Firebase web app.')
+  }
+
+  if (!frontendMainTf.includes('authorized_domains')) {
+    throw new Error('Expected the hosted frontend module to configure explicit authorized domains.')
   }
 
   console.log('Hosted Terraform config check passed.')

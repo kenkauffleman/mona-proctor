@@ -7,25 +7,14 @@ import {
   type User,
 } from 'firebase/auth'
 import { initializeApp, getApps } from 'firebase/app'
-
-const projectId = 'demo-mona-proctor'
-
-function getEmulatorOrigin() {
-  const { protocol, hostname } = window.location
-  return `${protocol}//${hostname}:9099`
-}
+import { runtimeConfig } from '../../config/runtime'
 
 function getFirebaseApp() {
   if (getApps().length > 0) {
     return getApps()[0]!
   }
 
-  return initializeApp({
-    apiKey: 'demo-mona-proctor-local-key',
-    authDomain: `${projectId}.firebaseapp.com`,
-    projectId,
-    appId: 'demo-mona-proctor-local-app',
-  })
+  return initializeApp(runtimeConfig.firebase)
 }
 
 let authConfigured = false
@@ -33,8 +22,8 @@ let authConfigured = false
 export function getFirebaseAuth() {
   const auth = getAuth(getFirebaseApp())
 
-  if (!authConfigured) {
-    connectAuthEmulator(auth, getEmulatorOrigin(), { disableWarnings: true })
+  if (!authConfigured && runtimeConfig.authEmulatorHost) {
+    connectAuthEmulator(auth, runtimeConfig.authEmulatorHost, { disableWarnings: true })
     authConfigured = true
   }
 
