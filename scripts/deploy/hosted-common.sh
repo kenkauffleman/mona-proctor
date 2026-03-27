@@ -19,6 +19,7 @@ Optional:
   --repo <artifact-repository> Defaults to mona-proctor
   --image-name <image-name>    Defaults to backend
   --web-app-name <name>        Defaults to mona-proctor-web
+  --quota-project <project-id> Defaults to the deploy project
   --invoker <member>           Optional extra direct invoker member
   --database <database-name>   Defaults to (default)
 EOF
@@ -29,6 +30,7 @@ load_hosted_args() {
 
   DEPLOY_ENVIRONMENT_NAME="${DEPLOY_ENVIRONMENT:-test}"
   HOSTED_PROJECT_ID="${DEPLOY_PROJECT_ID:-}"
+  HOSTED_QUOTA_PROJECT_ID="${DEPLOY_QUOTA_PROJECT_ID:-${DEPLOY_PROJECT_ID:-}}"
   HOSTED_REGION="${DEPLOY_REGION:-}"
   HOSTED_FIRESTORE_DATABASE_NAME="${FIRESTORE_DATABASE_NAME:-"(default)"}"
   HOSTED_CLOUD_RUN_SERVICE_NAME="${CLOUDRUN_SERVICE_NAME:-mona-proctor-backend}"
@@ -50,6 +52,10 @@ load_hosted_args() {
         ;;
       --region)
         HOSTED_REGION="${2:-}"
+        shift 2
+        ;;
+      --quota-project)
+        HOSTED_QUOTA_PROJECT_ID="${2:-}"
         shift 2
         ;;
       --database)
@@ -97,6 +103,7 @@ load_hosted_args() {
     # shellcheck disable=SC1090
     source "${HOSTED_ENV_FILE}"
     HOSTED_PROJECT_ID="${DEPLOY_PROJECT_ID:-${HOSTED_PROJECT_ID}}"
+    HOSTED_QUOTA_PROJECT_ID="${DEPLOY_QUOTA_PROJECT_ID:-${HOSTED_QUOTA_PROJECT_ID}}"
     HOSTED_REGION="${DEPLOY_REGION:-${HOSTED_REGION}}"
     HOSTED_FIRESTORE_DATABASE_NAME="${FIRESTORE_DATABASE_NAME:-${HOSTED_FIRESTORE_DATABASE_NAME}}"
     HOSTED_CLOUD_RUN_SERVICE_NAME="${CLOUDRUN_SERVICE_NAME:-${HOSTED_CLOUD_RUN_SERVICE_NAME}}"
@@ -128,6 +135,7 @@ EOF
 print_hosted_target_summary() {
   echo "Environment: ${DEPLOY_ENVIRONMENT_NAME}"
   echo "Target project: ${HOSTED_PROJECT_ID}"
+  echo "Quota project: ${HOSTED_QUOTA_PROJECT_ID}"
   echo "Shared region: ${HOSTED_REGION}"
   echo "Firestore database: ${HOSTED_FIRESTORE_DATABASE_NAME}"
   echo "Cloud Run service: ${HOSTED_CLOUD_RUN_SERVICE_NAME}"
@@ -144,6 +152,7 @@ print_hosted_target_summary() {
 terraform_hosted_var_args() {
   printf '%s\n' \
     "-var=project_id=${HOSTED_PROJECT_ID}" \
+    "-var=quota_project_id=${HOSTED_QUOTA_PROJECT_ID}" \
     "-var=region=${HOSTED_REGION}" \
     "-var=firestore_database_name=${HOSTED_FIRESTORE_DATABASE_NAME}" \
     "-var=cloud_run_service_name=${HOSTED_CLOUD_RUN_SERVICE_NAME}" \

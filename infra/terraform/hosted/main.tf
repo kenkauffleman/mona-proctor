@@ -1,4 +1,5 @@
 locals {
+  effective_quota_project_id = coalesce(var.quota_project_id, var.project_id)
   hosted_frontend_origins = [
     "https://${var.project_id}.web.app",
     "https://${var.project_id}.firebaseapp.com",

@@ -33,9 +33,12 @@ For this phase, keep:
 
 ```bash
 FIRESTORE_DATABASE_NAME="(default)"
+DEPLOY_QUOTA_PROJECT_ID="<same-as-deploy-project-id>"
 ```
 
 The hosted workflow does not support switching to another Firestore database name during Wave 11.
+
+The hosted Terraform providers now explicitly set `billing_project` and `user_project_override = true` to work around quota-project issues with some client-based Google APIs such as Identity Toolkit. Keep `DEPLOY_QUOTA_PROJECT_ID` pointed at the same project unless you have a specific reason to separate quota attribution.
 
 ## Required commands
 From a trusted local machine with `terraform` and `gcloud` installed:

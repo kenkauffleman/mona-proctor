@@ -8,6 +8,12 @@ variable "region" {
   type        = string
 }
 
+variable "quota_project_id" {
+  description = "Project used for quota and billing when Terraform calls client-based Google APIs."
+  type        = string
+  default     = null
+}
+
 variable "firestore_database_name" {
   description = "Firestore database name. Keep the default database for this phase."
   type        = string

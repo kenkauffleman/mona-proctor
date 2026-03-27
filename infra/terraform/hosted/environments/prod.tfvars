@@ -1,4 +1,5 @@
 project_id                  = "your-prod-project-id"
+quota_project_id            = "your-prod-project-id"
 region                      = "us-central1"
 firestore_database_name     = "(default)"
 cloud_run_service_name      = "mona-proctor-backend"
