@@ -170,7 +170,7 @@ Exit criteria:
 - the backend is not publicly invokable by default during this phase
 - the deployment is documented and repeatable through the repo-managed workflow
 
-### Phase 10: Local Firebase Auth validation
+### Phase 10 (completed): Local Firebase Auth validation
 Goal: validate the application-level authentication flow locally before introducing hosted browser-to-backend authenticated access.
 
 Deliverables:

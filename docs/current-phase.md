@@ -1,86 +1,87 @@
 # Current Phase
 
 ## Active phase
-Phase 10: Local Firebase Auth validation
+Phase 11: Hosted frontend and authenticated cloud flow
 
 ## Goal
-Validate the application-level authentication flow locally before introducing hosted browser-to-backend authenticated access.
+Deploy the frontend in a hosted form and validate the full hosted browser ↔ backend ↔ Firestore path using authenticated access rather than a publicly writable backend.
 
-This phase is intentionally narrow. The purpose is to prove that the frontend can sign in locally with the Firebase Auth emulator, obtain an ID token, send it to the backend, and that the backend can verify the token and enforce basic resource ownership rules against the existing local browser ↔ backend ↔ Firestore flow.
+This phase should prove that the same application-level auth model validated locally also works in the hosted environment: the browser signs in with Firebase Auth, acquires a Firebase ID token, sends it to the backend, and the backend verifies the token and enforces authorization against the hosted data model.
 
 ## In scope
-- set up the local Firebase Auth emulator
-- create local test users and a local sign-in flow
-- acquire Firebase ID tokens in the frontend during local development
-- send Firebase ID tokens from the frontend to the backend
-- verify Firebase ID tokens in the backend during local development
-- link sessions to authenticated users in the data model
-- add the minimum user/session ownership logic needed for authenticated local validation
-- document the local authenticated flow and how to run it
+- host the static frontend in the cloud
+- keep the hosted frontend flow Terraform-managed
+- configure the hosted frontend for Firebase Auth
+- connect the hosted frontend to the hosted backend/API
+- send Firebase ID tokens from the browser to the backend
+- verify authenticated browser ↔ backend ↔ Firestore behavior in the hosted environment
+- validate that backend authorization still works correctly with hosted clients
+- configure CORS explicitly for the hosted frontend origin(s)
+- document the hosted frontend and authenticated access flow
 
 ## Out of scope
-- hosted frontend integration
-- hosted browser-to-backend auth flow
-- Cloud Run public access changes
 - App Check
 - Cloud Armor
-- polished production auth UX
-- full role and roster system
-- advanced authorization policy design
-- grader integration
+- custom domain setup
+- advanced auth UX polish
+- multiple auth providers beyond what is needed for this phase
+- role-system expansion beyond the existing minimal model
+- grader deployment or integration
 - client persistence changes
+- admin/instructor feature expansion
 
 ## Desired qualities
-- minimal but correct application-level auth flow
-- simple and repeatable local setup
-- backend authorization based on verified identity, not just session UUIDs
-- clear separation between authentication, authorization, and persistence logic
-- easy local debugging and validation
+- simple and repeatable hosted deployment flow
+- Terraform-managed hosting and configuration
+- explicit and minimal CORS configuration
+- authenticated browser access rather than anonymous writable access
+- reuse of the already validated local auth/authz model
+- easy human validation of the hosted end-to-end flow
 
 ## Design constraints
-- keep the local auth flow aligned with the future hosted frontend architecture
-- use Firebase Auth emulator for local validation
-- use Firebase ID tokens from the frontend and backend token verification
-- treat Firebase `uid` as the canonical identity key
-- keep the user model and ownership model minimal for this phase
-- do not overdesign instructor/admin roles yet
+- keep the frontend statically hosted
+- use Firebase Hosting for the hosted frontend
+- keep the backend browser-reachable only for authenticated application requests
+- require Firebase ID tokens for meaningful backend access
+- rely on backend token verification and authorization checks
+- keep the implementation Terraform-only for hosted infrastructure and configuration where practical
+- do not add custom domains or unrelated production hardening in this phase
 
 ## Recommended implementation direction
-- start with a simple provider such as email/password in the emulator
-- add a minimal authenticated frontend experience:
-  - sign-in
-  - sign-out
-  - auth loading state
-- update the backend to verify bearer tokens
-- add only the minimum user/session ownership checks needed for this phase
-- keep the implementation compatible with a statically hosted frontend later
+- use Firebase Hosting for the static frontend
+- keep the existing Cloud Run backend and hosted Firestore path
+- use the existing user account model and ownership-based authorization logic
+- reuse the auth provider already validated locally
+- configure frontend runtime/environment values explicitly for the hosted deployment
+- scope CORS to the hosted frontend origin(s), not broad wildcards unless absolutely necessary
 
 ## Suggested deliverables
-- local Auth emulator setup
-- local test users and sign-in flow
-- frontend acquisition and sending of Firebase ID tokens
-- backend verification of Firebase ID tokens
-- minimal user/session ownership model
-- documentation for the local authenticated flow
-- updated scripts and script guide entries as needed for local auth validation
+- Terraform-managed hosting configuration for the static frontend
+- deployment scripts and documentation for hosted frontend deployment
+- hosted frontend configured for Firebase Auth
+- hosted frontend configured to call the hosted backend
+- explicit backend CORS configuration for the hosted frontend origin(s)
+- end-to-end hosted validation path
+- updated docs and scripts for repeatable human-run deployment and validation
 
 ## Exit criteria
-- a local user can sign in through the Auth emulator
-- the frontend can acquire and send a Firebase ID token to the backend
-- the backend can verify the token locally
-- authenticated local browser ↔ backend ↔ Firestore behavior is validated
-- the local auth workflow is documented and repeatable
+- the frontend is hosted successfully
+- authenticated browser clients can communicate with the hosted backend
+- the backend verifies Firebase ID tokens from hosted clients
+- the backend enforces authorization correctly for hosted clients
+- the full hosted vertical slice works end-to-end
+- the hosting and authenticated access flow are documented and repeatable
 
 ## Notes for the agent
 - keep this phase narrowly scoped
-- do not start hosted auth flow yet
-- do not add broad role/claims systems yet
-- do not rely on session UUID alone for authorization anymore
-- keep the user/session data model changes minimal and explicit
-- structure the code so auth verification and authorization checks are testable independently
+- do not redesign the auth model; carry forward the one already validated locally
+- do not add App Check, Cloud Armor, or custom domains in this phase
+- do not weaken backend authorization just to simplify frontend integration
+- treat CORS as an explicit part of the hosted design
+- keep the hosted infrastructure and configuration Terraform-managed
 
 ## Handoff to the next phase
 At the end of this phase, the codebase should make it easy to:
-- carry the same auth model into the hosted frontend flow
-- protect browser-to-backend access with authenticated identity
-- extend user/session authorization later without redesigning the auth foundation
+- harden the hosted browser/client flow further later if needed
+- build on a working authenticated hosted vertical slice
+- continue toward client persistence and sync hardening
