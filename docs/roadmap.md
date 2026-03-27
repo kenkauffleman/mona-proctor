@@ -154,7 +154,7 @@ Exit criteria:
 - the deployment flow is documented and does not require secrets in the agent environment
 - a human can run the scripts locally and successfully provision Firestore
 
-### Phase 9: Cloud Run backend deployment
+### Phase 9 (completed): Cloud Run backend deployment
 Goal: deploy the backend/API portion of the validated vertical slice to Cloud Run and confirm that the hosted backend can use the chosen cloud data path without being publicly writable during the prototype stage.
 
 Deliverables:

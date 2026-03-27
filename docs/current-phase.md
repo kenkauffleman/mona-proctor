@@ -1,72 +1,86 @@
 # Current Phase
 
 ## Active phase
-Phase 9: Cloud Run backend deployment
+Phase 10: Local Firebase Auth validation
 
 ## Goal
-Deploy the backend/API portion of the validated vertical slice to Cloud Run and confirm that the hosted backend can use the chosen cloud data path without being publicly writable during the prototype stage.
+Validate the application-level authentication flow locally before introducing hosted browser-to-backend authenticated access.
 
-This phase is intentionally narrow. The purpose is to validate the hosted backend deployment path, Firestore connectivity, and private-service invocation workflow before exposing the backend to hosted browser clients.
+This phase is intentionally narrow. The purpose is to prove that the frontend can sign in locally with the Firebase Auth emulator, obtain an ID token, send it to the backend, and that the backend can verify the token and enforce basic resource ownership rules against the existing local browser ↔ backend ↔ Firestore flow.
 
 ## In scope
-- add Terraform and scripts for Cloud Run backend deployment
-- deploy the existing backend/API to Cloud Run
-- configure the hosted backend to communicate with hosted Firestore
-- keep the Cloud Run service non-public by default
-- add a human-usable validation path for invoking the private service
-- document the deployment and validation flow
+- set up the local Firebase Auth emulator
+- create local test users and a local sign-in flow
+- acquire Firebase ID tokens in the frontend during local development
+- send Firebase ID tokens from the frontend to the backend
+- verify Firebase ID tokens in the backend during local development
+- link sessions to authenticated users in the data model
+- add the minimum user/session ownership logic needed for authenticated local validation
+- document the local authenticated flow and how to run it
 
 ## Out of scope
-- public backend exposure
 - hosted frontend integration
-- Firebase Auth browser flow
+- hosted browser-to-backend auth flow
+- Cloud Run public access changes
 - App Check
 - Cloud Armor
-- final production IAM hardening beyond what is needed for this phase
-- grader deployment
+- polished production auth UX
+- full role and roster system
+- advanced authorization policy design
+- grader integration
 - client persistence changes
-- replay feature changes
 
 ## Desired qualities
-- private-by-default backend deployment
-- minimal blast radius
-- simple human validation workflow
-- repeatable deployment through repo-managed scripts
-- clear separation between hosted backend validation and later hosted browser integration
+- minimal but correct application-level auth flow
+- simple and repeatable local setup
+- backend authorization based on verified identity, not just session UUIDs
+- clear separation between authentication, authorization, and persistence logic
+- easy local debugging and validation
 
 ## Design constraints
-- the Cloud Run service must not be publicly invokable by default
-- validation should work through a human-operated path such as:
-  - Cloud Run proxy
-  - or curl with an identity token
-- keep the deployment aligned with the repo’s deployment safety policy
-- do not assume agent access to live cloud credentials
-- keep the implementation focused on backend hosting and Firestore connectivity only
+- keep the local auth flow aligned with the future hosted frontend architecture
+- use Firebase Auth emulator for local validation
+- use Firebase ID tokens from the frontend and backend token verification
+- treat Firebase `uid` as the canonical identity key
+- keep the user model and ownership model minimal for this phase
+- do not overdesign instructor/admin roles yet
+
+## Recommended implementation direction
+- start with a simple provider such as email/password in the emulator
+- add a minimal authenticated frontend experience:
+  - sign-in
+  - sign-out
+  - auth loading state
+- update the backend to verify bearer tokens
+- add only the minimum user/session ownership checks needed for this phase
+- keep the implementation compatible with a statically hosted frontend later
 
 ## Suggested deliverables
-- Terraform for Cloud Run backend deployment
-- scripts for human-run local plan/apply and validation
-- runtime configuration for hosted backend ↔ Firestore connectivity
-- IAM or service configuration needed for private-service validation
-- deployment and validation documentation
+- local Auth emulator setup
+- local test users and sign-in flow
+- frontend acquisition and sending of Firebase ID tokens
+- backend verification of Firebase ID tokens
+- minimal user/session ownership model
+- documentation for the local authenticated flow
+- updated scripts and script guide entries as needed for local auth validation
 
 ## Exit criteria
-- the backend/API deploys successfully to Cloud Run
-- the hosted backend can communicate with the hosted Firestore setup
-- the backend is not publicly invokable by default during this phase
-- a human can validate the private service using the documented workflow
-- the deployment is documented and repeatable through the repo-managed workflow
+- a local user can sign in through the Auth emulator
+- the frontend can acquire and send a Firebase ID token to the backend
+- the backend can verify the token locally
+- authenticated local browser ↔ backend ↔ Firestore behavior is validated
+- the local auth workflow is documented and repeatable
 
 ## Notes for the agent
 - keep this phase narrowly scoped
-- do not make the service public just to simplify testing
-- do not start hosted frontend integration yet
-- do not add Firebase Auth browser flow yet
-- prioritize private-by-default deployment and a clean human validation path
-- keep the scripts and docs explicit about what the human operator must do
+- do not start hosted auth flow yet
+- do not add broad role/claims systems yet
+- do not rely on session UUID alone for authorization anymore
+- keep the user/session data model changes minimal and explicit
+- structure the code so auth verification and authorization checks are testable independently
 
 ## Handoff to the next phase
 At the end of this phase, the codebase should make it easy to:
-- keep the hosted backend private while validating it
-- add hosted frontend integration later
-- introduce authenticated browser-to-backend access in the next phase
+- carry the same auth model into the hosted frontend flow
+- protect browser-to-backend access with authenticated identity
+- extend user/session authorization later without redesigning the auth foundation
