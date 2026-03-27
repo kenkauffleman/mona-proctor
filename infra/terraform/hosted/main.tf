@@ -1,5 +1,9 @@
 locals {
   effective_quota_project_id = coalesce(var.quota_project_id, var.project_id)
+  hosted_frontend_domains = [
+    "${var.project_id}.web.app",
+    "${var.project_id}.firebaseapp.com",
+  ]
   hosted_frontend_origins = [
     "https://${var.project_id}.web.app",
     "https://${var.project_id}.firebaseapp.com",
@@ -19,7 +23,7 @@ module "firebase_frontend" {
 
   project_id           = var.project_id
   web_app_display_name = var.firebase_web_app_display_name
-  authorized_domains   = local.hosted_frontend_origins
+  authorized_domains   = local.hosted_frontend_domains
 
   depends_on = [module.firestore]
 }
