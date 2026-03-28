@@ -1,13 +1,16 @@
-# Python Execution Prototype
+# Python Execution Flow
 
 ## Purpose
-Wave 12 adds a script-driven Python execution prototype without UI integration.
+Wave 12 added a script-driven Python execution prototype without UI integration.
+Wave 13 keeps that backend shape and integrates it into the authenticated application UI.
 
 The goal is to prove:
 - a backend execution abstraction layer
 - Firestore-backed execution job records
 - remote execution through Cloud Run Jobs
+- local execution through the same runner image in development
 - a tiny async result contract
+- UI integration that reuses the stored execution records
 - repeatable operator validation
 
 ## High-level flow
@@ -20,11 +23,39 @@ The goal is to prove:
 7. The runner stores the terminal result back in Firestore and clears the active-job bookkeeping.
 8. A script polls `GET /api/execution/jobs/:jobId` until the stored result is terminal.
 
+## Wave 13 UI integration
+Wave 13 adds the authenticated browser flow on top of the same backend contract:
+1. A signed-in user edits Python in the main recording page.
+2. The UI submits the current source to `POST /api/execution/jobs`.
+3. The backend creates the stored execution record in Firestore and dispatches the configured execution backend as before.
+4. The UI loads `GET /api/execution/jobs/latest` to find the authenticated user's latest stored execution record.
+5. While the latest job remains `queued` or `running`, the UI polls `GET /api/execution/jobs/:jobId`.
+6. The UI renders only the latest execution result for this wave:
+   - `stdout`
+   - `stderr`
+   - `exitCode`
+   - `durationMs`
+   - `truncated`
+
+The UI does not add history browsing or hidden-test grading in this wave.
+
 ## Separation of concerns
 - The backend app knows about an `ExecutionService` and an `ExecutionBackend` interface.
 - The backend app does not hardcode Cloud Run Job details throughout unrelated code.
 - Firestore execution records are stored separately from history/session records.
 - The Python runner is a separate container from the Node backend.
+
+## Backend dispatch modes
+The execution dispatch seam supports multiple backend modes behind the same queue-and-record contract:
+- `cloud-run-job`
+  - deployed behavior
+  - backend starts the configured Cloud Run Job
+- `local-container`
+  - development behavior
+  - backend starts the same Python runner image through local Docker
+  - intended for full local testing with Firestore/Auth emulators
+- `disabled`
+  - explicit non-execution mode when needed for narrow backend work
 
 ## Firestore model
 
@@ -87,10 +118,28 @@ npm run execution:container:validate
 
 This builds the Python runner image, seeds a Firestore-emulator job, runs the container locally, and verifies that the stored Firestore result is terminal and correct.
 
-## Hosted validation
-After the human operator deploys the new backend and execution job:
+Validate the Wave 13 authenticated integration against local emulators:
 
 ```bash
+npm run wave13:validate
+```
+
+This builds the local runner image, boots the backend against the Firestore and Auth emulators in `local-container` mode, submits Python execution through the authenticated API, waits for the real local runner container to complete the job, verifies latest-result retrieval from stored execution records, and checks a denied cross-user case.
+
+For interactive local development, build the local runner image once before starting the app stack:
+
+```bash
+npm run execution:container:build
+npm run emulator:local
+npm run auth:seed
+npm run dev
+```
+
+## Hosted validation
+After the human operator deploys the new backend and execution job, use an explicit production target:
+
+```bash
+npm run deploy -- validate --env prod
 npm run wave12:validate
 ```
 
@@ -114,3 +163,11 @@ Wait for a terminal result:
 ```bash
 npm run execution:get -- --email student1@example.com --password pass1234 --job-id <job-id> --wait
 ```
+
+## Manual UI validation
+After local validation passes and the hosted backend/execution job are deployed, a human operator can validate the integrated UI flow in `prod` by:
+1. running `npm run deploy -- validate --env prod`
+2. signing in with a seeded production Firebase Auth user
+3. editing Python in the main app page
+4. clicking `Run Python`
+5. confirming that the latest result panel shows stdout, stderr, exit status, duration, and truncation from the stored execution record

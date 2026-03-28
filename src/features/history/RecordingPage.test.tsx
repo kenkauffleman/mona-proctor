@@ -2,6 +2,9 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { RecordingPage } from './RecordingPage'
 
 const appendSessionHistoryBatch = vi.fn()
+const createExecutionJob = vi.fn()
+const fetchExecutionJob = vi.fn()
+const fetchLatestExecutionJob = vi.fn()
 const editorListeners = new Map<string, (event: MonacoChangeEvent) => void>()
 
 type MonacoChangeEvent = {
@@ -27,6 +30,12 @@ type MonacoChangeEvent = {
 
 vi.mock('./client', () => ({
   appendSessionHistoryBatch: (...args: unknown[]) => appendSessionHistoryBatch(...args),
+}))
+
+vi.mock('../execution/client', () => ({
+  createExecutionJob: (...args: unknown[]) => createExecutionJob(...args),
+  fetchExecutionJob: (...args: unknown[]) => fetchExecutionJob(...args),
+  fetchLatestExecutionJob: (...args: unknown[]) => fetchLatestExecutionJob(...args),
 }))
 
 vi.mock('@monaco-editor/react', async () => {
@@ -107,6 +116,11 @@ describe('RecordingPage', () => {
     appendSessionHistoryBatch.mockResolvedValue({
       totalEvents: 1,
     })
+    createExecutionJob.mockReset()
+    fetchExecutionJob.mockReset()
+    fetchLatestExecutionJob.mockReset()
+    fetchLatestExecutionJob.mockResolvedValue({ job: null })
+    fetchExecutionJob.mockResolvedValue({ job: null })
     editorListeners.clear()
   })
 
@@ -148,5 +162,119 @@ describe('RecordingPage', () => {
       batchSequence: 1,
       eventOffset: 0,
     })
+  })
+
+  it('submits Python execution and renders the latest stored result', async () => {
+    createExecutionJob.mockResolvedValue({
+      job: {
+        jobId: 'exec-1',
+        ownerUid: 'student-1',
+        language: 'python',
+        source: 'print("hello")',
+        sourceSizeBytes: 14,
+        status: 'succeeded',
+        createdAt: '2026-03-28T00:00:00.000Z',
+        updatedAt: '2026-03-28T00:00:01.000Z',
+        startedAt: '2026-03-28T00:00:00.500Z',
+        completedAt: '2026-03-28T00:00:01.000Z',
+        backend: 'test-execution-backend',
+        backendJobName: 'job-1',
+        errorMessage: null,
+        result: {
+          status: 'succeeded',
+          stdout: 'hello\n',
+          stderr: '',
+          exitCode: 0,
+          durationMs: 42,
+          truncated: false,
+        },
+      },
+    })
+
+    render(<RecordingPage />)
+    await act(async () => {})
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Run Python' }))
+    })
+
+    expect(createExecutionJob).toHaveBeenCalledWith({
+      language: 'python',
+      source: '',
+    })
+    expect(screen.getByText('Execution succeeded')).toBeInTheDocument()
+    expect(screen.getByText('Latest job: exec-1')).toBeInTheDocument()
+    expect(screen.getByText('Exit status: 0')).toBeInTheDocument()
+    expect(screen.getByText('Duration: 42ms')).toBeInTheDocument()
+    expect(screen.getByText('Truncated: no')).toBeInTheDocument()
+    expect(screen.getByText((content) => content.includes('hello'))).toBeInTheDocument()
+  })
+
+  it('loads the latest job on mount, polls active execution, and disables running outside Python', async () => {
+    fetchLatestExecutionJob.mockResolvedValue({
+      job: {
+        jobId: 'exec-running',
+        ownerUid: 'student-1',
+        language: 'python',
+        source: 'print("waiting")',
+        sourceSizeBytes: 16,
+        status: 'queued',
+        createdAt: '2026-03-28T00:00:00.000Z',
+        updatedAt: '2026-03-28T00:00:00.000Z',
+        startedAt: null,
+        completedAt: null,
+        backend: 'test-execution-backend',
+        backendJobName: 'job-running',
+        errorMessage: null,
+        result: null,
+      },
+    })
+    fetchExecutionJob.mockResolvedValue({
+      job: {
+        jobId: 'exec-running',
+        ownerUid: 'student-1',
+        language: 'python',
+        source: 'print("waiting")',
+        sourceSizeBytes: 16,
+        status: 'succeeded',
+        createdAt: '2026-03-28T00:00:00.000Z',
+        updatedAt: '2026-03-28T00:00:02.000Z',
+        startedAt: '2026-03-28T00:00:00.500Z',
+        completedAt: '2026-03-28T00:00:02.000Z',
+        backend: 'test-execution-backend',
+        backendJobName: 'job-running',
+        errorMessage: null,
+        result: {
+          status: 'succeeded',
+          stdout: 'done\n',
+          stderr: '',
+          exitCode: 0,
+          durationMs: 200,
+          truncated: true,
+        },
+      },
+    })
+
+    render(<RecordingPage />)
+    await act(async () => {})
+
+    expect(screen.getByText('Execution queued')).toBeInTheDocument()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000)
+    })
+
+    expect(fetchExecutionJob).toHaveBeenCalledWith('exec-running')
+    expect(screen.getByText('Execution succeeded')).toBeInTheDocument()
+    expect(screen.getByText('Truncated: yes')).toBeInTheDocument()
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Language'), {
+        target: { value: 'java' },
+      })
+    })
+
+    expect(screen.getByRole('button', { name: 'Run Python' })).toBeDisabled()
+    expect(screen.getByText(/Python execution is available only when the Python editor is selected/)).toBeInTheDocument()
   })
 })

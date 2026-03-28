@@ -9,6 +9,7 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - In Codespaces or another remote container, remember that `0.0.0.0` bindings may still require port forwarding or the browser preview URL.
 - Before finishing non-trivial work, run the relevant tests plus `npm run lint` and `npm run typecheck`.
 - For hosted deployment waves, prefer the repo's human-run deploy scripts over ad hoc `terraform` commands.
+- When documenting or handing off human-facing hosted validation/deploy commands, include `--env <name>` explicitly and use `prod` where the command is production-facing.
 - For Wave 10 local auth work, prefer the repo's emulator and seed scripts instead of manually creating Auth emulator users.
 
 ## Core development scripts
@@ -20,17 +21,17 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 ### `npm run dev`
 - Starts the Wave 10 local prototype app stack:
   - Vite frontend on a container-friendly host
-  - Firebase-authenticated backend history API on port `8081`
+  - Firebase-authenticated backend API on port `8081`
 - Use this for the browser client ↔ backend ↔ Firestore vertical slice after the local emulators are already running.
-- Pair it with `npm run emulator:local` and `npm run auth:seed` when you want the authenticated browser flow working locally.
+- Pair it with `npm run emulator:local`, `npm run auth:seed`, and `npm run execution:container:build` when you want the authenticated browser flow with real local Python execution working locally.
 
 ### `npm run dev:web`
 - Starts only the Vite frontend.
 - Use when working only on frontend behavior or UI.
 
 ### `npm run dev:api`
-- Starts only the backend history API with Firestore and Auth emulator settings.
-- Use when working only on backend token verification, authorization, or Firestore persistence behavior.
+- Starts only the backend API with Firestore/Auth emulator settings and the local-container execution backend.
+- Use when working on backend token verification, authorization, Firestore persistence behavior, or real local Python execution dispatch.
 
 ### `npm run preview`
 - Serves the built frontend preview on a container-friendly host.
@@ -209,6 +210,10 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - This is the preferred repeatable local validation for the Wave 12 execution container before relying on hosted Cloud Run Jobs.
 - Requires a local Docker-compatible runtime.
 
+### `npm run execution:container:build`
+- Builds the local Python runner image used by the `local-container` execution backend.
+- Use this before `npm run dev` if you want the browser flow to execute Python locally through Docker instead of failing with a missing image error.
+
 ### `npm run execution:submit -- --email <email> --password <password> --source-file <path>`
 - Reads hosted Terraform outputs, signs in through hosted Firebase Auth, and submits a Python execution job to the hosted backend.
 - Prints the created execution record as JSON.
@@ -222,3 +227,8 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - Validates the hosted Wave 12 Python execution prototype using Terraform outputs from the hosted root.
 - Signs in with a seeded hosted Firebase user, submits `print("wave12 ok")`, polls until completion, and verifies the stored result contract.
 - Use this after the human operator has deployed both the backend service and the execution job image.
+
+### `npm run wave13:validate`
+- Starts the Firestore and Auth emulators, builds the local Python runner image, boots the backend in `local-container` mode, signs in through the Auth emulator, submits Python execution through the authenticated API, waits for the Docker-backed local runner to write the terminal Firestore result, fetches that result back through both the job-id and latest-job endpoints, verifies Firestore persistence, checks runner logs, and validates a denied cross-user case.
+- This is the preferred repeatable local validation script for the Wave 13 UI-facing execution integration.
+- Use this before relying on hosted/manual validation for the integrated Python execution flow.

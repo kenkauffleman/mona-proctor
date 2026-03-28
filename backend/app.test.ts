@@ -553,6 +553,42 @@ describe('backend history app', () => {
     })
   })
 
+  it('returns the latest stored execution job for the authenticated user', async () => {
+    const { baseUrl } = await startTestServer()
+
+    const firstResponse = await fetch(`${baseUrl}/api/execution/jobs`, {
+      method: 'POST',
+      headers: createAuthHeaders('valid-owner-token'),
+      body: JSON.stringify({
+        language: 'python',
+        source: 'print("first latest job")',
+      }),
+    })
+
+    expect(firstResponse.status).toBe(202)
+
+    const latestAfterFirst = await fetch(`${baseUrl}/api/execution/jobs/latest`, {
+      headers: createAuthHeaders('valid-owner-token'),
+    })
+
+    expect(latestAfterFirst.status).toBe(200)
+    expect(await latestAfterFirst.json()).toMatchObject({
+      job: {
+        ownerUid: 'owner-1',
+        source: 'print("first latest job")',
+      },
+    })
+
+    const latestForOtherUser = await fetch(`${baseUrl}/api/execution/jobs/latest`, {
+      headers: createAuthHeaders('valid-other-token'),
+    })
+
+    expect(latestForOtherUser.status).toBe(200)
+    expect(await latestForOtherUser.json()).toEqual({
+      job: null,
+    })
+  })
+
   it('rejects a second active execution for the same authenticated user', async () => {
     const { baseUrl } = await startTestServer()
 
@@ -619,6 +655,20 @@ describe('backend history app', () => {
     expect(await loadAsOtherUser.json()).toEqual({
       ok: false,
       error: 'Authenticated user does not own this execution job.',
+    })
+  })
+
+  it('returns 404 when an execution job does not exist', async () => {
+    const { baseUrl } = await startTestServer()
+
+    const response = await fetch(`${baseUrl}/api/execution/jobs/does-not-exist`, {
+      headers: createAuthHeaders(),
+    })
+
+    expect(response.status).toBe(404)
+    expect(await response.json()).toEqual({
+      ok: false,
+      error: 'Execution job not found.',
     })
   })
 })

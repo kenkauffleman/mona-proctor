@@ -224,6 +224,17 @@ Before UI integration or hidden tests, Python execution now uses a narrower prot
 5. runner executes Python and stores stdout/stderr/result metadata back in Firestore
 6. script polls the execution record until a terminal result is available
 
+### Wave 13 integrated execution flow
+Wave 13 keeps the same execution backend and stored-record contract, but connects it to the authenticated product UI:
+1. signed-in user edits Python in the main Monaco page
+2. UI submits the current Python source through the authenticated backend execution endpoint
+3. backend creates or updates the durable Firestore execution record through the existing execution service
+4. UI loads the latest stored execution record for the authenticated user
+5. UI polls the stored record while it remains queued or running
+6. UI renders stdout, stderr, exit status, duration, and truncation from the stored terminal result
+
+Wave 13 intentionally shows only the latest execution result in the UI and does not add history browsing yet.
+
 ## Isolation model
 
 ### Main app environment

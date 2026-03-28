@@ -158,6 +158,27 @@ export class FirestoreExecutionRepository implements ExecutionRepository {
     return executionRecordFromDocument(document)
   }
 
+  async getLatestJob(owner: AuthenticatedUser): Promise<ExecutionRecord | null> {
+    const snapshot = await this.firestore
+      .collection(executionJobsCollection)
+      .where('ownerUid', '==', owner.uid)
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get()
+
+    if (snapshot.empty) {
+      return null
+    }
+
+    const document = snapshot.docs[0]?.data() as FirestoreExecutionJobDocument | undefined
+
+    if (!document) {
+      throw new Error('Stored execution job document was empty.')
+    }
+
+    return executionRecordFromDocument(document)
+  }
+
   async getJobForRunner(jobId: string): Promise<ExecutionRecord | null> {
     const snapshot = await this.firestore.collection(executionJobsCollection).doc(jobId).get()
 
@@ -224,6 +245,9 @@ export class FirestoreExecutionRepository implements ExecutionRepository {
 
   async completeJob(input: CompleteExecutionJobInput): Promise<ExecutionRecord> {
     const jobReference = this.firestore.collection(executionJobsCollection).doc(input.jobId)
+    const systemStatsReference = this.firestore
+      .collection(executionSystemCollection)
+      .doc(executionSystemStatsDocument)
 
     const record = await this.firestore.runTransaction(async (transaction) => {
       const snapshot = await transaction.get(jobReference)
@@ -232,6 +256,11 @@ export class FirestoreExecutionRepository implements ExecutionRepository {
       if (!snapshot.exists || !document) {
         throw new Error(`Execution job ${input.jobId} was not found.`)
       }
+
+      const [ownerActiveSnapshot, systemStatsSnapshot] = await Promise.all([
+        transaction.get(this.firestore.collection(activeExecutionsCollection).doc(document.ownerUid)),
+        transaction.get(systemStatsReference),
+      ])
 
       const completedAt = nowIso()
       const nextRecord: FirestoreExecutionJobDocument = {
@@ -247,7 +276,7 @@ export class FirestoreExecutionRepository implements ExecutionRepository {
       }
 
       transaction.set(jobReference, nextRecord)
-      await this.releaseActiveJob(transaction, nextRecord)
+      this.releaseActiveJob(transaction, nextRecord, ownerActiveSnapshot, systemStatsSnapshot)
       return nextRecord
     })
 
@@ -268,19 +297,17 @@ export class FirestoreExecutionRepository implements ExecutionRepository {
     })
   }
 
-  private async releaseActiveJob(
+  private releaseActiveJob(
     transaction: FirebaseFirestore.Transaction,
     job: FirestoreExecutionJobDocument,
+    ownerActiveSnapshot: FirebaseFirestore.DocumentSnapshot,
+    systemStatsSnapshot: FirebaseFirestore.DocumentSnapshot,
   ) {
     const ownerActiveReference = this.firestore.collection(activeExecutionsCollection).doc(job.ownerUid)
     const queueReference = this.firestore.collection(executionQueueCollection).doc(job.jobId)
     const systemStatsReference = this.firestore
       .collection(executionSystemCollection)
       .doc(executionSystemStatsDocument)
-    const [ownerActiveSnapshot, systemStatsSnapshot] = await Promise.all([
-      transaction.get(ownerActiveReference),
-      transaction.get(systemStatsReference),
-    ])
 
     const activeDocument = ownerActiveSnapshot.data() as FirestoreActiveExecutionDocument | undefined
 

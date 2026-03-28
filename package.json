@@ -6,14 +6,15 @@
   "scripts": {
     "dev": "concurrently -k -n web,api \"npm:dev:web\" \"npm:dev:api\"",
     "dev:web": "vite --host 0.0.0.0",
-    "dev:api": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 GCLOUD_PROJECT=demo-mona-proctor tsx watch backend/index.ts",
-    "backend:dev": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 GCLOUD_PROJECT=demo-mona-proctor tsx watch backend/index.ts",
+    "dev:api": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 GCLOUD_PROJECT=demo-mona-proctor EXECUTION_BACKEND=local-container EXECUTION_LOCAL_CONTAINER_IMAGE_NAME=mona-proctor-python-runner-local tsx watch backend/index.ts",
+    "backend:dev": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 GCLOUD_PROJECT=demo-mona-proctor EXECUTION_BACKEND=local-container EXECUTION_LOCAL_CONTAINER_IMAGE_NAME=mona-proctor-python-runner-local tsx watch backend/index.ts",
     "backend:api:exercise": "tsx scripts/exerciseHistoryApi.ts",
     "backend:api:validate": "firebase emulators:exec --only firestore \"tsx scripts/historyRoundTripValidate.ts\"",
     "backend:build": "tsc -p tsconfig.backend.json",
     "backend:container:build": "docker build -f backend/Dockerfile -t mona-proctor-backend-validation .",
     "backend:container:run": "docker run --rm --add-host host.docker.internal:host-gateway -p 8081:8081 -e PORT=8081 -e GCLOUD_PROJECT=demo-mona-proctor -e FIRESTORE_EMULATOR_HOST=host.docker.internal:8080 -e FIREBASE_AUTH_EMULATOR_HOST=host.docker.internal:9099 mona-proctor-backend-validation",
     "backend:container:validate": "firebase emulators:exec --only firestore \"tsx scripts/backendContainerHistoryValidate.ts\"",
+    "execution:container:build": "tsx scripts/buildLocalPythonRunnerImage.ts",
     "emulator:firestore": "firebase emulators:start --only firestore",
     "emulator:local": "firebase emulators:start --only firestore,auth",
     "emulator:firestore:check": "firebase emulators:exec --only firestore \"tsx scripts/firestoreEmulatorSanityCheck.ts\"",
@@ -35,6 +36,7 @@
     "execution:submit": "tsx scripts/submitExecutionJob.ts",
     "execution:get": "tsx scripts/getExecutionJob.ts",
     "wave12:validate": "tsx scripts/validateHostedPythonExecution.ts",
+    "wave13:validate": "firebase emulators:exec --only firestore,auth \"tsx scripts/localPythonExecutionIntegrationValidate.ts\"",
     "deploy": "bash scripts/deploy/manage.sh"
   },
   "dependencies": {

@@ -51,6 +51,10 @@ export class ExecutionService {
     return this.repository.getJob(jobId, owner)
   }
 
+  getLatestExecutionJob(owner: AuthenticatedUser) {
+    return this.repository.getLatestJob(owner)
+  }
+
   private validateCreateRequest(request: CreateExecutionRequest) {
     if (request.language !== 'python') {
       throw new ExecutionValidationError('Only python execution is supported in Wave 12.')

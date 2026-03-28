@@ -75,6 +75,14 @@ export class InMemoryExecutionRepository implements ExecutionRepository {
     return cloneRecord(job)
   }
 
+  async getLatestJob(owner: AuthenticatedUser): Promise<ExecutionRecord | null> {
+    const ownedJobs = [...this.jobs.values()]
+      .filter((job) => job.ownerUid === owner.uid)
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+
+    return ownedJobs[0] ? cloneRecord(ownedJobs[0]) : null
+  }
+
   async getJobForRunner(jobId: string): Promise<ExecutionRecord | null> {
     const job = this.jobs.get(jobId)
     return job ? cloneRecord(job) : null

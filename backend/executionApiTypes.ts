@@ -5,3 +5,7 @@ export type CreateExecutionJobRequest = CreateExecutionRequest
 export type ExecutionJobResponse = {
   job: ExecutionRecord
 }
+
+export type LatestExecutionJobResponse = {
+  job: ExecutionRecord | null
+}

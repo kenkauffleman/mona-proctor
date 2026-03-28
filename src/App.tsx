@@ -36,7 +36,7 @@ function AuthenticatedApp() {
     return (
       <main className="app-shell">
         <section className="hero">
-          <p className="eyebrow">Phase 11</p>
+          <p className="eyebrow">Phase 13</p>
           <h1>{runtimeConfig.appModeLabel}</h1>
           <p className="hero-copy">
             {runtimeConfig.isHostedAuth
@@ -52,12 +52,12 @@ function AuthenticatedApp() {
     return (
       <main className="app-shell">
         <section className="hero">
-          <p className="eyebrow">Phase 11</p>
+          <p className="eyebrow">Phase 13</p>
           <h1>{runtimeConfig.appModeLabel}</h1>
           <p className="hero-copy">
             {runtimeConfig.isHostedAuth
-              ? 'Sign in with a hosted Firebase Auth user before recording or replaying session history.'
-              : 'Sign in with a local Firebase Auth emulator user before recording or replaying session history.'}
+              ? 'Sign in with a hosted Firebase Auth user before recording history or running Python execution.'
+              : 'Sign in with a local Firebase Auth emulator user before recording history or running Python execution.'}
           </p>
         </section>
 

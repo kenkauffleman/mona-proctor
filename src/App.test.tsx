@@ -1,7 +1,8 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import App from './App'
 
 const useAuth = vi.fn()
+const fetchLatestExecutionJob = vi.fn()
 
 vi.mock('./features/auth/AuthProvider', () => ({
   AuthProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -9,6 +10,12 @@ vi.mock('./features/auth/AuthProvider', () => ({
 
 vi.mock('./features/auth/useAuth', () => ({
   useAuth: () => useAuth(),
+}))
+
+vi.mock('./features/execution/client', () => ({
+  createExecutionJob: vi.fn(),
+  fetchExecutionJob: vi.fn(),
+  fetchLatestExecutionJob: (...args: unknown[]) => fetchLatestExecutionJob(...args),
 }))
 
 vi.mock('@monaco-editor/react', () => ({
@@ -32,6 +39,11 @@ vi.mock('@monaco-editor/react', () => ({
 }))
 
 describe('App', () => {
+  beforeEach(() => {
+    fetchLatestExecutionJob.mockReset()
+    fetchLatestExecutionJob.mockResolvedValue({ job: null })
+  })
+
   it('renders an auth loading message while the emulator session is resolving', () => {
     useAuth.mockReturnValue({
       error: null,
@@ -70,7 +82,7 @@ describe('App', () => {
     expect(screen.getByLabelText('Password')).toHaveValue('')
   })
 
-  it('renders the recording page once a user is authenticated', () => {
+  it('renders the recording page once a user is authenticated', async () => {
     useAuth.mockReturnValue({
       error: null,
       isLoading: false,
@@ -84,10 +96,11 @@ describe('App', () => {
     })
 
     render(<App />)
+    await act(async () => {})
 
     expect(
       screen.getByRole('heading', {
-        name: 'Authenticated history recording',
+        name: 'Authenticated Python execution',
       }),
     ).toBeInTheDocument()
     expect(screen.getByText('student1@example.com')).toBeInTheDocument()

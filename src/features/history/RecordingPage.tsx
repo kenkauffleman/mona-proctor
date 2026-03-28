@@ -2,11 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 import type { OnMount } from '@monaco-editor/react'
 import { EditorPane } from '../../components/EditorPane'
 import { LanguageSelector } from '../../components/LanguageSelector'
+import type { ExecutionRecord } from '../../../backend/executionTypes'
 import {
   editorLanguages,
   emptySourcesByLanguage,
   type EditorLanguage,
 } from '../editor/languages'
+import {
+  createExecutionJob,
+  fetchExecutionJob,
+  fetchLatestExecutionJob,
+} from '../execution/client'
 import { getRecordEditorModelPath } from '../editor/modelPaths'
 import { HistoryBatcher, type HistoryBatcherState } from './batching'
 import { appendSessionHistoryBatch } from './client'
@@ -15,6 +21,7 @@ import { createSessionId } from './session'
 import type { RecordedMonacoEvent } from './types'
 
 const syncIntervalMs = 2000
+const executionPollIntervalMs = 1000
 
 function formatSyncLabel(state: HistoryBatcherState) {
   if (state.isFlushing) {
@@ -32,6 +39,58 @@ function formatSyncLabel(state: HistoryBatcherState) {
   return 'Waiting for first batch'
 }
 
+function isExecutionTerminal(job: ExecutionRecord | null) {
+  return !job || !!job.result
+}
+
+function formatExecutionStatus(job: ExecutionRecord | null, isLoadingLatestJob: boolean) {
+  if (isLoadingLatestJob) {
+    return 'Loading latest execution'
+  }
+
+  if (!job) {
+    return 'No execution submitted yet'
+  }
+
+  if (job.result?.status === 'succeeded') {
+    return 'Execution succeeded'
+  }
+
+  if (job.result?.status === 'failed') {
+    return 'Execution failed'
+  }
+
+  if (job.result?.status === 'timed_out') {
+    return 'Execution timed out'
+  }
+
+  if (job.result?.status === 'error') {
+    return 'Execution errored'
+  }
+
+  if (job.status === 'running') {
+    return 'Execution running'
+  }
+
+  return 'Execution queued'
+}
+
+function formatDuration(durationMs: number | null) {
+  if (durationMs === null) {
+    return 'n/a'
+  }
+
+  return `${durationMs}ms`
+}
+
+function formatExitCode(exitCode: number | null) {
+  if (exitCode === null) {
+    return 'n/a'
+  }
+
+  return String(exitCode)
+}
+
 export function RecordingPage() {
   const [activeLanguage, setActiveLanguage] = useState<EditorLanguage>('python')
   const [sessionId, setSessionId] = useState(createSessionId)
@@ -46,6 +105,10 @@ export function RecordingPage() {
   })
   const nextSequenceRef = useRef(1)
   const batcherRef = useRef<HistoryBatcher | null>(null)
+  const [latestExecutionJob, setLatestExecutionJob] = useState<ExecutionRecord | null>(null)
+  const [isLoadingLatestExecutionJob, setIsLoadingLatestExecutionJob] = useState(true)
+  const [executionError, setExecutionError] = useState<string | null>(null)
+  const [isSubmittingExecution, setIsSubmittingExecution] = useState(false)
 
   useEffect(() => {
     const batcher = new HistoryBatcher({
@@ -85,6 +148,81 @@ export function RecordingPage() {
     setSessionId(createSessionId())
   }, [activeLanguage])
 
+  useEffect(() => {
+    let isCancelled = false
+
+    const loadLatestExecutionJob = async () => {
+      setIsLoadingLatestExecutionJob(true)
+
+      try {
+        const response = await fetchLatestExecutionJob()
+
+        if (isCancelled) {
+          return
+        }
+
+        setLatestExecutionJob(response.job)
+        setExecutionError(null)
+      } catch (error) {
+        if (isCancelled) {
+          return
+        }
+
+        setExecutionError(error instanceof Error ? error.message : 'Failed to load the latest execution result.')
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingLatestExecutionJob(false)
+        }
+      }
+    }
+
+    void loadLatestExecutionJob()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!latestExecutionJob || isExecutionTerminal(latestExecutionJob)) {
+      return
+    }
+
+    const jobId = latestExecutionJob.jobId
+    let isCancelled = false
+
+    const pollLatestExecutionJob = async () => {
+      try {
+        const response = await fetchExecutionJob(jobId)
+
+        if (isCancelled) {
+          return
+        }
+
+        setLatestExecutionJob(response.job)
+        setExecutionError(null)
+      } catch (error) {
+        if (isCancelled) {
+          return
+        }
+
+        setExecutionError(error instanceof Error ? error.message : 'Failed to refresh the latest execution result.')
+      }
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void pollLatestExecutionJob()
+    }, executionPollIntervalMs)
+
+    return () => {
+      isCancelled = true
+
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId)
+      }
+    }
+  }, [latestExecutionJob])
+
   const handleRecordEditorMount: OnMount = (editorInstance) => {
     const model = editorInstance.getModel()
 
@@ -112,16 +250,35 @@ export function RecordingPage() {
     nextSequenceRef.current = 1
   }
 
+  const handleRunPython = async () => {
+    setIsSubmittingExecution(true)
+
+    try {
+      const response = await createExecutionJob({
+        language: 'python',
+        source,
+      })
+      setLatestExecutionJob(response.job)
+      setExecutionError(null)
+    } catch (error) {
+      setExecutionError(error instanceof Error ? error.message : 'Execution submit failed.')
+    } finally {
+      setIsSubmittingExecution(false)
+    }
+  }
+
   const activeLanguageConfig = editorLanguages[activeLanguage]
+  const latestExecutionResult = latestExecutionJob?.result ?? null
+  const canRunPython = activeLanguage === 'python'
 
   return (
     <main className="app-shell">
       <section className="hero">
-        <p className="eyebrow">Phase 11</p>
-        <h1>Authenticated history recording</h1>
+        <p className="eyebrow">Phase 13</p>
+        <h1>Authenticated Python execution</h1>
         <p className="hero-copy">
-          Record Monaco content-change events, send Firebase-authenticated history batches to the backend,
-          and persist per-user session history in Firestore for later replay across local and hosted environments.
+          Record Monaco content-change events, run Python through the authenticated backend flow,
+          and display the latest stored execution result directly in the app.
         </p>
       </section>
 
@@ -129,7 +286,7 @@ export function RecordingPage() {
         <div className="workspace-toolbar">
           <div>
             <h2>Recording Page</h2>
-            <p>Each page session gets a client-generated UUID and uploads append-only history batches through the authenticated backend API.</p>
+            <p>Each page session keeps the Wave 11 history upload path while adding a latest-result Python execution panel.</p>
           </div>
           <LanguageSelector
             languages={editorLanguages}
@@ -151,7 +308,7 @@ export function RecordingPage() {
             <div className="panel-heading">
               <div>
                 <h3>Record Editor</h3>
-                <p>Monaco content-change events are the canonical history source for this session.</p>
+                <p>Monaco content-change events remain the canonical history source for this session.</p>
               </div>
               <div className="replay-controls">
                 <a className="button-link" href={`/replay?sessionId=${sessionId}`}>
@@ -172,6 +329,57 @@ export function RecordingPage() {
             />
           </section>
         </div>
+
+        <section className="debug-panel" aria-label="Python execution status">
+          <div className="panel-heading">
+            <div>
+              <h3>Python Execution</h3>
+              <p>Wave 13 shows only the latest execution record stored for the authenticated user.</p>
+            </div>
+            <div className="replay-controls">
+              <button
+                type="button"
+                onClick={() => void handleRunPython()}
+                disabled={!canRunPython || isSubmittingExecution}
+              >
+                {isSubmittingExecution ? 'Submitting...' : 'Run Python'}
+              </button>
+            </div>
+          </div>
+          <div className="debug-summary">
+            <span>{formatExecutionStatus(latestExecutionJob, isLoadingLatestExecutionJob)}</span>
+            <span>Latest job: {latestExecutionJob?.jobId ?? 'none'}</span>
+            <span>Exit status: {formatExitCode(latestExecutionResult?.exitCode ?? null)}</span>
+            <span>Duration: {formatDuration(latestExecutionResult?.durationMs ?? null)}</span>
+            <span>Truncated: {latestExecutionResult?.truncated ? 'yes' : 'no'}</span>
+          </div>
+          {!canRunPython ? (
+            <p className="panel-note">Python execution is available only when the Python editor is selected in this wave.</p>
+          ) : null}
+          {executionError ? <p className="auth-error panel-note">{executionError}</p> : null}
+          <div className="execution-results-grid">
+            <section className="execution-result-panel" aria-label="Execution stdout">
+              <div className="panel-heading">
+                <div>
+                  <h3>stdout</h3>
+                </div>
+              </div>
+              <pre className="event-log">
+                {latestExecutionResult?.stdout || 'No stdout captured for the latest execution.'}
+              </pre>
+            </section>
+            <section className="execution-result-panel" aria-label="Execution stderr">
+              <div className="panel-heading">
+                <div>
+                  <h3>stderr</h3>
+                </div>
+              </div>
+              <pre className="event-log">
+                {latestExecutionResult?.stderr || 'No stderr captured for the latest execution.'}
+              </pre>
+            </section>
+          </div>
+        </section>
 
         <section className="debug-panel" aria-label="Recording debug status">
           <div className="panel-heading">

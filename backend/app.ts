@@ -243,6 +243,19 @@ export function createBackendApp(
     }
   })
 
+  app.get('/api/execution/jobs/latest', async (_request, response) => {
+    try {
+      const job = await executionService.getLatestExecutionJob(response.locals.authenticatedUser)
+      response.json({ job })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown execution load error.'
+      response.status(executionErrorStatusCode(error)).json({
+        ok: false,
+        error: message,
+      })
+    }
+  })
+
   app.post('/api/execution/jobs', async (request, response) => {
     if (!isCreateExecutionJobRequest(request.body)) {
       response.status(400).json({

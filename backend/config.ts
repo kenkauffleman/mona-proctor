@@ -7,6 +7,10 @@ export type BackendConfig = {
   executionCloudRunJobName?: string
   executionCloudRunRegion?: string
   executionCloudRunProjectId?: string
+  executionLocalContainerAddHostGateway: boolean
+  executionLocalContainerDockerCommand: string
+  executionLocalContainerImageName?: string
+  executionLocalContainerNetwork?: string
   executionGlobalActiveJobLimit: number
   executionMaxSourceBytes: number
   executionMaxStderrBytes: number
@@ -39,6 +43,10 @@ export function getBackendConfig(environment: NodeJS.ProcessEnv = process.env): 
     executionCloudRunJobName: environment.EXECUTION_CLOUD_RUN_JOB_NAME,
     executionCloudRunRegion: environment.EXECUTION_CLOUD_RUN_REGION,
     executionCloudRunProjectId: environment.EXECUTION_CLOUD_RUN_PROJECT_ID,
+    executionLocalContainerAddHostGateway: environment.EXECUTION_LOCAL_CONTAINER_ADD_HOST_GATEWAY !== 'false',
+    executionLocalContainerDockerCommand: environment.EXECUTION_LOCAL_CONTAINER_DOCKER_COMMAND ?? 'docker',
+    executionLocalContainerImageName: environment.EXECUTION_LOCAL_CONTAINER_IMAGE_NAME,
+    executionLocalContainerNetwork: environment.EXECUTION_LOCAL_CONTAINER_NETWORK,
     executionGlobalActiveJobLimit: Number(environment.EXECUTION_GLOBAL_ACTIVE_JOB_LIMIT ?? 10),
     executionMaxSourceBytes: Number(environment.EXECUTION_MAX_SOURCE_BYTES ?? 16_384),
     executionMaxStderrBytes: Number(environment.EXECUTION_MAX_STDERR_BYTES ?? 4_096),
