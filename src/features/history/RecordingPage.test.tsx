@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
+import { editorLanguages } from '../editor/languages'
 import { RecordingPage } from './RecordingPage'
 
 const appendSessionHistoryBatch = vi.fn()
@@ -200,7 +201,7 @@ describe('RecordingPage', () => {
 
     expect(createExecutionJob).toHaveBeenCalledWith({
       language: 'python',
-      source: '',
+      source: editorLanguages.python.starterSource,
     })
     expect(screen.getByText('Execution succeeded')).toBeInTheDocument()
     expect(screen.getByText('Latest job: exec-1')).toBeInTheDocument()
@@ -276,5 +277,49 @@ describe('RecordingPage', () => {
 
     expect(screen.getByRole('button', { name: 'Run Python' })).toBeDisabled()
     expect(screen.getByText(/Python execution is available only when the Python editor is selected/)).toBeInTheDocument()
+  })
+
+  it('shows execution errors when the latest job load or submit fails', async () => {
+    fetchLatestExecutionJob.mockRejectedValue(new Error('Latest execution load failed.'))
+    createExecutionJob.mockRejectedValue(new Error('Execution submit failed.'))
+
+    render(<RecordingPage />)
+    await act(async () => {})
+
+    expect(screen.getByText('Latest execution load failed.')).toBeInTheDocument()
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Run Python' }))
+    })
+
+    expect(screen.getByText('Execution submit failed.')).toBeInTheDocument()
+    expect(screen.getByText('No stdout captured for the latest execution.')).toBeInTheDocument()
+    expect(screen.getByText('No stderr captured for the latest execution.')).toBeInTheDocument()
+  })
+
+  it('starts a fresh session by clearing local counters and recorded event state', async () => {
+    render(<RecordingPage />)
+
+    const originalSessionLabel = screen.getByText((content) => content.startsWith('Session UUID: ')).textContent
+
+    await emitContentChange('record:solution.py', 'print("python")')
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000)
+    })
+
+    expect(screen.getByText('1 recorded events')).toBeInTheDocument()
+    expect(screen.getByText('1 synced events')).toBeInTheDocument()
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'New Session' }))
+    })
+
+    const nextSessionLabel = screen.getByText((content) => content.startsWith('Session UUID: '))
+
+    expect(nextSessionLabel.textContent).not.toEqual(originalSessionLabel)
+    expect(screen.getByText('0 recorded events')).toBeInTheDocument()
+    expect(screen.getByText('0 synced events')).toBeInTheDocument()
+    expect(screen.getByText('No events recorded yet. Start typing in the editor.')).toBeInTheDocument()
   })
 })

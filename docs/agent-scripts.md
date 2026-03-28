@@ -141,6 +141,30 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - Runs the Vitest suite.
 - Use after code changes that affect app logic, Phase 3 server behavior, the Wave 5 backend validation service, or shared utilities.
 
+### `npm run test:unit`
+- Runs the Wave 14 unit and component Vitest suite under `src/` and `backend/`.
+- Use this for fast feedback on frontend behavior, backend request handling, and shared local logic.
+- This is the preferred first verification step before the emulator-backed layers.
+
+### `npm run test:integration`
+- Starts the Firestore and Auth emulators and runs the integration Vitest suite under `tests/integration/`.
+- Validates authenticated backend/API behavior, Firestore persistence, local auth ownership checks, and local-container Python execution.
+- This is the preferred repeatable emulator-backed validation layer for Wave 14 backend/auth/Firestore/execution seams.
+
+### `npm run test:e2e`
+- Starts the Firestore and Auth emulators, launches a local frontend/backend test stack, builds the local Python runner image, and runs Playwright.
+- Covers a small set of high-value local browser flows:
+  - authenticated happy path
+  - execution submission/result display
+  - one important local guardrail
+  - one authorization sanity check
+- Use this for Wave 14 local browser confidence, not for broad UI coverage.
+
+### `npm run test:local`
+- Runs `npm run test:unit`, `npm run test:integration`, and `npm run test:e2e` in sequence.
+- Use this when you want the full Wave 14 local validation stack in one command.
+- This is slower, but it is the clearest one-command local confidence check before finishing significant Wave 14 work.
+
 ### `npm run lint`
 - Runs ESLint across the repo.
 - Required before finishing non-trivial changes.

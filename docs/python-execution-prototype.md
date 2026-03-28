@@ -126,6 +126,18 @@ npm run wave13:validate
 
 This builds the local runner image, boots the backend against the Firestore and Auth emulators in `local-container` mode, submits Python execution through the authenticated API, waits for the real local runner container to complete the job, verifies latest-result retrieval from stored execution records, and checks a denied cross-user case.
 
+Wave 14 adds formal automated local validation layers on top of those focused scripts:
+
+```bash
+npm run test:integration
+npm run test:e2e
+```
+
+- `npm run test:integration`
+  - validates backend/auth/Firestore/execution seams through emulator-backed Vitest tests
+- `npm run test:e2e`
+  - validates the local browser flow with Playwright against the same emulators and local runner image
+
 For interactive local development, build the local runner image once before starting the app stack:
 
 ```bash

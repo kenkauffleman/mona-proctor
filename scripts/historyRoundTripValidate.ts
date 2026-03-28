@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process'
 import process from 'node:process'
 import { Firestore } from '@google-cloud/firestore'
 import { replayRecordedMonacoEvents } from '../src/features/history/history.js'
+import { ensureLocalAuthUser, localAuthUsers, signInLocalAuthUser } from './authEmulatorUsers.js'
 
 const port = 18081
 const host = '127.0.0.1'
@@ -48,6 +49,12 @@ async function main() {
 
   try {
     await waitForHealthcheck(30_000)
+
+    for (const user of localAuthUsers) {
+      await ensureLocalAuthUser(user)
+    }
+
+    const firstUser = await signInLocalAuthUser(localAuthUsers[0]!)
 
     const sessionId = `wave-7-${Date.now()}`
     const firstBatch = {
@@ -107,6 +114,7 @@ async function main() {
       const response = await fetch(`${baseUrl}/api/history/sessions/${sessionId}/batches`, {
         method: 'POST',
         headers: {
+          authorization: `Bearer ${firstUser.idToken}`,
           'content-type': 'application/json',
         },
         body: JSON.stringify(batch),
@@ -117,7 +125,11 @@ async function main() {
       }
     }
 
-    const sessionResponse = await fetch(`${baseUrl}/api/history/sessions/${sessionId}`)
+    const sessionResponse = await fetch(`${baseUrl}/api/history/sessions/${sessionId}`, {
+      headers: {
+        authorization: `Bearer ${firstUser.idToken}`,
+      },
+    })
 
     if (!sessionResponse.ok) {
       throw new Error(`History session load failed with ${sessionResponse.status}: ${await sessionResponse.text()}`)
@@ -126,6 +138,7 @@ async function main() {
     const session = await sessionResponse.json() as {
       sessionId: string
       language: string
+      ownerUid: string
       batches: Array<{ batchSequence: number; eventCount: number; eventOffset: number }>
       events: typeof firstBatch.events
     }
@@ -136,6 +149,10 @@ async function main() {
 
     if (session.language !== 'python') {
       throw new Error(`Expected python session language but received ${session.language}`)
+    }
+
+    if (session.ownerUid !== firstUser.localId) {
+      throw new Error(`Expected owner uid ${firstUser.localId} but received ${session.ownerUid}`)
     }
 
     if (session.batches.length !== 2) {
@@ -157,7 +174,7 @@ async function main() {
 
     const sessionData = sessionSnapshot.data() as Record<string, unknown> | undefined
 
-    if (!sessionData || 'events' in sessionData) {
+    if (!sessionData || 'events' in sessionData || sessionData.ownerUid !== firstUser.localId) {
       throw new Error(`Session metadata should stay separate from batch event payloads: ${JSON.stringify(sessionData)}`)
     }
 

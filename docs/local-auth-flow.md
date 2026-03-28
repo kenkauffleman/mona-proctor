@@ -69,3 +69,9 @@ The main Wave 11 changes are hosting, explicit CORS, and using real hosted Fireb
 Use `npm run wave10:validate`.
 
 That script starts the Auth and Firestore emulators, seeds local users, signs in two users programmatically, verifies one user can create and load a session, and verifies the second user is denied access to that session.
+
+Wave 14 adds two stronger local validation layers on top of that focused script:
+- `npm run test:integration`
+  - runs emulator-backed integration tests for authenticated history and execution flows
+- `npm run test:e2e`
+  - runs Playwright against the local frontend/backend stack with the same emulators

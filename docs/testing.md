@@ -89,6 +89,40 @@ For most tasks:
 6. run lint and typecheck
 7. summarize changes, verification, and remaining gaps
 
+## Wave 14 local test stack
+Wave 14 formalizes the local validation layers around the current authenticated Python flow.
+
+Preferred local order:
+1. `npm run test:unit`
+2. `npm run test:integration`
+3. `npm run test:e2e`
+4. `npm run lint`
+5. `npm run typecheck`
+
+Use `npm run test:local` when you want the full local unit + emulator-backed integration + Playwright pass in one command.
+
+### Layer meanings
+- `npm run test:unit`
+  - runs the Vitest unit and component suite under `src/` and `backend/`
+  - fastest feedback for local logic and UI behavior
+- `npm run test:integration`
+  - starts the Firestore and Auth emulators through `firebase emulators:exec`
+  - runs backend/auth/Firestore/execution integration tests under `tests/integration/`
+  - validates authenticated backend flows plus Firestore persistence
+- `npm run test:e2e`
+  - starts the Firestore and Auth emulators through `firebase emulators:exec`
+  - launches a local frontend/backend test stack plus the local Python runner image
+  - runs Playwright against a small set of stable high-value user flows
+
+### Browser test scope
+Playwright coverage should stay intentionally small:
+- authenticated happy path
+- execution submission and result display
+- one important local guardrail or error path
+- one authorization sanity check
+
+Avoid turning Wave 14 browser tests into broad layout snapshots or Monaco-internals tests.
+
 ## Testing philosophy for this project
 This project is phase-based and should not be overbuilt early.
 Testing should follow that same principle:

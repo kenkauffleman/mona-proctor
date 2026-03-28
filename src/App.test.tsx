@@ -1,8 +1,10 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import App from './App'
 
 const useAuth = vi.fn()
 const fetchLatestExecutionJob = vi.fn()
+const signIn = vi.fn()
+const signOut = vi.fn()
 
 vi.mock('./features/auth/AuthProvider', () => ({
   AuthProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -40,6 +42,8 @@ vi.mock('@monaco-editor/react', () => ({
 
 describe('App', () => {
   beforeEach(() => {
+    signIn.mockReset()
+    signOut.mockReset()
     fetchLatestExecutionJob.mockReset()
     fetchLatestExecutionJob.mockResolvedValue({ job: null })
   })
@@ -69,8 +73,8 @@ describe('App', () => {
       error: null,
       isLoading: false,
       isSigningIn: false,
-      signIn: vi.fn(),
-      signOut: vi.fn(),
+      signIn,
+      signOut,
       user: null,
     })
 
@@ -82,13 +86,39 @@ describe('App', () => {
     expect(screen.getByLabelText('Password')).toHaveValue('')
   })
 
+  it('submits the entered credentials through the auth context', async () => {
+    useAuth.mockReturnValue({
+      error: null,
+      isLoading: false,
+      isSigningIn: false,
+      signIn,
+      signOut,
+      user: null,
+    })
+
+    render(<App />)
+
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'student1@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('Password'), {
+      target: { value: 'pass1234' },
+    })
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole('button', { name: 'Sign in' }).closest('form')!)
+    })
+
+    expect(signIn).toHaveBeenCalledWith('student1@example.com', 'pass1234')
+  })
+
   it('renders the recording page once a user is authenticated', async () => {
     useAuth.mockReturnValue({
       error: null,
       isLoading: false,
       isSigningIn: false,
-      signIn: vi.fn(),
-      signOut: vi.fn(),
+      signIn,
+      signOut,
       user: {
         email: 'student1@example.com',
         uid: 'student-1',
@@ -105,5 +135,37 @@ describe('App', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('student1@example.com')).toBeInTheDocument()
     expect(screen.getAllByTestId('monaco-editor')).toHaveLength(1)
+  })
+
+  it('renders the replay page for the replay route and lets the user sign out', async () => {
+    window.history.pushState({}, '', '/replay?sessionId=session-123')
+
+    useAuth.mockReturnValue({
+      error: null,
+      isLoading: false,
+      isSigningIn: false,
+      signIn,
+      signOut,
+      user: {
+        email: 'student1@example.com',
+        uid: 'student-1',
+      },
+    })
+
+    render(<App />)
+    await act(async () => {})
+
+    expect(
+      screen.getByRole('heading', {
+        name: 'Session Replay',
+      }),
+    ).toBeInTheDocument()
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+    })
+
+    expect(signOut).toHaveBeenCalledTimes(1)
+    window.history.pushState({}, '', '/')
   })
 })
