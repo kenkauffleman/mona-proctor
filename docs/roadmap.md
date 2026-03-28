@@ -274,7 +274,7 @@ Exit criteria:
 - docs reflect the cleaned-up structure and current workflows
 - the codebase is easier to reason about for future waves
 
-### Phase 16: Dependency and security update wave
+### Phase 16 (completed): Dependency and security update wave
 Goal: update outdated dependencies, reduce known security vulnerabilities, and keep the project on a healthier baseline before adding more execution/grading features.
 
 Deliverables:
