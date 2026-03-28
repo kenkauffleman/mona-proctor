@@ -242,7 +242,7 @@ Exit criteria:
 - result retrieval works against the stored execution records
 - the UI-integrated execution flow is documented and repeatable
 
-### Phase 14: Test infrastructure and local validation hardening
+### Phase 14 (completed): Test infrastructure and local validation hardening
 Goal: strengthen confidence in the current system by expanding automated test coverage and formalizing local validation workflows.
 
 Deliverables:
