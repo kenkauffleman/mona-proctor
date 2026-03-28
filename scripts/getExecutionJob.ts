@@ -1,6 +1,8 @@
 import process from 'node:process'
 import {
   getExecutionJob,
+  loadDeployEnvFile,
+  parseDeployEnvironment,
   parseNamedArg,
   parseTerraformDir,
   printJson,
@@ -12,6 +14,8 @@ import {
 
 async function main() {
   const args = process.argv.slice(2)
+  const deployEnvironment = parseDeployEnvironment(args)
+  loadDeployEnvFile(deployEnvironment)
   const terraformDir = parseTerraformDir(args)
   const outputs = readTerraformOutputs(terraformDir)
   const user = requireUserFromArgs(args)

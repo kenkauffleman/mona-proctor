@@ -1,6 +1,8 @@
 import process from 'node:process'
 import { parseAuthSeedUsers } from './authSeedUsers.js'
 import {
+  loadDeployEnvFile,
+  parseDeployEnvironment,
   parseTerraformDir,
   readTerraformOutputs,
   signInWithPassword,
@@ -9,7 +11,10 @@ import {
 } from './executionHosted.js'
 
 async function main() {
-  const terraformDir = parseTerraformDir(process.argv.slice(2))
+  const args = process.argv.slice(2)
+  const deployEnvironment = parseDeployEnvironment(args)
+  const envFilePath = loadDeployEnvFile(deployEnvironment)
+  const terraformDir = parseTerraformDir(args)
   const outputs = readTerraformOutputs(terraformDir)
   const [ownerUser] = parseAuthSeedUsers(process.env.AUTH_SEED_USERS_JSON, { required: true })
 
@@ -55,6 +60,7 @@ async function main() {
   }
 
   console.log(`Hosted Python execution validation succeeded for ${jobId}.`)
+  console.log(`Using deploy env ${deployEnvironment} from ${envFilePath}.`)
   console.log(`Received stdout ${JSON.stringify(terminalResponse.job.result.stdout.trim())} from ${outputs.service_uri.value}.`)
 }
 

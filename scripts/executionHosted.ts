@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import path from 'node:path'
 import process from 'node:process'
 import type { CreateExecutionJobRequest, ExecutionJobResponse } from '../backend/executionApiTypes.js'
 
@@ -58,6 +59,56 @@ export function parseNamedArg(name: string, args: string[]) {
   }
 
   return args[index + 1]
+}
+
+export function parseDeployEnvironment(args: string[]) {
+  return parseNamedArg('--env', args) ?? 'test'
+}
+
+function parseEnvFileContents(contents: string) {
+  const parsed: Record<string, string> = {}
+
+  for (const rawLine of contents.split('\n')) {
+    const line = rawLine.trim()
+
+    if (line.length === 0 || line.startsWith('#')) {
+      continue
+    }
+
+    const separatorIndex = line.indexOf('=')
+
+    if (separatorIndex === -1) {
+      continue
+    }
+
+    const key = line.slice(0, separatorIndex).trim()
+    let value = line.slice(separatorIndex + 1).trim()
+
+    if (
+      (value.startsWith('"') && value.endsWith('"'))
+      || (value.startsWith('\'') && value.endsWith('\''))
+    ) {
+      value = value.slice(1, -1)
+    }
+
+    parsed[key] = value
+  }
+
+  return parsed
+}
+
+export function loadDeployEnvFile(environmentName: string) {
+  const envFilePath = path.resolve(`.env.deploy.${environmentName}`)
+  const contents = readFileSync(envFilePath, 'utf8')
+  const parsed = parseEnvFileContents(contents)
+
+  for (const [key, value] of Object.entries(parsed)) {
+    if (!(key in process.env)) {
+      process.env[key] = value
+    }
+  }
+
+  return envFilePath
 }
 
 export function readSourceFromArgs(args: string[]) {
