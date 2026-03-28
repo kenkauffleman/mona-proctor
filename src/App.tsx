@@ -3,6 +3,7 @@ import { AuthProvider } from './features/auth/AuthProvider'
 import { useAuth } from './features/auth/useAuth'
 import { RecordingPage } from './features/history/RecordingPage'
 import { ReplayPage } from './features/history/ReplayPage'
+import { currentPhaseLabel } from './config/currentPhase'
 import { runtimeConfig } from './config/runtime'
 
 function getPathname() {
@@ -36,7 +37,7 @@ function AuthenticatedApp() {
     return (
       <main className="app-shell">
         <section className="hero">
-          <p className="eyebrow">Phase 13</p>
+          <p className="eyebrow">{currentPhaseLabel}</p>
           <h1>{runtimeConfig.appModeLabel}</h1>
           <p className="hero-copy">
             {runtimeConfig.isHostedAuth
@@ -52,7 +53,7 @@ function AuthenticatedApp() {
     return (
       <main className="app-shell">
         <section className="hero">
-          <p className="eyebrow">Phase 13</p>
+          <p className="eyebrow">{currentPhaseLabel}</p>
           <h1>{runtimeConfig.appModeLabel}</h1>
           <p className="hero-copy">
             {runtimeConfig.isHostedAuth

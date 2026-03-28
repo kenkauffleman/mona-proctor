@@ -1,16 +1,15 @@
 # mona-proctor
 
-Wave 12 focuses on a Python execution prototype: authenticated script submission, Firestore-backed execution records, and a Cloud Run Job-based Python runner behind a swappable backend execution interface.
+Phase 15 focuses on cleanup and refactor work under the stronger local validation stack added in Phase 14.
 
 The repo currently provides:
 
 - Monaco-based recording and replay pages for browser history capture
-- a local browser ↔ backend ↔ Firestore vertical prototype from Wave 7
-- local Firestore emulator workflows and validation scripts
+- an authenticated local browser ↔ backend ↔ Firestore vertical slice
+- local Firestore/Auth emulator workflows and validation scripts
 - a TypeScript backend history API with Firestore-backed persistence
-- a TypeScript backend execution API for script-driven Python submission and result retrieval
-- backend container validation scripts aligned with a future Cloud Run shape
-- a Python runner container validated locally before hosted execution use
+- a TypeScript backend execution API for Python submission and stored-result retrieval
+- a local Python runner container used by automated integration and e2e validation
 - a single hosted Terraform root for Firestore, Artifact Registry, Cloud Run service, and Cloud Run Job
 - one project-level deploy workflow for hosted environments like `test` and `prod`
 
@@ -21,7 +20,7 @@ npm install
 npm run dev
 ```
 
-`npm run dev` starts both the Vite frontend and the local history API backend. The frontend binds to `0.0.0.0`, which works well in Codespaces or other remote container environments.
+`npm run dev` starts both the Vite frontend and the authenticated local backend. The frontend binds to `0.0.0.0`, which works well in Codespaces or other remote container environments.
 
 ## Firestore emulator
 
@@ -43,9 +42,9 @@ To run the manual sanity check that prints the fetched document and keeps the em
 npm run emulator:firestore:manualcheck
 ```
 
-These Phase 4-style scripts validate the emulator directly and do not involve the backend container.
+These emulator-only scripts validate Firebase locally and do not involve the backend runtime.
 
-## Wave 7 local vertical-slice validation
+## Local app validation
 
 Start the Firestore emulator:
 
@@ -81,28 +80,17 @@ To run the repeatable local workflow that starts the emulator, boots the backend
 npm run backend:api:validate
 ```
 
-## Backend container validation
+## Local test stack
 
-Build the backend validation image:
-
-```bash
-npm run backend:container:build
-```
-
-Run the backend container locally against a separately running Firestore emulator:
+Phase 14 formalized the local validation stack around the authenticated history and Python execution flow:
 
 ```bash
-npm run emulator:firestore
-npm run backend:container:run
+npm run test:unit
+npm run test:integration
+npm run test:e2e
 ```
 
-Run the repeatable Wave 5 validation flow that starts the Firestore emulator, builds the backend container, runs it, calls the backend validation endpoint, confirms the Firestore write/read, and shuts everything down:
-
-```bash
-npm run backend:container:validate
-```
-
-The container scripts require a local Docker-compatible runtime to be available.
+Use `npm run test:local` for the full local stack in one command.
 
 ## Hosted deployment
 
@@ -127,7 +115,7 @@ npm run deploy -- deploy --env test
 
 Terraform uses local Application Default Credentials from the human operator's machine. No cloud secrets, service account keys, or live credentials are required in the repo or agent environment.
 
-The deploy flow now builds and pushes both the backend image and the Python execution runner image. The service stays non-public by default. After deploy, run the Wave 12 execution validator to confirm the hosted Python path.
+The deploy flow builds and pushes both the backend image and the Python execution runner image. The service stays non-public by default.
 
 Keep `FIRESTORE_DATABASE_NAME="(default)"` for this phase. If your project was already provisioned with the older split Terraform roots, run `npm run deploy -- adopt --env <name>` once before the normal hosted flow.
 
@@ -137,20 +125,23 @@ See [docs/hosted-deployment.md](./docs/hosted-deployment.md) for the full runboo
 
 - `npm run dev` starts the frontend and backend together
 - `npm run dev:web` starts only the Vite frontend
-- `npm run dev:api` starts only the history API backend
+- `npm run dev:api` starts only the backend API
 - `npm run backend:dev` starts only the Firestore-validation backend outside Docker
-- `npm run backend:api:exercise` calls the backend validation endpoint on a running backend without the frontend
+- `npm run backend:api:exercise` calls the backend history endpoint on a running backend without the frontend
 - `npm run backend:api:validate` runs the repeatable local backend API seam validation flow against the Firestore emulator
-- `npm run backend:build` compiles the backend validation service to `dist/backend`
-- `npm run backend:container:build` builds the local backend validation container image
-- `npm run backend:container:run` runs the built backend container against a local Firestore emulator
-- `npm run backend:container:validate` runs the repeatable container-to-emulator validation flow
+- `npm run backend:build` compiles the backend service to `dist/backend`
 - `npm run emulator:firestore` starts the local Firestore emulator and Emulator UI
+- `npm run emulator:local` starts the local Firestore and Auth emulators plus the Emulator UI
+- `npm run auth:seed` seeds the local Auth emulator users
 - `npm run emulator:firestore:check` runs the emulator-backed read/write sanity check
 - `npm run emulator:firestore:manualcheck` runs the same sanity check, prints the fetched document, and keeps the emulator UI running
 - `npm run deploy -- adopt --env <name>` imports existing Firestore resources into the unified hosted Terraform state one time during migration
 - `npm run deploy -- build --env <name>` bootstraps hosted prerequisites, then builds and pushes the backend image
 - `npm run execution:container:validate` validates the Python runner container locally against the Firestore emulator
+- `npm run test:unit` runs the unit and component test suite
+- `npm run test:integration` runs the emulator-backed integration suite
+- `npm run test:e2e` runs the Playwright local browser suite
+- `npm run test:local` runs the full local automated stack
 - `npm run execution:submit -- --email <email> --password <password> --source-file <path>` submits a hosted Python execution job
 - `npm run execution:get -- --email <email> --password <password> --job-id <id>` fetches a hosted execution job record
 - `npm run wave12:validate` validates the hosted Python execution prototype end to end
@@ -174,7 +165,7 @@ This repo intentionally includes:
 - a local container workflow aligned with the execution runner shape
 - repo-managed hosted deployment for Firestore, Artifact Registry, private Cloud Run, and a Python execution Cloud Run Job in an existing GCP project
 
-It intentionally does not include UI integration for execution results, hidden tests, grading semantics, Java execution, App Check, Cloud Armor, or advanced replay controls yet.
+It intentionally does not include hidden tests, grading semantics, Java execution, App Check, Cloud Armor, or advanced replay controls yet.
 
 Prototype event shape details live in [docs/history-prototype.md](./docs/history-prototype.md).
 Wave 12 execution flow details live in [docs/python-execution-prototype.md](./docs/python-execution-prototype.md).

@@ -13,6 +13,7 @@ import {
   fetchExecutionJob,
   fetchLatestExecutionJob,
 } from '../execution/client'
+import { currentPhaseLabel } from '../../config/currentPhase'
 import { getRecordEditorModelPath } from '../editor/modelPaths'
 import { HistoryBatcher, type HistoryBatcherState } from './batching'
 import { appendSessionHistoryBatch } from './client'
@@ -274,7 +275,7 @@ export function RecordingPage() {
   return (
     <main className="app-shell">
       <section className="hero">
-        <p className="eyebrow">Phase 13</p>
+        <p className="eyebrow">{currentPhaseLabel}</p>
         <h1>Authenticated Python execution</h1>
         <p className="hero-copy">
           Record Monaco content-change events, run Python through the authenticated backend flow,
@@ -286,7 +287,7 @@ export function RecordingPage() {
         <div className="workspace-toolbar">
           <div>
             <h2>Recording Page</h2>
-            <p>Each page session keeps the Wave 11 history upload path while adding a latest-result Python execution panel.</p>
+            <p>Each page session keeps the authenticated history upload path while showing the latest stored Python execution result.</p>
           </div>
           <LanguageSelector
             languages={editorLanguages}
@@ -334,7 +335,7 @@ export function RecordingPage() {
           <div className="panel-heading">
             <div>
               <h3>Python Execution</h3>
-              <p>Wave 13 shows only the latest execution record stored for the authenticated user.</p>
+              <p>The app shows only the latest execution record stored for the authenticated user.</p>
             </div>
             <div className="replay-controls">
               <button

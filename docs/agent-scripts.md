@@ -19,7 +19,7 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - Run this before using any other script in a fresh environment.
 
 ### `npm run dev`
-- Starts the Wave 10 local prototype app stack:
+- Starts the current local authenticated app stack:
   - Vite frontend on a container-friendly host
   - Firebase-authenticated backend API on port `8081`
 - Use this for the browser client ↔ backend ↔ Firestore vertical slice after the local emulators are already running.
@@ -76,7 +76,7 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - This is still a direct emulator sanity check, not a backend-container validation.
 - Use this when you want both console confirmation and manual UI inspection of the written record.
 
-## Backend container validation scripts
+## Backend and local validation scripts
 
 ### `npm run backend:dev`
 - Starts the Wave 7 backend history service directly with `tsx`.
@@ -100,7 +100,7 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - Use this before local runtime inspection or as part of container build troubleshooting.
 
 ### `npm run backend:container:build`
-- Builds the Wave 5 backend validation image from [backend/Dockerfile](/workspaces/mona-proctor/backend/Dockerfile).
+- Builds the backend image from [backend/Dockerfile](/workspaces/mona-proctor/backend/Dockerfile).
 - Requires a local Docker-compatible runtime.
 - Use this when you want to inspect or rerun the container manually.
 
@@ -115,7 +115,7 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - Starts the Firestore emulator, builds the backend container, runs it, calls the Wave 7 history append endpoint, and shuts everything down.
 - Requires a local Docker-compatible runtime.
 - This is the preferred repeatable container-shaped validation script for the Wave 7 backend path.
-- Use this for backend container ↔ emulator proof, not the older SQLite/API flow.
+- Use this for backend container ↔ emulator proof of the current backend path.
 
 ### `npm run wave7:validate`
 - Alias for the repeatable non-Docker Wave 7 round-trip validation.
@@ -139,7 +139,7 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 
 ### `npm test`
 - Runs the Vitest suite.
-- Use after code changes that affect app logic, Phase 3 server behavior, the Wave 5 backend validation service, or shared utilities.
+- Use after code changes that affect app logic, backend behavior, or shared utilities.
 
 ### `npm run test:unit`
 - Runs the Wave 14 unit and component Vitest suite under `src/` and `backend/`.

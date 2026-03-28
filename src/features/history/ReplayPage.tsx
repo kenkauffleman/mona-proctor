@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { EditorPane } from '../../components/EditorPane'
+import { currentPhaseLabel } from '../../config/currentPhase'
 import { editorLanguages } from '../editor/languages'
 import { getReplayEditorModelPath } from '../editor/modelPaths'
 import { fetchSessionHistory } from './client'
@@ -102,7 +103,7 @@ export function ReplayPage() {
   return (
     <main className="app-shell">
       <section className="hero">
-        <p className="eyebrow">Phase 11</p>
+        <p className="eyebrow">{currentPhaseLabel}</p>
         <h1>Session Replay</h1>
         <p className="hero-copy">
           Load one of your authenticated sessions by UUID, fetch the full backend history from Firestore, and replay it into a separate Monaco editor.
