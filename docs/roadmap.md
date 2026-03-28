@@ -227,7 +227,7 @@ Exit criteria:
 - one active execution per authenticated user is enforced
 - the execution prototype is documented and repeatable
 
-### Phase 13: Python execution result integration
+### Phase 13 (completed): Python execution result integration
 Goal: connect the Python execution prototype into the product flow and display execution results in the UI.
 
 Deliverables:
@@ -242,7 +242,39 @@ Exit criteria:
 - result retrieval works against the stored execution records
 - the UI-integrated execution flow is documented and repeatable
 
-### Phase 14: Python hidden tests and grading
+### Phase 14: Test infrastructure and local validation hardening
+Goal: strengthen confidence in the current system by expanding automated test coverage and formalizing local validation workflows.
+
+Deliverables:
+- expanded unit test coverage for current behavior
+- formalized integration tests for backend, auth, Firestore, and execution flows
+- local end-to-end tests using Playwright
+- repeatable local/emulator-backed validation workflow
+- targeted bug fixes required to make the new tests pass
+- updated scripts and documentation for running the test stack
+
+Exit criteria:
+- unit, integration, and local e2e tests cover the key current flows
+- local and emulator-backed validation is documented and repeatable
+- bugs directly exposed by the new tests are fixed
+- the repo has a stronger testing foundation for later cleanup and refactoring
+
+### Phase 15: Cleanup and refactor under test protection
+Goal: remove outdated scaffolding, simplify the codebase, and perform targeted refactors now that stronger automated validation exists.
+
+Deliverables:
+- removal of outdated or superseded files/scripts where appropriate
+- targeted refactors to improve maintainability
+- cleanup of docs to match the current architecture and workflows
+- bug fixes discovered during cleanup/refactor work
+
+Exit criteria:
+- outdated or redundant files/scripts are removed where appropriate
+- refactors preserve current behavior under the strengthened test suite
+- docs reflect the cleaned-up structure and current workflows
+- the codebase is easier to reason about for future waves
+
+### Phase 16: Python hidden tests and grading
 Goal: extend the Python execution system from raw code execution into real grading against hidden tests.
 
 Deliverables:
@@ -256,7 +288,7 @@ Exit criteria:
 - structured grading results are returned correctly
 - grading flow is documented and repeatable
 
-### Phase 15: Java execution prototype
+### Phase 17: Java execution prototype
 Goal: run user-submitted Java code in a restricted remote execution environment and return stdout/stderr results without yet integrating the flow into the UI.
 
 Deliverables:
@@ -275,7 +307,7 @@ Exit criteria:
 - one active execution per authenticated user is enforced
 - the Java execution prototype is documented and repeatable
 
-### Phase 16: Java hidden tests and grading
+### Phase 18: Java hidden tests and grading
 Goal: extend the Java execution system from raw code execution into real grading against hidden tests.
 
 Deliverables:
@@ -289,7 +321,7 @@ Exit criteria:
 - structured grading results are returned correctly
 - grading flow is documented and repeatable
 
-### Phase 17: Client persistence and sync hardening
+### Phase 19: Client persistence and sync hardening
 Goal: make edit history more durable on the client and prepare the client/server flow for more reliable real-world use.
 
 Deliverables:
@@ -305,7 +337,7 @@ Exit criteria:
 - replay remains accurate when combining persisted and synced history
 - the local persistence and sync model are documented
 
-### Phase 18: Admin attempt listing
+### Phase 20: Admin attempt listing
 Goal: allow instructors/admins to view saved attempts.
 
 Deliverables:
@@ -318,7 +350,7 @@ Exit criteria:
 - saved attempts can be found quickly
 - metadata indexing is sufficient for normal class use
 
-### Phase 19: Instructor replay and inspection UI
+### Phase 21: Instructor replay and inspection UI
 Goal: provide draggable playback of student edit history for instructor review.
 
 Deliverables:
@@ -332,7 +364,7 @@ Exit criteria:
 - reconstruction fidelity is trustworthy
 - instructors can inspect suspicious transitions
 
-### Phase 20: User accounts and roster system
+### Phase 22: User accounts and roster system
 Goal: support real student login and class management.
 
 Deliverables:
@@ -345,7 +377,7 @@ Exit criteria:
 - students can log in and access assigned work
 - instructors can manage rosters and exam availability
 
-### Phase 21: Results and instructor dashboards
+### Phase 23: Results and instructor dashboards
 Goal: present grades and replayable attempts together.
 
 Deliverables:
@@ -357,7 +389,7 @@ Deliverables:
 Exit criteria:
 - instructors can see both outcomes and development history in one workflow
 
-### Phase 22: Git-based test management
+### Phase 24: Git-based test management
 Goal: make problem and test authoring manageable and reproducible.
 
 Deliverables:

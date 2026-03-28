@@ -1,85 +1,159 @@
-# Current Phase
+### Phase 14: Test infrastructure and local validation hardening
+Goal: strengthen confidence in the current system by expanding automated test coverage and formalizing local validation workflows.
 
-## Active phase
-Phase 13: Python execution result integration
+Deliverables:
+- expanded unit test coverage for current behavior
+- formalized integration tests for backend, auth, Firestore, and execution flows
+- local end-to-end tests using Playwright
+- repeatable local/emulator-backed validation workflow
+- targeted bug fixes required to make the new tests pass
+- updated scripts and documentation for running the test stack
 
-## Goal
-Connect the Python execution prototype into the product flow and display execution results in the UI.
+Exit criteria:
+- unit, integration, and local e2e tests cover the key current flows
+- local and emulator-backed validation is documented and repeatable
+- bugs directly exposed by the new tests are fixed
+- the repo has a stronger testing foundation for later cleanup and refactoring
 
-This phase is intentionally narrow. The purpose is to take the already-built Python execution backend flow and make it usable from the authenticated application UI, while keeping the execution model, result contract, and backend abstraction intact.
+### Phase 15: Cleanup and refactor under test protection
+Goal: remove outdated scaffolding, simplify the codebase, and perform targeted refactors now that stronger automated validation exists.
 
-## In scope
-- add backend endpoints for execution submission and result retrieval suitable for the app flow
-- integrate Python execution submission into the authenticated UI
-- display execution results in the UI, including:
-  - stdout
-  - stderr
-  - exit status
-  - duration
-  - truncation state
-- connect the UI to the existing execution prototype and Firestore-backed execution records
-- document the integrated Python execution flow
-- add or update scripts and docs needed for repeatable local validation
-- update `AGENTS.md` with guidance that human-facing deployment/validation commands should target `prod`
+Deliverables:
+- removal of outdated or superseded files/scripts where appropriate
+- targeted refactors to improve maintainability
+- cleanup of docs to match the current architecture and workflows
+- bug fixes discovered during cleanup/refactor work
 
-## Out of scope
-- hidden tests
-- grading semantics
-- Java execution
-- execution history browsing UI
-- multiple-run history UI
-- security hardening beyond what already exists
-- bubblewrap or deeper sandboxing changes
-- App Check
-- Cloud Armor
-- client persistence changes
-- admin/instructor features
+Exit criteria:
+- outdated or redundant files/scripts are removed where appropriate
+- refactors preserve current behavior under the strengthened test suite
+- docs reflect the cleaned-up structure and current workflows
+- the codebase is easier to reason about for future waves
 
-## Desired qualities
-- simple authenticated execution flow from the UI
-- reuse of the existing execution abstraction and result contract
-- clear UI states for running, success, failure, timeout, and truncation
-- latest-result-only UI for this phase
-- strong local validation before any success claim
-- repeatable local and emulated validation workflow
+### Phase 16: Python hidden tests and grading
+Goal: extend the Python execution system from raw code execution into real grading against hidden tests.
 
-## Design constraints
-- reuse the existing Python execution prototype rather than redesigning it
-- show only the latest execution result in the UI for now
-- do not add execution history browsing in this phase
-- keep result retrieval tied to the authenticated user and existing authorization model
-- keep local testing and emulator-based validation as first-class success criteria
-- do not treat hosted/manual validation alone as sufficient before local validation passes
+Deliverables:
+- hidden test execution flow for Python
+- structured grading result format
+- grading-oriented result storage and retrieval
+- documentation for the Python grading flow
 
-## Suggested deliverables
-- backend endpoints for app-facing execution submission/result retrieval
-- authenticated UI integration for Python execution
-- UI rendering for stdout/stderr, exit status, duration, and truncation
-- loading/pending/error states for execution
-- documentation for the integrated Python execution flow
-- updated scripts and script guide entries as needed
-- updated `AGENTS.md` guidance for human-facing commands
+Exit criteria:
+- sample Python problems can be graded end-to-end
+- structured grading results are returned correctly
+- grading flow is documented and repeatable
 
-## Exit criteria
-- authenticated users can submit Python code from the UI
-- execution results are displayed correctly in the UI
-- result retrieval works against the stored execution records
-- only the latest execution result is shown in the UI for this phase
-- the integrated flow is validated thoroughly locally, including emulator-backed validation where relevant
-- the UI-integrated execution flow is documented and repeatable
+### Phase 17: Java execution prototype
+Goal: run user-submitted Java code in a restricted remote execution environment and return stdout/stderr results without yet integrating the flow into the UI.
 
-## Notes for the agent
-- keep this phase narrowly scoped
-- do not redesign the execution backend or result contract
-- do not add grading yet
-- do not add execution history browsing UI yet
-- prioritize thorough local validation before claiming success
-- include emulated/local validation where relevant, not just hosted/manual checks
-- update `AGENTS.md` so that human-facing deployment or validation commands default to targeting `prod` where applicable and are explicit about the target environment
-- keep the human instructions clear, concise, and safe
+Deliverables:
+- Java execution submission flow behind the same execution abstraction layer
+- Cloud Run Job-based execution path for Java
+- Firestore-backed storage for Java execution job metadata and results
+- script-driven submission and result retrieval flow
+- configurable limits via `.env` for Java execution
+- documentation for the Java execution prototype flow
 
-## Handoff to the next phase
-At the end of this phase, the codebase should make it easy to:
-- extend Python execution into hidden-test grading
-- reuse the same UI pathway for later execution/grading features
-- keep security hardening as a separate focused follow-up wave
+Exit criteria:
+- an authenticated user can submit Java code through a script-driven flow
+- execution is performed remotely through the configured execution backend
+- stdout/stderr, exit status, duration, and truncation state are returned and stored
+- no UI integration is required in this phase
+- one active execution per authenticated user is enforced
+- the Java execution prototype is documented and repeatable
+
+### Phase 18: Java hidden tests and grading
+Goal: extend the Java execution system from raw code execution into real grading against hidden tests.
+
+Deliverables:
+- hidden test execution flow for Java
+- structured grading result format for Java
+- grading-oriented result storage and retrieval
+- documentation for the Java grading flow
+
+Exit criteria:
+- sample Java problems can be graded end-to-end
+- structured grading results are returned correctly
+- grading flow is documented and repeatable
+
+### Phase 19: Client persistence and sync hardening
+Goal: make edit history more durable on the client and prepare the client/server flow for more reliable real-world use.
+
+Deliverables:
+- local client persistence for recorded history
+- recovery after refresh or browser crash
+- sync state tracking for uploaded versus pending history
+- checkpoint or snapshot strategy as needed
+- improved client/server batching behavior
+
+Exit criteria:
+- locally recorded work survives refresh and ordinary browser interruption
+- the client can resume and continue syncing history for an active session
+- replay remains accurate when combining persisted and synced history
+- the local persistence and sync model are documented
+
+### Phase 20: Admin attempt listing
+Goal: allow instructors/admins to view saved attempts.
+
+Deliverables:
+- admin auth placeholder or instructor-only access path
+- attempt list page
+- filters by class, student, problem, date
+- links to submission details
+
+Exit criteria:
+- saved attempts can be found quickly
+- metadata indexing is sufficient for normal class use
+
+### Phase 21: Instructor replay and inspection UI
+Goal: provide draggable playback of student edit history for instructor review.
+
+Deliverables:
+- timeline slider
+- play/pause/scrub controls
+- checkpoint-aware replay
+- display of submission moments and major paste events
+
+Exit criteria:
+- replay is responsive on realistic histories
+- reconstruction fidelity is trustworthy
+- instructors can inspect suspicious transitions
+
+### Phase 22: User accounts and roster system
+Goal: support real student login and class management.
+
+Deliverables:
+- user accounts
+- instructor/admin roles
+- class and roster management
+- exam/session assignment
+
+Exit criteria:
+- students can log in and access assigned work
+- instructors can manage rosters and exam availability
+
+### Phase 23: Results and instructor dashboards
+Goal: present grades and replayable attempts together.
+
+Deliverables:
+- student result summaries
+- per-problem results
+- replay link per attempt
+- export or summary views for instructors
+
+Exit criteria:
+- instructors can see both outcomes and development history in one workflow
+
+### Phase 24: Git-based test management
+Goal: make problem and test authoring manageable and reproducible.
+
+Deliverables:
+- test definitions in git
+- version pinning by commit SHA or release tag
+- workflow for activating new tests
+- reproducible mapping from submission to grader/test version
+
+Exit criteria:
+- tests are traceable and reproducible
+- grader runs can be tied to immutable test versions
