@@ -48,5 +48,13 @@ export async function fetchLatestExecutionJob() {
     headers: await createAuthHeaders(),
   })
 
+  if (response.status === 404) {
+    const message = await response.text()
+
+    if (message.includes('Execution job not found')) {
+      return { job: null } satisfies LatestExecutionJobResponse
+    }
+  }
+
   return parseJsonResponse<LatestExecutionJobResponse>(response)
 }
