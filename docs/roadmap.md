@@ -259,7 +259,7 @@ Exit criteria:
 - bugs directly exposed by the new tests are fixed
 - the repo has a stronger testing foundation for later cleanup and refactoring
 
-### Phase 15: Cleanup and refactor under test protection
+### Phase 15 (completed): Cleanup and refactor under test protection
 Goal: remove outdated scaffolding, simplify the codebase, and perform targeted refactors now that stronger automated validation exists.
 
 Deliverables:
@@ -274,22 +274,23 @@ Exit criteria:
 - docs reflect the cleaned-up structure and current workflows
 - the codebase is easier to reason about for future waves
 
-### Phase 16: Python hidden tests and grading
-Goal: extend the Python execution system from raw code execution into real grading against hidden tests.
+### Phase 16: Dependency and security update wave
+Goal: update outdated dependencies, reduce known security vulnerabilities, and keep the project on a healthier baseline before adding more execution/grading features.
 
 Deliverables:
-- hidden test execution flow for Python
-- structured grading result format
-- grading-oriented result storage and retrieval
-- documentation for the Python grading flow
+- dependency inventory and update plan
+- updates to outdated packages where practical
+- fixes for known security vulnerabilities where practical
+- targeted code changes needed to keep the project working after dependency updates
+- updated docs/scripts if dependency changes affect developer workflows
 
 Exit criteria:
-- sample Python problems can be graded end-to-end
-- structured grading results are returned correctly
-- grading flow is documented and repeatable
+- outdated dependencies with important/security-relevant issues are updated or explicitly documented
+- the project still builds, tests, and runs after the updates
+- dependency-related workflow changes are documented and repeatable
 
 ### Phase 17: Java execution prototype
-Goal: run user-submitted Java code in a restricted remote execution environment and return stdout/stderr results without yet integrating the flow into the UI.
+Goal: run user-submitted Java code in a restricted remote execution environment and return stdout/stderr results.
 
 Deliverables:
 - Java execution submission flow behind the same execution abstraction layer
@@ -298,26 +299,27 @@ Deliverables:
 - script-driven submission and result retrieval flow
 - configurable limits via `.env` for Java execution
 - documentation for the Java execution prototype flow
+- UI integration after the non-UI path is validated first
 
 Exit criteria:
 - an authenticated user can submit Java code through a script-driven flow
 - execution is performed remotely through the configured execution backend
 - stdout/stderr, exit status, duration, and truncation state are returned and stored
-- no UI integration is required in this phase
+- the non-UI path is validated first, then UI integration is completed in the same wave
 - one active execution per authenticated user is enforced
 - the Java execution prototype is documented and repeatable
 
-### Phase 18: Java hidden tests and grading
-Goal: extend the Java execution system from raw code execution into real grading against hidden tests.
+### Phase 18: Java stdout-based tests and grading
+Goal: extend the Java execution system from raw code execution into grading based on expected stdout results.
 
 Deliverables:
-- hidden test execution flow for Java
+- stdout-based test execution flow for Java
 - structured grading result format for Java
 - grading-oriented result storage and retrieval
 - documentation for the Java grading flow
 
 Exit criteria:
-- sample Java problems can be graded end-to-end
+- sample Java problems can be graded end-to-end using stdout-based expectations
 - structured grading results are returned correctly
 - grading flow is documented and repeatable
 
