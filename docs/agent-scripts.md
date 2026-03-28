@@ -76,6 +76,12 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - This is still a direct emulator sanity check, not a backend-container validation.
 - Use this when you want both console confirmation and manual UI inspection of the written record.
 
+### `npm run manual:local`
+- Starts the full long-running local manual validation stack.
+- Waits for the Firestore and Auth emulators to finish starting before seeding the default local users.
+- Builds the local Python runner image, then starts the backend API and Vite frontend.
+- Use this when you want one command for manual browser verification of sign-in, history upload, replay, and Python execution.
+
 ## Backend and local validation scripts
 
 ### `npm run backend:dev`

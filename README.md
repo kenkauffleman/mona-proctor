@@ -92,6 +92,14 @@ npm run test:e2e
 
 Use `npm run test:local` for the full local stack in one command.
 
+To start one long-running stack for manual local verification:
+
+```bash
+npm run manual:local
+```
+
+This command starts the Firestore/Auth emulators, waits for them to become ready, seeds the default local Auth users, builds the local Python runner image, and then starts the backend plus frontend.
+
 ## Hosted deployment
 
 Hosted deployment keeps cloud changes human-controlled and follows [`docs/deployment-safety.md`](./docs/deployment-safety.md).
@@ -135,6 +143,7 @@ See [docs/hosted-deployment.md](./docs/hosted-deployment.md) for the full runboo
 - `npm run auth:seed` seeds the local Auth emulator users
 - `npm run emulator:firestore:check` runs the emulator-backed read/write sanity check
 - `npm run emulator:firestore:manualcheck` runs the same sanity check, prints the fetched document, and keeps the emulator UI running
+- `npm run manual:local` starts the full local manual verification stack: emulators, auth seed, backend, frontend, and local Python execution image
 - `npm run deploy -- adopt --env <name>` imports existing Firestore resources into the unified hosted Terraform state one time during migration
 - `npm run deploy -- build --env <name>` bootstraps hosted prerequisites, then builds and pushes the backend image
 - `npm run execution:container:validate` validates the Python runner container locally against the Firestore emulator

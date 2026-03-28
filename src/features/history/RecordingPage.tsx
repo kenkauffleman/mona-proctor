@@ -4,8 +4,8 @@ import { EditorPane } from '../../components/EditorPane'
 import { LanguageSelector } from '../../components/LanguageSelector'
 import type { ExecutionRecord } from '../../../backend/executionTypes'
 import {
+  emptySourcesByLanguage,
   editorLanguages,
-  initialSourcesByLanguage,
   type EditorLanguage,
 } from '../editor/languages'
 import {
@@ -95,7 +95,7 @@ function formatExitCode(exitCode: number | null) {
 export function RecordingPage() {
   const [activeLanguage, setActiveLanguage] = useState<EditorLanguage>('python')
   const [sessionId, setSessionId] = useState(createSessionId)
-  const [source, setSource] = useState(initialSourcesByLanguage.python)
+  const [source, setSource] = useState(emptySourcesByLanguage.python)
   const [recordedEvents, setRecordedEvents] = useState<RecordedMonacoEvent[]>([])
   const [syncedEventCount, setSyncedEventCount] = useState(0)
   const [batcherState, setBatcherState] = useState<HistoryBatcherState>({
@@ -136,7 +136,7 @@ export function RecordingPage() {
   }, [activeLanguage, sessionId])
 
   useEffect(() => {
-    setSource(initialSourcesByLanguage[activeLanguage])
+    setSource(emptySourcesByLanguage[activeLanguage])
     setRecordedEvents([])
     setSyncedEventCount(0)
     setBatcherState({
@@ -245,7 +245,7 @@ export function RecordingPage() {
 
   const handleStartFreshSession = () => {
     setSessionId(createSessionId())
-    setSource(initialSourcesByLanguage[activeLanguage])
+    setSource(emptySourcesByLanguage[activeLanguage])
     setRecordedEvents([])
     setSyncedEventCount(0)
     nextSequenceRef.current = 1

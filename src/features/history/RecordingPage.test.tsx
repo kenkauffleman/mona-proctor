@@ -1,5 +1,4 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import { editorLanguages } from '../editor/languages'
 import { RecordingPage } from './RecordingPage'
 
 const appendSessionHistoryBatch = vi.fn()
@@ -201,7 +200,7 @@ describe('RecordingPage', () => {
 
     expect(createExecutionJob).toHaveBeenCalledWith({
       language: 'python',
-      source: editorLanguages.python.starterSource,
+      source: '',
     })
     expect(screen.getByText('Execution succeeded')).toBeInTheDocument()
     expect(screen.getByText('Latest job: exec-1')).toBeInTheDocument()
