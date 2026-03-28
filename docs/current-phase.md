@@ -1,107 +1,85 @@
 # Current Phase
 
 ## Active phase
-Phase 12: Python execution prototype
+Phase 13: Python execution result integration
 
 ## Goal
-Run user-submitted Python code in a restricted remote execution environment and return stdout/stderr results without yet integrating the flow into the UI.
+Connect the Python execution prototype into the product flow and display execution results in the UI.
 
-This phase is intentionally narrow. The purpose is to validate the remote execution path, the execution abstraction layer, the result contract, and the Firestore-backed execution record flow before adding UI integration or hidden-test grading.
+This phase is intentionally narrow. The purpose is to take the already-built Python execution backend flow and make it usable from the authenticated application UI, while keeping the execution model, result contract, and backend abstraction intact.
 
 ## In scope
-- add a backend abstraction layer for submitting and retrieving execution jobs
-- implement a Cloud Run Job-based execution path for Python
-- keep the execution backend swappable so Cloud Run Jobs are not hardcoded throughout the app
-- define and implement a tiny async execution contract
-- store execution job metadata and results in Firestore
-- support script-driven submission and result retrieval
-- configure `.env`-driven limits for:
-  - source size
-  - timeout
-  - stdout/stderr truncation
-  - global concurrency-related settings
-- enforce one active execution per authenticated user
-- validate the execution container locally before relying on Cloud Run Job deployment for first execution testing
-- document the execution prototype flow
+- add backend endpoints for execution submission and result retrieval suitable for the app flow
+- integrate Python execution submission into the authenticated UI
+- display execution results in the UI, including:
+  - stdout
+  - stderr
+  - exit status
+  - duration
+  - truncation state
+- connect the UI to the existing execution prototype and Firestore-backed execution records
+- document the integrated Python execution flow
+- add or update scripts and docs needed for repeatable local validation
+- update `AGENTS.md` with guidance that human-facing deployment/validation commands should target `prod`
 
 ## Out of scope
-- UI integration for execution
 - hidden tests
 - grading semantics
 - Java execution
+- execution history browsing UI
+- multiple-run history UI
+- security hardening beyond what already exists
+- bubblewrap or deeper sandboxing changes
 - App Check
 - Cloud Armor
-- spam protection beyond the stated active-job and global-cap rules
-- polished logging/observability systems
 - client persistence changes
+- admin/instructor features
 
 ## Desired qualities
-- strong separation between app logic and execution backend
-- simple and inspectable execution result contract
-- repeatable script-driven validation
-- Firestore-backed job/result records that are easy to inspect
-- restrictive defaults with configurable limits
-- clear path to swap the execution backend later if Cloud Run Jobs prove too slow or awkward
-- local execution-container validation before hosted job integration
+- simple authenticated execution flow from the UI
+- reuse of the existing execution abstraction and result contract
+- clear UI states for running, success, failure, timeout, and truncation
+- latest-result-only UI for this phase
+- strong local validation before any success claim
+- repeatable local and emulated validation workflow
 
 ## Design constraints
-- use a small Python runtime image for execution
-- use Cloud Run Jobs for the first execution backend
-- place an abstraction layer between job submission and the Cloud Run Job implementation
-- use a tiny async model rather than direct UI-driven synchronous execution
-- use no network during execution
-- use empty stdin and argv
-- use an empty working directory as the default execution environment
-- treat “stdlib only”, “no file creation”, and “no process spawning” as desirable if they are easy to enforce with simple runtime/container flags, but do not overcomplicate this phase if they are not trivial
-- use Firestore to store execution metadata and results
-- enforce one active execution per authenticated user
-- keep global caps configurable via `.env`, while using platform/service configuration for coarse global ceilings where practical
-
-## Result contract guidance
-The execution result shape should include at least:
-- `status`
-- `stdout`
-- `stderr`
-- `exitCode`
-- `durationMs`
-- `truncated`
-
-Output truncation should:
-- be controlled by configurable limits
-- set `truncated = true`
-- not require a special truncation marker in the returned output
+- reuse the existing Python execution prototype rather than redesigning it
+- show only the latest execution result in the UI for now
+- do not add execution history browsing in this phase
+- keep result retrieval tied to the authenticated user and existing authorization model
+- keep local testing and emulator-based validation as first-class success criteria
+- do not treat hosted/manual validation alone as sufficient before local validation passes
 
 ## Suggested deliverables
-- execution service abstraction
-- Cloud Run Job-backed Python execution implementation
-- Firestore-backed execution job/result records
-- script(s) for submission and polling/result retrieval
-- local validation path for the execution container
-- `.env`-driven execution limit configuration
-- documentation for running and validating the Python execution prototype
+- backend endpoints for app-facing execution submission/result retrieval
+- authenticated UI integration for Python execution
+- UI rendering for stdout/stderr, exit status, duration, and truncation
+- loading/pending/error states for execution
+- documentation for the integrated Python execution flow
+- updated scripts and script guide entries as needed
+- updated `AGENTS.md` guidance for human-facing commands
 
 ## Exit criteria
-- an authenticated user can submit Python code through a script-driven flow
-- execution is performed remotely through the configured execution backend
-- the execution container is validated locally before relying on hosted execution
-- stdout/stderr, exit status, duration, and truncation state are returned and stored
-- no UI integration is required in this phase
-- one active execution per authenticated user is enforced
-- the execution prototype is documented and repeatable
+- authenticated users can submit Python code from the UI
+- execution results are displayed correctly in the UI
+- result retrieval works against the stored execution records
+- only the latest execution result is shown in the UI for this phase
+- the integrated flow is validated thoroughly locally, including emulator-backed validation where relevant
+- the UI-integrated execution flow is documented and repeatable
 
 ## Notes for the agent
 - keep this phase narrowly scoped
-- do not add UI integration yet
-- do not add hidden tests or grading yet
-- do not bake Cloud Run Job details directly into unrelated app code
-- prioritize execution/backend abstraction, clear limits, and result correctness
-- keep the Firestore model for execution records separate from the session/history model
-- prefer simple script-driven validation over broad product integration
-- do not treat Cloud Run Job deployment as the first time the execution container is exercised
-- validate the execution container locally first so failures in the runtime image, entrypoint, or result-capture logic are caught before hosted execution is involved
+- do not redesign the execution backend or result contract
+- do not add grading yet
+- do not add execution history browsing UI yet
+- prioritize thorough local validation before claiming success
+- include emulated/local validation where relevant, not just hosted/manual checks
+- update `AGENTS.md` so that human-facing deployment or validation commands default to targeting `prod` where applicable and are explicit about the target environment
+- keep the human instructions clear, concise, and safe
 
 ## Handoff to the next phase
 At the end of this phase, the codebase should make it easy to:
-- connect execution submission and result retrieval into the UI
-- reuse the same result contract for later grading
-- swap the execution backend later if needed without invasive changes
+- extend Python execution into hidden-test grading
+- reuse the same UI pathway for later execution/grading features
+- keep security hardening as a separate focused follow-up wave

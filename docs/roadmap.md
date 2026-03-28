@@ -203,7 +203,7 @@ Exit criteria:
 - the full hosted vertical slice works end-to-end
 - the hosting and authenticated access flow are documented and repeatable
 
-### Phase 12: Python execution prototype
+### Phase 12 (completed): Python execution prototype
 Goal: run user-submitted Python code in a restricted remote execution environment and return stdout/stderr results without yet integrating the flow into the UI.
 
 Deliverables:
