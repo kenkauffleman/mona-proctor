@@ -40,6 +40,8 @@ Additional agent-facing script guidance lives in `docs/agent-scripts.md`.
 - Bug fixes should include a regression test.
 - Always preserve a fully testable local path for the active feature; do not rely only on hosted validation.
 - Before declaring success, run a full local test of the implemented flow, not just unit tests or hosted/manual checks.
+- Before declaring success on non-trivial changes, run the full local automated stack that applies to the current feature area. If the local unit, integration, and e2e suites exist for that area, run all of them, not just a subset.
+- Do not run emulator-backed suites such as `npm run test:integration`, `npm run test:e2e`, or other `firebase emulators:exec` workflows in parallel. They contend for the same local ports and can produce misleading failures; run them sequentially.
 - Before finishing, run tests, lint, and typecheck for the changed area.
 - Report the commands run and the results.
 

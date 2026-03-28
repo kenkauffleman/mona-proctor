@@ -83,6 +83,10 @@ test('authenticated happy path loads the recording page and local execution cont
 
 test('execution submission displays the latest stored result', async ({ page }) => {
   await signIn(page, 'student1@example.com')
+  await page.locator('.monaco-editor').first().click({
+    position: { x: 80, y: 24 },
+  })
+  await page.keyboard.insertText('print("Hello, Mona!")')
   await page.getByRole('button', { name: 'Run Python' }).click()
 
   await expect(page.getByText('Execution succeeded')).toBeVisible({ timeout: 30_000 })
