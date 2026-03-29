@@ -353,6 +353,9 @@ build_and_push_hosted_backend_image() {
   cat > "${build_config}" <<EOF
 steps:
   - name: gcr.io/cloud-builders/docker
+    id: build-backend
+    waitFor:
+      - '-'
     args:
       - build
       - -f
@@ -361,6 +364,9 @@ steps:
       - ${HOSTED_CONTAINER_IMAGE}
       - .
   - name: gcr.io/cloud-builders/docker
+    id: build-python-executor
+    waitFor:
+      - '-'
     args:
       - build
       - -f
@@ -369,6 +375,9 @@ steps:
       - ${HOSTED_PYTHON_EXECUTION_CONTAINER_IMAGE}
       - .
   - name: gcr.io/cloud-builders/docker
+    id: build-java-executor
+    waitFor:
+      - '-'
     args:
       - build
       - -f
