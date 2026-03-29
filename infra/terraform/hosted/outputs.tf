@@ -43,7 +43,12 @@ output "service_uri" {
   value       = module.cloud_run_backend.service_uri
 }
 
-output "execution_job_name" {
+output "python_execution_job_name" {
   description = "Deployed Cloud Run Job name for Python execution."
-  value       = module.cloud_run_execution_job.job_name
+  value       = module.cloud_run_python_execution_job.job_name
+}
+
+output "java_execution_job_name" {
+  description = "Deployed Cloud Run Job name for Java execution."
+  value       = module.cloud_run_java_execution_job.job_name
 }

@@ -13,48 +13,13 @@ variable "container_image" {
   type        = string
 }
 
-variable "execution_global_active_job_limit" {
-  description = "Maximum number of active execution jobs across the system."
-  type        = number
+variable "env_vars" {
+  description = "Environment variables injected into the execution job container."
+  type        = map(string)
 }
 
-variable "execution_max_source_bytes" {
-  description = "Maximum UTF-8 source size accepted by the backend."
-  type        = number
-}
-
-variable "execution_max_stderr_bytes" {
-  description = "Maximum stderr bytes retained by the execution runner."
-  type        = number
-}
-
-variable "execution_max_stdout_bytes" {
-  description = "Maximum stdout bytes retained by the execution runner."
-  type        = number
-}
-
-variable "execution_timeout_ms" {
-  description = "Execution timeout in milliseconds."
-  type        = number
-}
-
-variable "java_execution_max_memory_mb" {
-  description = "Maximum heap size passed to the Java runtime."
-  type        = number
-}
-
-variable "java_execution_max_stderr_bytes" {
-  description = "Maximum Java stderr bytes retained by the execution runner."
-  type        = number
-}
-
-variable "java_execution_max_stdout_bytes" {
-  description = "Maximum Java stdout bytes retained by the execution runner."
-  type        = number
-}
-
-variable "java_execution_timeout_ms" {
-  description = "Java execution timeout in milliseconds."
+variable "task_timeout_ms" {
+  description = "Cloud Run Job task timeout in milliseconds."
   type        = number
 }
 

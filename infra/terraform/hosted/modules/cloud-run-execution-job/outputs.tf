@@ -1,6 +1,6 @@
 output "job_name" {
   description = "Deployed Cloud Run execution job name."
-  value       = google_cloud_run_v2_job.python_execution.name
+  value       = google_cloud_run_v2_job.execution.name
 }
 
 output "runtime_service_account_email" {
