@@ -3,6 +3,8 @@ import type {
   CreateExecutionRequest,
   ExecutionRecord,
   ExecutionResult,
+  InternalExecutionOptions,
+  RunnerExecutionRecord,
 } from './executionTypes.js'
 
 export type CreateExecutionJobInput = {
@@ -10,6 +12,7 @@ export type CreateExecutionJobInput = {
   owner: AuthenticatedUser
   backend: string
   globalActiveJobLimit: number
+  internalOptions?: InternalExecutionOptions
 }
 
 export type MarkExecutionDispatchedInput = {
@@ -25,7 +28,7 @@ export type CompleteExecutionJobInput = {
 export interface ExecutionRepository {
   createJob(input: CreateExecutionJobInput): Promise<ExecutionRecord>
   getJob(jobId: string, owner: AuthenticatedUser): Promise<ExecutionRecord | null>
-  getJobForRunner(jobId: string): Promise<ExecutionRecord | null>
+  getJobForRunner(jobId: string): Promise<RunnerExecutionRecord | null>
   markJobRunning(jobId: string): Promise<ExecutionRecord>
   markJobDispatched(input: MarkExecutionDispatchedInput): Promise<ExecutionRecord>
   completeJob(input: CompleteExecutionJobInput): Promise<ExecutionRecord>

@@ -271,3 +271,7 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 ### `npm run wave17:validate`
 - Starts the Firestore and Auth emulators, builds the Java runner image, boots the backend in `local-container` mode with separate Python and Java image names configured, signs in through the Auth emulator, submits Java execution through the authenticated API, waits for stored terminal results, verifies compile-failure normalization, and validates a denied cross-user case.
 - This is the preferred repeatable local validation script for the Wave 17 non-UI Java path before relying on hosted/manual validation.
+
+### `npm run wave18:validate`
+- Starts the Firestore and Auth emulators, builds the Java runner image, boots the backend in `local-container` mode with separate Python and Java image names configured, signs in through the Auth emulator, submits Java grading through the authenticated API, waits for stored structured grading results, verifies stdout-based pass/fail aggregation plus compile-failure handling, and validates a denied cross-user case.
+- This is the preferred repeatable local validation script for the Wave 18 Java grading flow before relying on hosted/manual validation.

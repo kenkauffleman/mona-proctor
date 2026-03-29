@@ -1,1 +1,1 @@
-export const currentPhaseLabel = 'Phase 17'
+export const currentPhaseLabel = 'Phase 18'

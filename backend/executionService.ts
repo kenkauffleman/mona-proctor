@@ -9,6 +9,7 @@ import type {
   CreateExecutionRequest,
   ExecutionLimits,
   ExecutionLanguage,
+  InternalExecutionOptions,
   ExecutionRecord,
 } from './executionTypes.js'
 
@@ -26,6 +27,7 @@ export class ExecutionService {
   async submitExecution(
     owner: AuthenticatedUser,
     request: CreateExecutionRequest,
+    internalOptions?: InternalExecutionOptions,
   ): Promise<ExecutionRecord> {
     this.validateCreateRequest(request)
 
@@ -34,6 +36,7 @@ export class ExecutionService {
       owner,
       backend: this.backend.name,
       globalActiveJobLimit: this.limits.globalActiveJobLimit,
+      internalOptions,
     })
 
     try {
@@ -50,6 +53,10 @@ export class ExecutionService {
 
   getExecutionJob(jobId: string, owner: AuthenticatedUser) {
     return this.repository.getJob(jobId, owner)
+  }
+
+  getExecutionJobForRunner(jobId: string) {
+    return this.repository.getJobForRunner(jobId)
   }
 
   private validateCreateRequest(request: CreateExecutionRequest) {

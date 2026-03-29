@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { OnMount } from '@monaco-editor/react'
 import type { ExecutionLanguage, ExecutionRecord } from '../../../backend/executionTypes'
+import type { JavaGradingRecord } from '../../../backend/javaGradingTypes'
 import { EditorPane } from '../../components/EditorPane'
 import { LanguageSelector } from '../../components/LanguageSelector'
 import {
@@ -12,6 +13,10 @@ import {
   createExecutionJob,
   fetchExecutionJob,
 } from '../execution/client'
+import {
+  createJavaGradingJob,
+  fetchJavaGradingJob,
+} from '../javaGrading/client'
 import { currentPhaseLabel } from '../../config/currentPhase'
 import { getRecordEditorModelPath } from '../editor/modelPaths'
 import { HistoryBatcher, type HistoryBatcherState } from './batching'
@@ -23,6 +28,7 @@ import type { RecordedMonacoEvent } from './types'
 const syncIntervalMs = 2000
 const executionPollIntervalMs = 1000
 const runnableLanguages: ExecutionLanguage[] = ['python', 'java']
+const sampleJavaProblemId = 'java-fibonacci'
 
 function isExecutionLanguage(language: EditorLanguage): language is ExecutionLanguage {
   return runnableLanguages.includes(language as ExecutionLanguage)
@@ -76,6 +82,34 @@ function formatExecutionStatus(job: ExecutionRecord | null) {
   return 'Execution queued'
 }
 
+function isJavaGradingTerminal(job: JavaGradingRecord | null) {
+  return !job || !!job.result
+}
+
+function formatJavaGradingStatus(job: JavaGradingRecord | null) {
+  if (!job) {
+    return 'No Java grading submitted in this session yet'
+  }
+
+  if (!job.result) {
+    return job.status === 'running' ? 'Java grading running' : 'Java grading queued'
+  }
+
+  if (job.result.compileFailed) {
+    return 'Java grading compile failure'
+  }
+
+  if (job.result.overallStatus === 'passed') {
+    return 'Java grading passed'
+  }
+
+  if (job.result.overallStatus === 'failed') {
+    return 'Java grading failed'
+  }
+
+  return 'Java grading errored'
+}
+
 function formatDuration(durationMs: number | null) {
   if (durationMs === null) {
     return 'n/a'
@@ -107,6 +141,7 @@ export function RecordingPage() {
   const nextSequenceRef = useRef(1)
   const batcherRef = useRef<HistoryBatcher | null>(null)
   const [latestExecutionJob, setLatestExecutionJob] = useState<ExecutionRecord | null>(null)
+  const [latestJavaGradingJob, setLatestJavaGradingJob] = useState<JavaGradingRecord | null>(null)
   const [executionError, setExecutionError] = useState<string | null>(null)
   const [isSubmittingExecution, setIsSubmittingExecution] = useState(false)
   const executionLanguage = isExecutionLanguage(activeLanguage) ? activeLanguage : null
@@ -148,6 +183,7 @@ export function RecordingPage() {
     nextSequenceRef.current = 1
     setSessionId(createSessionId())
     setLatestExecutionJob(null)
+    setLatestJavaGradingJob(null)
     setExecutionError(null)
   }, [activeLanguage])
 
@@ -191,6 +227,46 @@ export function RecordingPage() {
     }
   }, [latestExecutionJob])
 
+  useEffect(() => {
+    if (!latestJavaGradingJob || isJavaGradingTerminal(latestJavaGradingJob)) {
+      return
+    }
+
+    const gradingJobId = latestJavaGradingJob.gradingJobId
+    let isCancelled = false
+
+    const pollLatestJavaGradingJob = async () => {
+      try {
+        const response = await fetchJavaGradingJob(gradingJobId)
+
+        if (isCancelled) {
+          return
+        }
+
+        setLatestJavaGradingJob(response.job)
+        setExecutionError(null)
+      } catch (error) {
+        if (isCancelled) {
+          return
+        }
+
+        setExecutionError(error instanceof Error ? error.message : 'Failed to refresh the current Java grading result.')
+      }
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void pollLatestJavaGradingJob()
+    }, executionPollIntervalMs)
+
+    return () => {
+      isCancelled = true
+
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId)
+      }
+    }
+  }, [latestJavaGradingJob])
+
   const handleRecordEditorMount: OnMount = (editorInstance) => {
     const model = editorInstance.getModel()
 
@@ -217,10 +293,11 @@ export function RecordingPage() {
     setSyncedEventCount(0)
     nextSequenceRef.current = 1
     setLatestExecutionJob(null)
+    setLatestJavaGradingJob(null)
     setExecutionError(null)
   }
 
-  const handleRunPython = async () => {
+  const handleSubmitRunnableAction = async () => {
     if (!executionLanguage) {
       return
     }
@@ -228,11 +305,21 @@ export function RecordingPage() {
     setIsSubmittingExecution(true)
 
     try {
-      const response = await createExecutionJob({
-        language: executionLanguage,
-        source,
-      })
-      setLatestExecutionJob(response.job)
+      if (executionLanguage === 'java') {
+        const response = await createJavaGradingJob({
+          problemId: sampleJavaProblemId,
+          source,
+        })
+        setLatestJavaGradingJob(response.job)
+        setLatestExecutionJob(null)
+      } else {
+        const response = await createExecutionJob({
+          language: executionLanguage,
+          source,
+        })
+        setLatestExecutionJob(response.job)
+        setLatestJavaGradingJob(null)
+      }
       setExecutionError(null)
     } catch (error) {
       setExecutionError(error instanceof Error ? error.message : 'Execution submit failed.')
@@ -243,8 +330,16 @@ export function RecordingPage() {
 
   const activeLanguageConfig = editorLanguages[activeLanguage]
   const latestExecutionResult = latestExecutionJob?.result ?? null
+  const latestJavaGradingResult = latestJavaGradingJob?.result ?? null
   const canRunCode = !!executionLanguage
-  const executionLabel = executionLanguage ? editorLanguages[executionLanguage].label : 'Code'
+  const actionLabel = executionLanguage === 'java'
+    ? 'Grade Java'
+    : executionLanguage
+      ? `Run ${editorLanguages[executionLanguage].label}`
+      : 'Run Code'
+  const statusLabel = executionLanguage === 'java'
+    ? formatJavaGradingStatus(latestJavaGradingJob)
+    : formatExecutionStatus(latestExecutionJob)
 
   return (
     <main className="app-shell">
@@ -308,52 +403,112 @@ export function RecordingPage() {
         <section className="debug-panel" aria-label="Execution status">
           <div className="panel-heading">
             <div>
-              <h3>{executionLabel} Execution</h3>
-              <p>The app shows only the execution result submitted from the current page session.</p>
+              <h3>{executionLanguage === 'java' ? 'Java Grading' : 'Execution'}</h3>
+              <p>
+                {executionLanguage === 'java'
+                  ? 'Java uses the backend-owned Fibonacci problem and hidden stdout tests in this wave.'
+                  : 'The app shows only the execution result submitted from the current page session.'}
+              </p>
             </div>
             <div className="replay-controls">
               <button
                 type="button"
-                onClick={() => void handleRunPython()}
+                onClick={() => void handleSubmitRunnableAction()}
                 disabled={!canRunCode || isSubmittingExecution}
               >
-                {isSubmittingExecution ? 'Submitting...' : `Run ${executionLabel}`}
+                {isSubmittingExecution ? 'Submitting...' : actionLabel}
               </button>
             </div>
           </div>
           <div className="debug-summary">
-            <span>{formatExecutionStatus(latestExecutionJob)}</span>
-            <span>Current job: {latestExecutionJob?.jobId ?? 'none'}</span>
-            <span>Exit status: {formatExitCode(latestExecutionResult?.exitCode ?? null)}</span>
-            <span>Duration: {formatDuration(latestExecutionResult?.durationMs ?? null)}</span>
-            <span>Truncated: {latestExecutionResult?.truncated ? 'yes' : 'no'}</span>
+            <span>{statusLabel}</span>
+            {executionLanguage === 'java' ? (
+              <>
+                <span>Current grading job: {latestJavaGradingJob?.gradingJobId ?? 'none'}</span>
+                <span>Problem: {latestJavaGradingJob?.problemId ?? sampleJavaProblemId}</span>
+                <span>
+                  Passed tests: {latestJavaGradingResult ? `${latestJavaGradingResult.passedTests}/${latestJavaGradingResult.totalTests}` : 'n/a'}
+                </span>
+              </>
+            ) : (
+              <>
+                <span>Current job: {latestExecutionJob?.jobId ?? 'none'}</span>
+                <span>Exit status: {formatExitCode(latestExecutionResult?.exitCode ?? null)}</span>
+                <span>Duration: {formatDuration(latestExecutionResult?.durationMs ?? null)}</span>
+                <span>Truncated: {latestExecutionResult?.truncated ? 'yes' : 'no'}</span>
+              </>
+            )}
           </div>
           {!canRunCode ? (
             <p className="panel-note">Execution is available only when the Python or Java editor is selected in this wave.</p>
           ) : null}
           {executionError ? <p className="auth-error panel-note">{executionError}</p> : null}
-          <div className="execution-results-grid">
-            <section className="execution-result-panel" aria-label="Execution stdout">
-              <div className="panel-heading">
-                <div>
-                  <h3>stdout</h3>
+          {executionLanguage === 'java' ? (
+            <div className="execution-results-grid">
+              <section className="execution-result-panel" aria-label="Java grading summary">
+                <div className="panel-heading">
+                  <div>
+                    <h3>Summary</h3>
+                  </div>
                 </div>
-              </div>
-              <pre className="event-log">
-                {latestExecutionResult?.stdout || 'No stdout captured for the current execution.'}
-              </pre>
-            </section>
-            <section className="execution-result-panel" aria-label="Execution stderr">
-              <div className="panel-heading">
-                <div>
-                  <h3>stderr</h3>
+                <pre className="event-log">
+                  {latestJavaGradingResult
+                    ? latestJavaGradingResult.summary
+                    : 'No Java grading submitted in this session yet.'}
+                </pre>
+              </section>
+              <section className="execution-result-panel" aria-label="Java grading tests">
+                <div className="panel-heading">
+                  <div>
+                    <h3>Per-test results</h3>
+                  </div>
                 </div>
-              </div>
-              <pre className="event-log">
-                {latestExecutionResult?.stderr || 'No stderr captured for the current execution.'}
-              </pre>
-            </section>
-          </div>
+                <pre className="event-log">
+                  {latestJavaGradingResult
+                    ? latestJavaGradingResult.tests.map((test) => {
+                      const lines = [
+                        `${test.testId}: ${test.status}`,
+                        `expected stdout: ${JSON.stringify(test.expectedStdout ?? '')}`,
+                      ]
+
+                      if (test.actualStdout !== null) {
+                        lines.push(`actual stdout: ${JSON.stringify(test.actualStdout)}`)
+                      }
+
+                      if (test.stderr) {
+                        lines.push(`stderr: ${JSON.stringify(test.stderr)}`)
+                      }
+
+                      return lines.join('\n')
+                    }).join('\n\n')
+                    : 'No per-test results yet.'}
+                </pre>
+              </section>
+            </div>
+          ) : (
+            <div className="execution-results-grid">
+              <section className="execution-result-panel" aria-label="Execution stdout">
+                <div className="panel-heading">
+                  <div>
+                    <h3>stdout</h3>
+                  </div>
+                </div>
+                <pre className="event-log">
+                  {latestExecutionResult?.stdout || 'No stdout captured for the current execution.'}
+                </pre>
+              </section>
+              <section className="execution-result-panel" aria-label="Execution stderr">
+                <div className="panel-heading">
+                  <div>
+                    <h3>stderr</h3>
+                  </div>
+                </div>
+                <pre className="event-log">
+                  {latestExecutionResult?.stderr || 'No stderr captured for the current execution.'}
+                </pre>
+              </section>
+            </div>
+          )}
         </section>
 
         <section className="debug-panel" aria-label="Recording debug status">

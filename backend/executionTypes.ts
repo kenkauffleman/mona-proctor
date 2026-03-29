@@ -27,6 +27,10 @@ export type ExecutionResult = {
   truncated: boolean
 }
 
+export type InternalExecutionOptions = {
+  stdin?: string
+}
+
 export type CreateExecutionRequest = {
   language: ExecutionLanguage
   source: string
@@ -47,6 +51,10 @@ export type ExecutionRecord = {
   backendJobName: string | null
   errorMessage: string | null
   result: ExecutionResult | null
+}
+
+export type RunnerExecutionRecord = ExecutionRecord & {
+  stdin: string
 }
 
 export type ExecutionLimits = {

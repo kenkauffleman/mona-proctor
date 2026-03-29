@@ -98,9 +98,40 @@ test('java selection enables the Java execution controls', async ({ page }) => {
   await signIn(page, 'student1@example.com')
   await page.getByLabel('Language').selectOption('java')
 
-  await expect(page.getByRole('button', { name: 'Run Java' })).toBeEnabled()
-  await expect(page.getByRole('heading', { name: 'Java Execution' })).toBeVisible()
-  await expect(page.getByText('No execution submitted in this session yet')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Grade Java' })).toBeEnabled()
+  await expect(page.getByRole('heading', { name: 'Java Grading' })).toBeVisible()
+  await expect(page.getByText('No Java grading submitted in this session yet', { exact: true })).toBeVisible()
+})
+
+test('java grading submission displays the current session grading result', async ({ page }) => {
+  await signIn(page, 'student1@example.com')
+  await page.getByLabel('Language').selectOption('java')
+  await page.locator('.monaco-editor').first().click({
+    position: { x: 80, y: 24 },
+  })
+  await page.keyboard.insertText(`import java.util.Scanner;
+
+public class Main {
+  public static void main(String[] args) {
+    Scanner scanner = new Scanner(System.in);
+    int n = scanner.nextInt();
+    long a = 0;
+    long b = 1;
+
+    for (int i = 0; i < n; i += 1) {
+      long next = a + b;
+      a = b;
+      b = next;
+    }
+
+    System.out.println(a);
+  }
+}`)
+  await page.getByRole('button', { name: 'Grade Java' }).click()
+
+  await expect(page.getByText('Java grading passed')).toBeVisible({ timeout: 45_000 })
+  await expect(page.getByText('Passed all 4 hidden tests.')).toBeVisible()
+  await expect(page.getByText('Passed tests: 4/4')).toBeVisible()
 })
 
 test('javascript selection exposes the local execution guardrail', async ({ page }) => {

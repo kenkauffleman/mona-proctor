@@ -244,6 +244,17 @@ Wave 17 keeps the same stored execution-record model and dispatch abstraction, b
 5. compile failures are stored as normal terminal execution results using the existing stdout/stderr contract
 6. the UI shows only the execution result submitted from the current page session
 
+### Wave 18 Java stdout grading
+Wave 18 keeps the Wave 17 Java runner, but adds a backend-owned grading layer above it:
+1. the Java UI submits a grading request with `problemId` and source
+2. the backend resolves a backend-owned Java problem through `getProblemById(problemId)`
+3. the grading service stores a parent grading record separate from raw execution records
+4. the grading service submits one fresh hidden-input Java execution for each hidden stdout test case
+5. the Java runner compiles and runs each test case in isolation
+6. the grading service compares stdout against the backend-owned expected stdout with normalized line endings and trailing-newline tolerance
+7. the backend stores an overall grading summary plus per-test pass/fail results
+8. the UI polls and renders the structured Java grading result
+
 ## Isolation model
 
 ### Main app environment

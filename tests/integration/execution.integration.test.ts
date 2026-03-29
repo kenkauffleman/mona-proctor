@@ -218,4 +218,108 @@ describe('execution integration', () => {
     expect(loadedFailureJob?.job.result?.stderr).toContain('error:')
     expect(loadedFailureJob?.job.result?.exitCode).toBe(1)
   }, 90_000)
+
+  it('runs authenticated Java grading locally, persists structured results, and enforces ownership', async () => {
+    backendProcess = await startBackendProcess(createBackendPort(), {
+      EXECUTION_BACKEND: 'local-container',
+      EXECUTION_LOCAL_CONTAINER_PYTHON_IMAGE_NAME: pythonImageName,
+      EXECUTION_LOCAL_CONTAINER_JAVA_IMAGE_NAME: javaImageName,
+    })
+
+    const firstUser = await signInLocalAuthUser(localAuthUsers[0]!)
+    const secondUser = await signInLocalAuthUser(localAuthUsers[1]!)
+
+    const gradeResponse = await fetch(`${backendProcess.baseUrl}/api/java-grading/jobs`, {
+      method: 'POST',
+      headers: createAuthHeaders(firstUser.idToken),
+      body: JSON.stringify({
+        problemId: 'java-fibonacci',
+        source: `import java.util.Scanner;
+
+public class Main {
+  public static void main(String[] args) {
+    Scanner scanner = new Scanner(System.in);
+    int n = scanner.nextInt();
+    long a = 0;
+    long b = 1;
+
+    for (int i = 0; i < n; i += 1) {
+      long next = a + b;
+      a = b;
+      b = next;
+    }
+
+    System.out.println(a);
+  }
+}
+`,
+      }),
+    })
+
+    expect(gradeResponse.status).toBe(202)
+    const createdJob = await gradeResponse.json() as { job: { gradingJobId: string; ownerUid: string } }
+    expect(createdJob.job.ownerUid).toBe(firstUser.localId)
+
+    const deadline = Date.now() + 45_000
+    let loadedJob: {
+      job: {
+        gradingJobId: string
+        result: {
+          compileFailed: boolean
+          overallStatus: string
+          passedTests: number
+          totalTests: number
+          tests: Array<{ status: string }>
+        } | null
+      }
+    } | null = null
+
+    while (Date.now() < deadline) {
+      const loadResponse = await fetch(`${backendProcess.baseUrl}/api/java-grading/jobs/${createdJob.job.gradingJobId}`, {
+        headers: {
+          authorization: `Bearer ${firstUser.idToken}`,
+        },
+      })
+
+      expect(loadResponse.status).toBe(200)
+      loadedJob = await loadResponse.json()
+
+      if (loadedJob.job.result) {
+        break
+      }
+
+      await wait(500)
+    }
+
+    expect(loadedJob?.job.result).toMatchObject({
+      compileFailed: false,
+      overallStatus: 'passed',
+      passedTests: 4,
+      totalTests: 4,
+    })
+    expect(loadedJob?.job.result?.tests.every((test) => test.status === 'passed')).toBe(true)
+
+    const forbiddenResponse = await fetch(`${backendProcess.baseUrl}/api/java-grading/jobs/${createdJob.job.gradingJobId}`, {
+      headers: {
+        authorization: `Bearer ${secondUser.idToken}`,
+      },
+    })
+
+    expect(forbiddenResponse.status).toBe(403)
+    expect(await forbiddenResponse.json()).toEqual({
+      ok: false,
+      error: 'Authenticated user does not own this Java grading job.',
+    })
+
+    const firestore = new Firestore({ projectId })
+    const snapshot = await firestore.collection('javaGradingJobs').doc(createdJob.job.gradingJobId).get()
+    const document = snapshot.data() as { ownerUid?: string; result?: { overallStatus?: string; passedTests?: number } } | undefined
+
+    expect(snapshot.exists).toBe(true)
+    expect(document?.ownerUid).toBe(firstUser.localId)
+    expect(document?.result).toMatchObject({
+      overallStatus: 'passed',
+      passedTests: 4,
+    })
+  }, 120_000)
 })

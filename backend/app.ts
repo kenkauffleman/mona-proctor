@@ -5,6 +5,8 @@ import type { AuthVerifier } from './auth.js'
 import { AuthorizationError } from './errors.js'
 import { executionErrorStatusCode, ExecutionService } from './executionService.js'
 import type { CreateExecutionJobRequest } from './executionApiTypes.js'
+import type { CreateJavaGradingJobRequest } from './javaGradingApiTypes.js'
+import { JavaGradingService } from './javaGradingService.js'
 import { executionLanguages, type ExecutionLanguage } from './executionTypes.js'
 import type { HistoryRepository } from './historyRepository.js'
 
@@ -45,6 +47,14 @@ function isCreateExecutionJobRequest(value: unknown): value is CreateExecutionJo
   )
 }
 
+function isCreateJavaGradingJobRequest(value: unknown): value is CreateJavaGradingJobRequest {
+  if (!isObject(value)) {
+    return false
+  }
+
+  return typeof value.problemId === 'string' && typeof value.source === 'string'
+}
+
 function validateBatchOrdering(request: AppendHistoryBatchRequest) {
   let expectedSequence = request.eventOffset + 1
 
@@ -72,6 +82,7 @@ export function createBackendApp(
   historyRepository: HistoryRepository,
   authVerifier: AuthVerifier,
   executionService: ExecutionService,
+  javaGradingService: JavaGradingService,
   options: {
     allowedOrigins?: string[]
     cloudRunConfiguration?: string
@@ -158,7 +169,7 @@ export function createBackendApp(
     })
   })
 
-  app.use(['/api/history', '/api/execution'], async (request, response, next) => {
+  app.use(['/api/history', '/api/execution', '/api/java-grading'], async (request, response, next) => {
     const authorizationHeader = request.header('authorization')
 
     if (!authorizationHeader?.startsWith('Bearer ')) {
@@ -313,6 +324,65 @@ export function createBackendApp(
       response.json({ job })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown execution load error.'
+      response.status(error instanceof AuthorizationError ? 403 : 500).json({
+        ok: false,
+        error: message,
+      })
+    }
+  })
+
+  app.post('/api/java-grading/jobs', async (request, response) => {
+    if (!isCreateJavaGradingJobRequest(request.body)) {
+      response.status(400).json({
+        ok: false,
+        error: 'Invalid Java grading job request.',
+      })
+      return
+    }
+
+    try {
+      const job = await javaGradingService.submitJavaGrading(
+        response.locals.authenticatedUser,
+        request.body,
+      )
+      response.status(202).json({ job })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown Java grading submission error.'
+      response.status(executionErrorStatusCode(error)).json({
+        ok: false,
+        error: message,
+      })
+    }
+  })
+
+  app.get('/api/java-grading/jobs/:gradingJobId', async (request, response) => {
+    const gradingJobId = request.params.gradingJobId
+
+    if (typeof gradingJobId !== 'string' || gradingJobId.trim().length === 0) {
+      response.status(400).json({
+        ok: false,
+        error: 'Java grading job ID is required.',
+      })
+      return
+    }
+
+    try {
+      const job = await javaGradingService.getJavaGradingJob(
+        gradingJobId.trim(),
+        response.locals.authenticatedUser,
+      )
+
+      if (!job) {
+        response.status(404).json({
+          ok: false,
+          error: 'Java grading job not found.',
+        })
+        return
+      }
+
+      response.json({ job })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown Java grading load error.'
       response.status(error instanceof AuthorizationError ? 403 : 500).json({
         ok: false,
         error: message,

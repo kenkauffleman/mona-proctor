@@ -10,9 +10,14 @@ import type {
 import type {
   ExecutionRecord,
   ExecutionResult,
+  RunnerExecutionRecord,
 } from './executionTypes.js'
 
 function cloneRecord(record: ExecutionRecord): ExecutionRecord {
+  return structuredClone(record)
+}
+
+function cloneRunnerRecord(record: RunnerExecutionRecord): RunnerExecutionRecord {
   return structuredClone(record)
 }
 
@@ -25,7 +30,7 @@ function createJobId() {
 }
 
 export class InMemoryExecutionRepository implements ExecutionRepository {
-  private readonly jobs = new Map<string, ExecutionRecord>()
+  private readonly jobs = new Map<string, RunnerExecutionRecord>()
   private readonly activeJobIdsByOwner = new Map<string, string>()
 
   async createJob(input: CreateExecutionJobInput): Promise<ExecutionRecord> {
@@ -38,7 +43,7 @@ export class InMemoryExecutionRepository implements ExecutionRepository {
     }
 
     const createdAt = nowIso()
-    const job: ExecutionRecord = {
+    const job: RunnerExecutionRecord = {
       jobId: createJobId(),
       ownerUid: input.owner.uid,
       language: input.request.language,
@@ -53,9 +58,10 @@ export class InMemoryExecutionRepository implements ExecutionRepository {
       backendJobName: null,
       errorMessage: null,
       result: null,
+      stdin: input.internalOptions?.stdin ?? '',
     }
 
-    this.jobs.set(job.jobId, cloneRecord(job))
+    this.jobs.set(job.jobId, cloneRunnerRecord(job))
     this.activeJobIdsByOwner.set(job.ownerUid, job.jobId)
 
     return cloneRecord(job)
@@ -75,9 +81,9 @@ export class InMemoryExecutionRepository implements ExecutionRepository {
     return cloneRecord(job)
   }
 
-  async getJobForRunner(jobId: string): Promise<ExecutionRecord | null> {
+  async getJobForRunner(jobId: string): Promise<RunnerExecutionRecord | null> {
     const job = this.jobs.get(jobId)
-    return job ? cloneRecord(job) : null
+    return job ? cloneRunnerRecord(job) : null
   }
 
   async markJobRunning(jobId: string): Promise<ExecutionRecord> {
@@ -88,7 +94,7 @@ export class InMemoryExecutionRepository implements ExecutionRepository {
     job.startedAt ??= updatedAt
     job.updatedAt = updatedAt
 
-    this.jobs.set(jobId, cloneRecord(job))
+    this.jobs.set(jobId, cloneRunnerRecord(job))
     return cloneRecord(job)
   }
 
@@ -96,7 +102,7 @@ export class InMemoryExecutionRepository implements ExecutionRepository {
     const job = this.requireJob(input.jobId)
     job.backendJobName = input.backendJobName
     job.updatedAt = nowIso()
-    this.jobs.set(job.jobId, cloneRecord(job))
+    this.jobs.set(job.jobId, cloneRunnerRecord(job))
     return cloneRecord(job)
   }
 
@@ -111,7 +117,7 @@ export class InMemoryExecutionRepository implements ExecutionRepository {
     job.completedAt = completedAt
     job.updatedAt = completedAt
 
-    this.jobs.set(job.jobId, cloneRecord(job))
+    this.jobs.set(job.jobId, cloneRunnerRecord(job))
     this.clearActiveJob(job)
     return cloneRecord(job)
   }
@@ -127,23 +133,27 @@ export class InMemoryExecutionRepository implements ExecutionRepository {
       truncated: false,
     }
 
-    const job = await this.completeJob({
+    const completedJob = await this.completeJob({
       jobId,
       result,
     })
-    job.errorMessage = stderr
-    this.jobs.set(job.jobId, cloneRecord(job))
-    return cloneRecord(job)
+    const runnerJob = this.requireJob(jobId)
+    runnerJob.errorMessage = stderr
+    this.jobs.set(jobId, cloneRunnerRecord(runnerJob))
+    return {
+      ...completedJob,
+      errorMessage: stderr,
+    }
   }
 
-  private requireJob(jobId: string) {
+  private requireJob(jobId: string): RunnerExecutionRecord {
     const job = this.jobs.get(jobId)
 
     if (!job) {
       throw new Error(`Execution job ${jobId} was not found.`)
     }
 
-    return cloneRecord(job)
+    return cloneRunnerRecord(job)
   }
 
   private clearActiveJob(job: ExecutionRecord) {

@@ -12,6 +12,7 @@ import type {
   ExecutionRecord,
   ExecutionResult,
   ExecutionStatus,
+  RunnerExecutionRecord,
 } from './executionTypes.js'
 
 type FirestoreExecutionJobDocument = {
@@ -29,6 +30,7 @@ type FirestoreExecutionJobDocument = {
   backendJobName: string | null
   errorMessage: string | null
   result: ExecutionResult | null
+  stdin?: string
 }
 
 type FirestoreActiveExecutionDocument = {
@@ -62,7 +64,29 @@ function createJobId() {
 }
 
 function executionRecordFromDocument(document: FirestoreExecutionJobDocument): ExecutionRecord {
-  return structuredClone(document)
+  return structuredClone({
+    jobId: document.jobId,
+    ownerUid: document.ownerUid,
+    language: document.language,
+    source: document.source,
+    sourceSizeBytes: document.sourceSizeBytes,
+    status: document.status,
+    createdAt: document.createdAt,
+    updatedAt: document.updatedAt,
+    startedAt: document.startedAt,
+    completedAt: document.completedAt,
+    backend: document.backend,
+    backendJobName: document.backendJobName,
+    errorMessage: document.errorMessage,
+    result: document.result,
+  })
+}
+
+function runnerExecutionRecordFromDocument(document: FirestoreExecutionJobDocument): RunnerExecutionRecord {
+  return {
+    ...structuredClone(document),
+    stdin: document.stdin ?? '',
+  }
 }
 
 export class FirestoreExecutionRepository implements ExecutionRepository {
@@ -115,6 +139,7 @@ export class FirestoreExecutionRepository implements ExecutionRepository {
         backendJobName: null,
         errorMessage: null,
         result: null,
+        stdin: input.internalOptions?.stdin ?? '',
       }
 
       transaction.set(jobReference, recordToStore)
@@ -158,7 +183,7 @@ export class FirestoreExecutionRepository implements ExecutionRepository {
     return executionRecordFromDocument(document)
   }
 
-  async getJobForRunner(jobId: string): Promise<ExecutionRecord | null> {
+  async getJobForRunner(jobId: string): Promise<RunnerExecutionRecord | null> {
     const snapshot = await this.firestore.collection(executionJobsCollection).doc(jobId).get()
 
     if (!snapshot.exists) {
@@ -171,7 +196,7 @@ export class FirestoreExecutionRepository implements ExecutionRepository {
       throw new Error('Stored execution job document was empty.')
     }
 
-    return executionRecordFromDocument(document)
+    return runnerExecutionRecordFromDocument(document)
   }
 
   async markJobRunning(jobId: string): Promise<ExecutionRecord> {

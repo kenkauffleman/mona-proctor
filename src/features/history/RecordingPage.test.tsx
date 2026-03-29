@@ -4,6 +4,8 @@ import { RecordingPage } from './RecordingPage'
 const appendSessionHistoryBatch = vi.fn()
 const createExecutionJob = vi.fn()
 const fetchExecutionJob = vi.fn()
+const createJavaGradingJob = vi.fn()
+const fetchJavaGradingJob = vi.fn()
 const editorListeners = new Map<string, (event: MonacoChangeEvent) => void>()
 
 type MonacoChangeEvent = {
@@ -34,6 +36,11 @@ vi.mock('./client', () => ({
 vi.mock('../execution/client', () => ({
   createExecutionJob: (...args: unknown[]) => createExecutionJob(...args),
   fetchExecutionJob: (...args: unknown[]) => fetchExecutionJob(...args),
+}))
+
+vi.mock('../javaGrading/client', () => ({
+  createJavaGradingJob: (...args: unknown[]) => createJavaGradingJob(...args),
+  fetchJavaGradingJob: (...args: unknown[]) => fetchJavaGradingJob(...args),
 }))
 
 vi.mock('@monaco-editor/react', async () => {
@@ -117,6 +124,9 @@ describe('RecordingPage', () => {
     createExecutionJob.mockReset()
     fetchExecutionJob.mockReset()
     fetchExecutionJob.mockResolvedValue({ job: null })
+    createJavaGradingJob.mockReset()
+    fetchJavaGradingJob.mockReset()
+    fetchJavaGradingJob.mockResolvedValue({ job: null })
     editorListeners.clear()
   })
 
@@ -205,7 +215,7 @@ describe('RecordingPage', () => {
     expect(screen.getByText((content) => content.includes('hello'))).toBeInTheDocument()
   })
 
-  it('polls an active execution after submission and keeps Java runnable after switching languages', async () => {
+  it('polls an active execution after submission and keeps Java grading runnable after switching languages', async () => {
     createExecutionJob.mockResolvedValue({
       job: {
         jobId: 'exec-running',
@@ -272,32 +282,39 @@ describe('RecordingPage', () => {
       })
     })
 
-    expect(screen.getByRole('button', { name: 'Run Java' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Grade Java' })).toBeEnabled()
   })
 
-  it('submits Java execution and shows compile errors in the normal result area', async () => {
-    createExecutionJob.mockResolvedValue({
+  it('submits Java grading and shows compile errors in the structured grading result area', async () => {
+    createJavaGradingJob.mockResolvedValue({
       job: {
-        jobId: 'exec-java-1',
+        gradingJobId: 'grade-java-1',
         ownerUid: 'student-1',
         language: 'java',
+        problemId: 'java-fibonacci',
         source: 'public class Main {}',
         sourceSizeBytes: 20,
-        status: 'failed',
+        status: 'error',
         createdAt: '2026-03-28T00:00:00.000Z',
         updatedAt: '2026-03-28T00:00:01.000Z',
         startedAt: '2026-03-28T00:00:00.500Z',
         completedAt: '2026-03-28T00:00:01.000Z',
-        backend: 'test-execution-backend',
-        backendJobName: 'job-java-1',
         errorMessage: null,
         result: {
-          status: 'failed',
-          stdout: '',
-          stderr: 'Main.java:2: error: \';\' expected\n',
-          exitCode: 1,
-          durationMs: 35,
-          truncated: false,
+          compileFailed: true,
+          overallStatus: 'error',
+          summary: 'Compilation failed before the hidden tests could run.',
+          passedTests: 0,
+          totalTests: 4,
+          tests: [{
+            testId: 'fib-0',
+            status: 'error',
+            actualStdout: '',
+            expectedStdout: '0\n',
+            stderr: 'Main.java:2: error: \';\' expected\n',
+            exitCode: 1,
+            executionStatus: 'failed',
+          }],
         },
       },
     })
@@ -311,16 +328,94 @@ describe('RecordingPage', () => {
     })
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Run Java' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Grade Java' }))
     })
 
-    expect(createExecutionJob).toHaveBeenCalledWith({
-      language: 'java',
+    expect(createJavaGradingJob).toHaveBeenCalledWith({
+      problemId: 'java-fibonacci',
       source: '',
     })
-    expect(screen.getByText('Execution failed')).toBeInTheDocument()
-    expect(screen.getByText('Current job: exec-java-1')).toBeInTheDocument()
+    expect(screen.getByText('Java grading compile failure')).toBeInTheDocument()
+    expect(screen.getByText('Current grading job: grade-java-1')).toBeInTheDocument()
+    expect(screen.getByText('Passed tests: 0/4')).toBeInTheDocument()
+    expect(screen.getByText('Compilation failed before the hidden tests could run.')).toBeInTheDocument()
     expect(screen.getByText((content) => content.includes("';' expected"))).toBeInTheDocument()
+  })
+
+  it('polls an active Java grading job and renders per-test results', async () => {
+    createJavaGradingJob.mockResolvedValue({
+      job: {
+        gradingJobId: 'grade-java-running',
+        ownerUid: 'student-1',
+        language: 'java',
+        problemId: 'java-fibonacci',
+        source: 'public class Main {}',
+        sourceSizeBytes: 20,
+        status: 'queued',
+        createdAt: '2026-03-28T00:00:00.000Z',
+        updatedAt: '2026-03-28T00:00:00.000Z',
+        startedAt: null,
+        completedAt: null,
+        errorMessage: null,
+        result: null,
+      },
+    })
+    fetchJavaGradingJob.mockResolvedValue({
+      job: {
+        gradingJobId: 'grade-java-running',
+        ownerUid: 'student-1',
+        language: 'java',
+        problemId: 'java-fibonacci',
+        source: 'public class Main {}',
+        sourceSizeBytes: 20,
+        status: 'failed',
+        createdAt: '2026-03-28T00:00:00.000Z',
+        updatedAt: '2026-03-28T00:00:01.000Z',
+        startedAt: '2026-03-28T00:00:00.100Z',
+        completedAt: '2026-03-28T00:00:01.000Z',
+        errorMessage: null,
+        result: {
+          compileFailed: false,
+          overallStatus: 'failed',
+          summary: 'Passed 3 of 4 hidden tests.',
+          passedTests: 3,
+          totalTests: 4,
+          tests: [{
+            testId: 'fib-10',
+            status: 'failed',
+            actualStdout: '54\n',
+            expectedStdout: '55\n',
+            stderr: '',
+            exitCode: 0,
+            executionStatus: 'succeeded',
+          }],
+        },
+      },
+    })
+
+    render(<RecordingPage />)
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Language'), {
+        target: { value: 'java' },
+      })
+    })
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Grade Java' }))
+    })
+
+    expect(screen.getByText('Java grading queued')).toBeInTheDocument()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000)
+    })
+
+    expect(fetchJavaGradingJob).toHaveBeenCalledWith('grade-java-running')
+    expect(screen.getByText('Java grading failed')).toBeInTheDocument()
+    expect(screen.getByText('Passed tests: 3/4')).toBeInTheDocument()
+    expect(screen.getByText((content) => content.includes('fib-10: failed'))).toBeInTheDocument()
+    expect(screen.getByText((content) => content.includes('"54\\n"'))).toBeInTheDocument()
   })
 
   it('disables execution outside Python and Java', async () => {

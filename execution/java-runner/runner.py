@@ -156,10 +156,14 @@ def execute_command(command: list[str], cwd: str, env: dict[str, str], timeout_m
         command,
         cwd=cwd,
         env=env,
-        stdin=subprocess.DEVNULL,
+        stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
+    stdin_text = env.get("MONA_PROCTOR_STDIN", "")
+    if process.stdin is not None:
+        process.stdin.write(stdin_text.encode("utf-8"))
+        process.stdin.close()
     return capture_process_output(process, timeout_ms, stdout_limit, stderr_limit)
 
 
@@ -260,6 +264,7 @@ def execute_java(job: dict) -> dict:
             "HOME": working_directory,
             "LANG": "C.UTF-8",
             "LC_ALL": "C.UTF-8",
+            "MONA_PROCTOR_STDIN": job.get("stdin", ""),
             "PATH": os.environ.get("PATH", ""),
         }
 

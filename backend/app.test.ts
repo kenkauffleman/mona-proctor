@@ -7,6 +7,7 @@ import type { AuthVerifier } from './auth.js'
 import { createBackendApp } from './app.js'
 import type { ExecutionBackend } from './executionBackend.js'
 import { ExecutionService } from './executionService.js'
+import { AuthorizationError } from './errors.js'
 import { InMemoryHistoryRepository } from './inMemoryHistoryRepository.js'
 import { InMemoryExecutionRepository } from './inMemoryExecutionRepository.js'
 
@@ -79,7 +80,85 @@ async function startTestServer() {
       },
     },
   )
-  const app = createBackendApp(repository, authVerifier, executionService, {
+  const javaGradingJobs = new Map<string, {
+    gradingJobId: string
+    ownerUid: string
+    language: 'java'
+    problemId: string
+    source: string
+    sourceSizeBytes: number
+    status: 'failed'
+    createdAt: string
+    updatedAt: string
+    startedAt: string
+    completedAt: string
+    errorMessage: null
+    result: {
+      compileFailed: false
+      overallStatus: 'failed'
+      summary: string
+      passedTests: number
+      totalTests: number
+      tests: Array<{
+        testId: string
+        status: 'passed' | 'failed'
+        actualStdout: string
+        expectedStdout: string
+        stderr: null
+        exitCode: number
+        executionStatus: 'succeeded'
+      }>
+    }
+  }>()
+  const javaGradingService = {
+    async submitJavaGrading(owner: { uid: string }, request: { problemId: string; source: string }) {
+      const gradingJobId = `grade-java-${Math.random().toString(36).slice(2, 8)}`
+      const job = {
+        gradingJobId,
+        ownerUid: owner.uid,
+        language: 'java' as const,
+        problemId: request.problemId,
+        source: request.source,
+        sourceSizeBytes: new TextEncoder().encode(request.source).length,
+        status: 'failed' as const,
+        createdAt: '2026-03-28T00:00:00.000Z',
+        updatedAt: '2026-03-28T00:00:01.000Z',
+        startedAt: '2026-03-28T00:00:00.100Z',
+        completedAt: '2026-03-28T00:00:01.000Z',
+        errorMessage: null,
+        result: {
+          compileFailed: false as const,
+          overallStatus: 'failed' as const,
+          summary: 'Passed 3 of 4 hidden tests.',
+          passedTests: 3,
+          totalTests: 4,
+          tests: [
+            { testId: 'fib-0', status: 'passed' as const, actualStdout: '0\n', expectedStdout: '0\n', stderr: null, exitCode: 0, executionStatus: 'succeeded' as const },
+            { testId: 'fib-1', status: 'passed' as const, actualStdout: '1\n', expectedStdout: '1\n', stderr: null, exitCode: 0, executionStatus: 'succeeded' as const },
+            { testId: 'fib-7', status: 'passed' as const, actualStdout: '13\n', expectedStdout: '13\n', stderr: null, exitCode: 0, executionStatus: 'succeeded' as const },
+            { testId: 'fib-10', status: 'failed' as const, actualStdout: '54\n', expectedStdout: '55\n', stderr: null, exitCode: 0, executionStatus: 'succeeded' as const },
+          ],
+        },
+      }
+
+      javaGradingJobs.set(gradingJobId, job)
+      return job
+    },
+    async getJavaGradingJob(gradingJobId: string, owner: { uid: string }) {
+      const job = javaGradingJobs.get(gradingJobId) ?? null
+
+      if (!job) {
+        return null
+      }
+
+      if (job.ownerUid !== owner.uid) {
+        throw new AuthorizationError('Authenticated user does not own this Java grading job.')
+      }
+
+      return job
+    },
+  }
+  const app = createBackendApp(repository, authVerifier, executionService, javaGradingService as never, {
     allowedOrigins: ['https://test.web.app'],
     cloudRunConfiguration: undefined,
     cloudRunRevision: undefined,
@@ -655,6 +734,73 @@ describe('backend history app', () => {
     expect(await response.json()).toEqual({
       ok: false,
       error: 'Execution job not found.',
+    })
+  })
+
+  it('submits a Java grading job, lets the owner fetch it, and rejects cross-user access', async () => {
+    const { baseUrl } = await startTestServer()
+
+    const createResponse = await fetch(`${baseUrl}/api/java-grading/jobs`, {
+      method: 'POST',
+      headers: createAuthHeaders(),
+      body: JSON.stringify({
+        problemId: 'java-fibonacci',
+        source: `public class Main {
+  public static void main(String[] args) {
+    System.out.println(0);
+  }
+}
+`,
+      }),
+    })
+
+    expect(createResponse.status).toBe(202)
+    const createBody = await createResponse.json() as {
+      job: {
+        gradingJobId: string
+        ownerUid: string
+      }
+    }
+
+    expect(createBody.job.ownerUid).toBe('owner-1')
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    const loadResponse = await fetch(`${baseUrl}/api/java-grading/jobs/${createBody.job.gradingJobId}`, {
+      headers: {
+        authorization: 'Bearer valid-owner-token',
+      },
+    })
+
+    expect(loadResponse.status).toBe(200)
+    const loadBody = await loadResponse.json() as {
+      job: {
+        gradingJobId: string
+        result: {
+          overallStatus: string
+          passedTests: number
+          totalTests: number
+        } | null
+      }
+    }
+
+    expect(loadBody.job.gradingJobId).toBe(createBody.job.gradingJobId)
+    expect(loadBody.job.result).toMatchObject({
+      overallStatus: 'failed',
+      passedTests: 3,
+      totalTests: 4,
+    })
+
+    const forbiddenResponse = await fetch(`${baseUrl}/api/java-grading/jobs/${createBody.job.gradingJobId}`, {
+      headers: {
+        authorization: 'Bearer valid-other-token',
+      },
+    })
+
+    expect(forbiddenResponse.status).toBe(403)
+    expect(await forbiddenResponse.json()).toEqual({
+      ok: false,
+      error: 'Authenticated user does not own this Java grading job.',
     })
   })
 })

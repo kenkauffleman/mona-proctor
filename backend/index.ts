@@ -5,10 +5,13 @@ import { createExecutionBackend } from './executionBackendFactory.js'
 import { ExecutionService } from './executionService.js'
 import { FirestoreExecutionRepository } from './firestoreExecutionRepository.js'
 import { FirestoreHistoryRepository } from './firestoreHistoryRepository.js'
+import { FirestoreJavaGradingRepository } from './firestoreJavaGradingRepository.js'
+import { JavaGradingService } from './javaGradingService.js'
 
 const config = getBackendConfig()
 const historyRepository = new FirestoreHistoryRepository(config.projectId)
 const executionRepository = new FirestoreExecutionRepository(config.projectId)
+const javaGradingRepository = new FirestoreJavaGradingRepository(config.projectId)
 const authVerifier = new FirebaseAdminAuthVerifier(config.projectId)
 const executionBackend = createExecutionBackend(config)
 const executionService = new ExecutionService(executionRepository, executionBackend, {
@@ -28,7 +31,8 @@ const executionService = new ExecutionService(executionRepository, executionBack
     },
   },
 })
-const app = createBackendApp(historyRepository, authVerifier, executionService, config)
+const javaGradingService = new JavaGradingService(javaGradingRepository, executionService)
+const app = createBackendApp(historyRepository, authVerifier, executionService, javaGradingService, config)
 
 const server = app.listen(config.port, '0.0.0.0', () => {
   console.log(`Backend history service listening on http://0.0.0.0:${config.port}`)
