@@ -338,8 +338,8 @@ describe('RecordingPage', () => {
     expect(screen.getByText('Java grading compile failure')).toBeInTheDocument()
     expect(screen.getByText('Current grading job: grade-java-1')).toBeInTheDocument()
     expect(screen.getByText('Passed tests: 0/4')).toBeInTheDocument()
-    expect(screen.getByText('Compilation failed before the hidden tests could run.')).toBeInTheDocument()
-    expect(screen.getByText((content) => content.includes("';' expected"))).toBeInTheDocument()
+    expect(screen.getAllByText((content) => content.includes("';' expected"))).toHaveLength(2)
+    expect(screen.queryByText((content) => content.includes('expected stdout:'))).not.toBeInTheDocument()
   })
 
   it('polls an active Java grading job and renders per-test results', async () => {
@@ -415,7 +415,8 @@ describe('RecordingPage', () => {
     expect(screen.getByText('Java grading failed')).toBeInTheDocument()
     expect(screen.getByText('Passed tests: 3/4')).toBeInTheDocument()
     expect(screen.getByText((content) => content.includes('fib-10: failed'))).toBeInTheDocument()
-    expect(screen.getByText((content) => content.includes('"54\\n"'))).toBeInTheDocument()
+    expect(screen.getByText((content) => content.includes('actual stdout:'))).toBeInTheDocument()
+    expect(screen.getByText((content) => content.includes('54'))).toBeInTheDocument()
   })
 
   it('disables execution outside Python and Java', async () => {

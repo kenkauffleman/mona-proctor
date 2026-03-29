@@ -453,7 +453,9 @@ export function RecordingPage() {
                 </div>
                 <pre className="event-log">
                   {latestJavaGradingResult
-                    ? latestJavaGradingResult.summary
+                    ? latestJavaGradingResult.compileFailed
+                      ? latestJavaGradingResult.tests.find((test) => test.stderr)?.stderr ?? latestJavaGradingResult.summary
+                      : latestJavaGradingResult.summary
                     : 'No Java grading submitted in this session yet.'}
                 </pre>
               </section>
@@ -465,18 +467,23 @@ export function RecordingPage() {
                 </div>
                 <pre className="event-log">
                   {latestJavaGradingResult
-                    ? latestJavaGradingResult.tests.map((test) => {
+                    ? latestJavaGradingResult.compileFailed
+                      ? latestJavaGradingResult.tests.find((test) => test.stderr)?.stderr ?? 'No compiler output captured.'
+                      : latestJavaGradingResult.tests.map((test) => {
                       const lines = [
                         `${test.testId}: ${test.status}`,
-                        `expected stdout: ${JSON.stringify(test.expectedStdout ?? '')}`,
+                        `expected stdout:`,
+                        `${test.expectedStdout ?? ''}`,
                       ]
 
                       if (test.actualStdout !== null) {
-                        lines.push(`actual stdout: ${JSON.stringify(test.actualStdout)}`)
+                        lines.push('actual stdout:')
+                        lines.push(test.actualStdout)
                       }
 
                       if (test.stderr) {
-                        lines.push(`stderr: ${JSON.stringify(test.stderr)}`)
+                        lines.push('stderr:')
+                        lines.push(test.stderr)
                       }
 
                       return lines.join('\n')

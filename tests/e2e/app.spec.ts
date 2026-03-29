@@ -132,6 +132,7 @@ public class Main {
   await expect(page.getByText('Java grading passed')).toBeVisible({ timeout: 45_000 })
   await expect(page.getByText('Passed all 4 hidden tests.')).toBeVisible()
   await expect(page.getByText('Passed tests: 4/4')).toBeVisible()
+  await expect(page.getByText('55')).toBeVisible()
 })
 
 test('javascript selection exposes the local execution guardrail', async ({ page }) => {
