@@ -59,3 +59,46 @@ resource "google_firebaserules_release" "firestore" {
 
   depends_on = [google_firestore_database.default]
 }
+
+resource "google_firestore_index" "execution_jobs_owner_created_at" {
+  provider   = google-beta
+  project    = var.project_id
+  database   = var.firestore_database_name
+  collection = "executionJobs"
+
+  fields {
+    field_path = "ownerUid"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "createdAt"
+    order      = "DESCENDING"
+  }
+
+  depends_on = [google_firestore_database.default]
+}
+
+resource "google_firestore_index" "execution_jobs_owner_language_created_at" {
+  provider   = google-beta
+  project    = var.project_id
+  database   = var.firestore_database_name
+  collection = "executionJobs"
+
+  fields {
+    field_path = "ownerUid"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "language"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "createdAt"
+    order      = "DESCENDING"
+  }
+
+  depends_on = [google_firestore_database.default]
+}
