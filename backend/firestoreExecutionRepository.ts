@@ -9,7 +9,6 @@ import type {
   MarkExecutionDispatchedInput,
 } from './executionRepository.js'
 import type {
-  ExecutionLanguage,
   ExecutionRecord,
   ExecutionResult,
   ExecutionStatus,
@@ -154,33 +153,6 @@ export class FirestoreExecutionRepository implements ExecutionRepository {
 
     if (document.ownerUid !== owner.uid) {
       throw new AuthorizationError('Authenticated user does not own this execution job.')
-    }
-
-    return executionRecordFromDocument(document)
-  }
-
-  async getLatestJob(owner: AuthenticatedUser, language?: ExecutionLanguage): Promise<ExecutionRecord | null> {
-    let query: FirebaseFirestore.Query = this.firestore
-      .collection(executionJobsCollection)
-      .where('ownerUid', '==', owner.uid)
-
-    if (language) {
-      query = query.where('language', '==', language)
-    }
-
-    const snapshot = await query
-      .orderBy('createdAt', 'desc')
-      .limit(1)
-      .get()
-
-    if (snapshot.empty) {
-      return null
-    }
-
-    const document = snapshot.docs[0]?.data() as FirestoreExecutionJobDocument | undefined
-
-    if (!document) {
-      throw new Error('Stored execution job document was empty.')
     }
 
     return executionRecordFromDocument(document)

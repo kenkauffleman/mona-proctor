@@ -148,22 +148,6 @@ async function main() {
       throw new Error(`Unexpected loaded Java success payload: ${JSON.stringify(loadedSuccessJob)}`)
     }
 
-    const latestSuccessResponse = await fetch(`${baseUrl}/api/execution/jobs/latest?language=java`, {
-      headers: {
-        authorization: `Bearer ${firstUser.idToken}`,
-      },
-    })
-
-    if (!latestSuccessResponse.ok) {
-      throw new Error(`Latest Java execution load failed with ${latestSuccessResponse.status}: ${await latestSuccessResponse.text()}`)
-    }
-
-    const latestSuccessJob = await latestSuccessResponse.json() as { job: { jobId: string } | null }
-
-    if (latestSuccessJob.job?.jobId !== createdSuccessJob.job.jobId) {
-      throw new Error(`Expected latest Java job ${createdSuccessJob.job.jobId} but received ${JSON.stringify(latestSuccessJob)}`)
-    }
-
     const compileFailureSubmitResponse = await fetch(`${baseUrl}/api/execution/jobs`, {
       method: 'POST',
       headers: {
@@ -194,22 +178,6 @@ async function main() {
       || !loadedFailureJob.job.result.stderr.includes('error:')
     ) {
       throw new Error(`Unexpected loaded Java compile-failure payload: ${JSON.stringify(loadedFailureJob)}`)
-    }
-
-    const latestFailureResponse = await fetch(`${baseUrl}/api/execution/jobs/latest?language=java`, {
-      headers: {
-        authorization: `Bearer ${firstUser.idToken}`,
-      },
-    })
-
-    if (!latestFailureResponse.ok) {
-      throw new Error(`Latest Java execution load after compile failure failed with ${latestFailureResponse.status}: ${await latestFailureResponse.text()}`)
-    }
-
-    const latestFailureJob = await latestFailureResponse.json() as { job: { jobId: string } | null }
-
-    if (latestFailureJob.job?.jobId !== createdFailureJob.job.jobId) {
-      throw new Error(`Expected latest Java job ${createdFailureJob.job.jobId} but received ${JSON.stringify(latestFailureJob)}`)
     }
 
     const forbiddenResponse = await fetch(`${baseUrl}/api/execution/jobs/${createdFailureJob.job.jobId}`, {
@@ -243,7 +211,7 @@ async function main() {
     }
 
     console.log(
-      `Wave 17 local Java execution validation succeeded for ${createdSuccessJob.job.jobId} and ${createdFailureJob.job.jobId}. Verified authenticated submit, stored-result retrieval, compile-failure normalization, latest-job filtering, and denied cross-user access.`,
+      `Wave 17 local Java execution validation succeeded for ${createdSuccessJob.job.jobId} and ${createdFailureJob.job.jobId}. Verified authenticated submit, stored-result retrieval, compile-failure normalization, and denied cross-user access.`,
     )
   } finally {
     backendProcess.kill('SIGTERM')

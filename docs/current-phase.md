@@ -88,7 +88,7 @@ Compile errors should be surfaced through the same result flow and displayed in 
 - do not invent a Java wrapper/harness in this phase
 - rely on the user to supply `Main` and `main` correctly for now
 - validate the Java container locally before treating hosted execution as proven
-- keep UI integration similar to Python and show only the latest execution result
+- keep UI integration similar to Python and show only the current page session execution result
 
 ## Handoff to the next phase
 At the end of this phase, the codebase should make it easy to:

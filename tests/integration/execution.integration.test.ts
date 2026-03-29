@@ -102,19 +102,6 @@ describe('execution integration', () => {
       truncated: false,
     })
 
-    const latestResponse = await fetch(`${backendProcess.baseUrl}/api/execution/jobs/latest`, {
-      headers: {
-        authorization: `Bearer ${firstUser.idToken}`,
-      },
-    })
-
-    expect(latestResponse.status).toBe(200)
-    expect(await latestResponse.json()).toMatchObject({
-      job: {
-        jobId: createdJob.job.jobId,
-      },
-    })
-
     const forbiddenResponse = await fetch(`${backendProcess.baseUrl}/api/execution/jobs/${createdJob.job.jobId}`, {
       headers: {
         authorization: `Bearer ${secondUser.idToken}`,

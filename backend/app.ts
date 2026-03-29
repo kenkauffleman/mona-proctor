@@ -261,23 +261,6 @@ export function createBackendApp(
     }
   })
 
-  app.get('/api/execution/jobs/latest', async (request, response) => {
-    try {
-      const requestedLanguage = request.query.language
-      const language = typeof requestedLanguage === 'string' && supportedExecutionLanguages.has(requestedLanguage as ExecutionLanguage)
-        ? requestedLanguage as ExecutionLanguage
-        : undefined
-      const job = await executionService.getLatestExecutionJob(response.locals.authenticatedUser, language)
-      response.json({ job })
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown execution load error.'
-      response.status(executionErrorStatusCode(error)).json({
-        ok: false,
-        error: message,
-      })
-    }
-  })
-
   app.post('/api/execution/jobs', async (request, response) => {
     if (!isCreateExecutionJobRequest(request.body)) {
       response.status(400).json({

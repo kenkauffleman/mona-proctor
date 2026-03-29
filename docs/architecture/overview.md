@@ -229,11 +229,11 @@ Wave 13 keeps the same execution backend and stored-record contract, but connect
 1. signed-in user edits Python in the main Monaco page
 2. UI submits the current Python source through the authenticated backend execution endpoint
 3. backend creates or updates the durable Firestore execution record through the existing execution service
-4. UI loads the latest stored execution record for the authenticated user
-5. UI polls the stored record while it remains queued or running
+4. UI keeps the submitted `jobId` in page state
+5. UI polls that stored execution record while it remains queued or running
 6. UI renders stdout, stderr, exit status, duration, and truncation from the stored terminal result
 
-Wave 13 intentionally shows only the latest execution result in the UI and does not add history browsing yet.
+Wave 13 intentionally shows only the current page session's execution result in the UI and does not add history browsing yet.
 
 ### Wave 17 Java execution prototype
 Wave 17 keeps the same stored execution-record model and dispatch abstraction, but adds a separate Java executor image alongside the Python executor image:
@@ -242,7 +242,7 @@ Wave 17 keeps the same stored execution-record model and dispatch abstraction, b
 3. the configured execution backend dispatches the Java Cloud Run Job or Java local-container image for Java work
 4. the Java execution runner writes `Main.java`, compiles with `javac`, and runs `java Main` only if compilation succeeds
 5. compile failures are stored as normal terminal execution results using the existing stdout/stderr contract
-6. the UI loads only the latest stored result for the selected runnable language
+6. the UI shows only the execution result submitted from the current page session
 
 ## Isolation model
 

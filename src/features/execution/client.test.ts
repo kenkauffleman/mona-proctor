@@ -1,4 +1,4 @@
-import { fetchLatestExecutionJob } from './client'
+import { fetchExecutionJob } from './client'
 
 const getCurrentUserIdToken = vi.fn()
 
@@ -12,19 +12,24 @@ describe('execution client', () => {
     vi.restoreAllMocks()
   })
 
-  it('treats a latest-job 404 as no stored execution result yet', async () => {
+  it('loads an execution job by job id', async () => {
     getCurrentUserIdToken.mockResolvedValue('test-id-token')
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-      ok: false,
-      status: 404,
-      text: async () => '{"ok":false,"error":"Execution job not found."}',
+      ok: true,
+      json: async () => ({
+        job: {
+          jobId: 'exec-1',
+        },
+      }),
     } as Response)
 
-    await expect(fetchLatestExecutionJob('java')).resolves.toEqual({
-      job: null,
+    await expect(fetchExecutionJob('exec-1')).resolves.toEqual({
+      job: {
+        jobId: 'exec-1',
+      },
     })
     expect(fetchSpy).toHaveBeenCalledWith(
-      expect.stringContaining('/execution/jobs/latest?language=java'),
+      expect.stringContaining('/execution/jobs/exec-1'),
       expect.any(Object),
     )
   })

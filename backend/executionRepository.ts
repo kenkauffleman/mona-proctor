@@ -1,7 +1,6 @@
 import type { AuthenticatedUser } from './auth.js'
 import type {
   CreateExecutionRequest,
-  ExecutionLanguage,
   ExecutionRecord,
   ExecutionResult,
 } from './executionTypes.js'
@@ -26,7 +25,6 @@ export type CompleteExecutionJobInput = {
 export interface ExecutionRepository {
   createJob(input: CreateExecutionJobInput): Promise<ExecutionRecord>
   getJob(jobId: string, owner: AuthenticatedUser): Promise<ExecutionRecord | null>
-  getLatestJob(owner: AuthenticatedUser, language?: ExecutionLanguage): Promise<ExecutionRecord | null>
   getJobForRunner(jobId: string): Promise<ExecutionRecord | null>
   markJobRunning(jobId: string): Promise<ExecutionRecord>
   markJobDispatched(input: MarkExecutionDispatchedInput): Promise<ExecutionRecord>

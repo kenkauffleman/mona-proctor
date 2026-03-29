@@ -162,7 +162,7 @@ async function main() {
     console.log('Suggested manual flow:')
     console.log('1. Open the frontend URL and sign in with a seeded local user.')
     console.log('2. Type in the editor and confirm history sync status updates.')
-    console.log('3. Click "Run Python" and confirm the latest execution result renders.')
+    console.log('3. Click "Run Python" and confirm the current session execution result renders.')
     console.log('4. Open the replay page for the current session UUID and confirm it reconstructs the source.')
     console.log('5. Inspect Firestore/Auth state in the Emulator UI if needed.')
     console.log('')

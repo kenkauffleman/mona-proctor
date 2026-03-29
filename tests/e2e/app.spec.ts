@@ -78,10 +78,10 @@ test('authenticated happy path loads the recording page and local execution cont
   await expect(page.getByText('student1@example.com')).toBeVisible()
   await expect(page.getByText('Waiting for first batch')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Run Python' })).toBeEnabled()
-  await expect(page.getByText('No execution submitted yet')).toBeVisible()
+  await expect(page.getByText('No execution submitted in this session yet')).toBeVisible()
 })
 
-test('execution submission displays the latest stored result', async ({ page }) => {
+test('execution submission displays the current session result', async ({ page }) => {
   await signIn(page, 'student1@example.com')
   await page.locator('.monaco-editor').first().click({
     position: { x: 80, y: 24 },
@@ -100,7 +100,7 @@ test('java selection enables the Java execution controls', async ({ page }) => {
 
   await expect(page.getByRole('button', { name: 'Run Java' })).toBeEnabled()
   await expect(page.getByRole('heading', { name: 'Java Execution' })).toBeVisible()
-  await expect(page.getByText('No execution submitted yet')).toBeVisible()
+  await expect(page.getByText('No execution submitted in this session yet')).toBeVisible()
 })
 
 test('javascript selection exposes the local execution guardrail', async ({ page }) => {

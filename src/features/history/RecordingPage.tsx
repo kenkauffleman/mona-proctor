@@ -11,7 +11,6 @@ import {
 import {
   createExecutionJob,
   fetchExecutionJob,
-  fetchLatestExecutionJob,
 } from '../execution/client'
 import { currentPhaseLabel } from '../../config/currentPhase'
 import { getRecordEditorModelPath } from '../editor/modelPaths'
@@ -49,13 +48,9 @@ function isExecutionTerminal(job: ExecutionRecord | null) {
   return !job || !!job.result
 }
 
-function formatExecutionStatus(job: ExecutionRecord | null, isLoadingLatestJob: boolean) {
-  if (isLoadingLatestJob) {
-    return 'Loading latest execution'
-  }
-
+function formatExecutionStatus(job: ExecutionRecord | null) {
   if (!job) {
-    return 'No execution submitted yet'
+    return 'No execution submitted in this session yet'
   }
 
   if (job.result?.status === 'succeeded') {
@@ -112,7 +107,6 @@ export function RecordingPage() {
   const nextSequenceRef = useRef(1)
   const batcherRef = useRef<HistoryBatcher | null>(null)
   const [latestExecutionJob, setLatestExecutionJob] = useState<ExecutionRecord | null>(null)
-  const [isLoadingLatestExecutionJob, setIsLoadingLatestExecutionJob] = useState(true)
   const [executionError, setExecutionError] = useState<string | null>(null)
   const [isSubmittingExecution, setIsSubmittingExecution] = useState(false)
   const executionLanguage = isExecutionLanguage(activeLanguage) ? activeLanguage : null
@@ -153,49 +147,9 @@ export function RecordingPage() {
     })
     nextSequenceRef.current = 1
     setSessionId(createSessionId())
+    setLatestExecutionJob(null)
+    setExecutionError(null)
   }, [activeLanguage])
-
-  useEffect(() => {
-    let isCancelled = false
-
-    const loadLatestExecutionJob = async () => {
-      if (!executionLanguage) {
-        setLatestExecutionJob(null)
-        setExecutionError(null)
-        setIsLoadingLatestExecutionJob(false)
-        return
-      }
-
-      setIsLoadingLatestExecutionJob(true)
-
-      try {
-        const response = await fetchLatestExecutionJob(executionLanguage)
-
-        if (isCancelled) {
-          return
-        }
-
-        setLatestExecutionJob(response.job)
-        setExecutionError(null)
-      } catch (error) {
-        if (isCancelled) {
-          return
-        }
-
-        setExecutionError(error instanceof Error ? error.message : 'Failed to load the latest execution result.')
-      } finally {
-        if (!isCancelled) {
-          setIsLoadingLatestExecutionJob(false)
-        }
-      }
-    }
-
-    void loadLatestExecutionJob()
-
-    return () => {
-      isCancelled = true
-    }
-  }, [executionLanguage])
 
   useEffect(() => {
     if (!latestExecutionJob || isExecutionTerminal(latestExecutionJob)) {
@@ -220,7 +174,7 @@ export function RecordingPage() {
           return
         }
 
-        setExecutionError(error instanceof Error ? error.message : 'Failed to refresh the latest execution result.')
+        setExecutionError(error instanceof Error ? error.message : 'Failed to refresh the current execution result.')
       }
     }
 
@@ -262,6 +216,8 @@ export function RecordingPage() {
     setRecordedEvents([])
     setSyncedEventCount(0)
     nextSequenceRef.current = 1
+    setLatestExecutionJob(null)
+    setExecutionError(null)
   }
 
   const handleRunPython = async () => {
@@ -297,7 +253,7 @@ export function RecordingPage() {
         <h1>Authenticated code execution</h1>
         <p className="hero-copy">
           Record Monaco content-change events, run Python or Java through the authenticated backend flow,
-          and display the latest stored execution result directly in the app.
+          and display the current page session execution result directly in the app.
         </p>
       </section>
 
@@ -305,7 +261,7 @@ export function RecordingPage() {
         <div className="workspace-toolbar">
           <div>
             <h2>Recording Page</h2>
-            <p>Each page session keeps the authenticated history upload path while showing the latest stored execution result for the selected runnable language.</p>
+            <p>Each page session keeps the authenticated history upload path while showing only execution results submitted from this page.</p>
           </div>
           <LanguageSelector
             languages={editorLanguages}
@@ -353,7 +309,7 @@ export function RecordingPage() {
           <div className="panel-heading">
             <div>
               <h3>{executionLabel} Execution</h3>
-              <p>The app shows only the latest execution record stored for the authenticated user for the selected runnable language.</p>
+              <p>The app shows only the execution result submitted from the current page session.</p>
             </div>
             <div className="replay-controls">
               <button
@@ -366,8 +322,8 @@ export function RecordingPage() {
             </div>
           </div>
           <div className="debug-summary">
-            <span>{formatExecutionStatus(latestExecutionJob, isLoadingLatestExecutionJob)}</span>
-            <span>Latest job: {latestExecutionJob?.jobId ?? 'none'}</span>
+            <span>{formatExecutionStatus(latestExecutionJob)}</span>
+            <span>Current job: {latestExecutionJob?.jobId ?? 'none'}</span>
             <span>Exit status: {formatExitCode(latestExecutionResult?.exitCode ?? null)}</span>
             <span>Duration: {formatDuration(latestExecutionResult?.durationMs ?? null)}</span>
             <span>Truncated: {latestExecutionResult?.truncated ? 'yes' : 'no'}</span>
@@ -384,7 +340,7 @@ export function RecordingPage() {
                 </div>
               </div>
               <pre className="event-log">
-                {latestExecutionResult?.stdout || 'No stdout captured for the latest execution.'}
+                {latestExecutionResult?.stdout || 'No stdout captured for the current execution.'}
               </pre>
             </section>
             <section className="execution-result-panel" aria-label="Execution stderr">
@@ -394,7 +350,7 @@ export function RecordingPage() {
                 </div>
               </div>
               <pre className="event-log">
-                {latestExecutionResult?.stderr || 'No stderr captured for the latest execution.'}
+                {latestExecutionResult?.stderr || 'No stderr captured for the current execution.'}
               </pre>
             </section>
           </div>

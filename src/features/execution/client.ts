@@ -1,7 +1,7 @@
 import type { ExecutionLanguage } from '../../../backend/executionTypes'
 import { runtimeConfig } from '../../config/runtime'
 import { getCurrentUserIdToken } from '../auth/firebaseAuth'
-import type { ExecutionJobResponse, LatestExecutionJobResponse } from './apiTypes'
+import type { ExecutionJobResponse } from './apiTypes'
 
 type CreateExecutionJobRequest = {
   language: ExecutionLanguage
@@ -42,26 +42,4 @@ export async function fetchExecutionJob(jobId: string) {
   })
 
   return parseJsonResponse<ExecutionJobResponse>(response)
-}
-
-export async function fetchLatestExecutionJob(language?: ExecutionLanguage) {
-  const searchParams = new URLSearchParams()
-
-  if (language) {
-    searchParams.set('language', language)
-  }
-
-  const response = await fetch(`${runtimeConfig.apiBaseUrl}/execution/jobs/latest${searchParams.size > 0 ? `?${searchParams.toString()}` : ''}`, {
-    headers: await createAuthHeaders(),
-  })
-
-  if (response.status === 404) {
-    const message = await response.text()
-
-    if (message.includes('Execution job not found')) {
-      return { job: null } satisfies LatestExecutionJobResponse
-    }
-  }
-
-  return parseJsonResponse<LatestExecutionJobResponse>(response)
 }

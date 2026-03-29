@@ -82,7 +82,7 @@ Then validate the authenticated non-UI Java path:
 npm run wave17:validate
 ```
 
-This starts the backend against the Firestore and Auth emulators in `local-container` mode, submits Java through the authenticated API, waits for stored results, verifies latest-job language filtering, checks compile failure handling, and confirms a denied cross-user access case.
+This starts the backend against the Firestore and Auth emulators in `local-container` mode, submits Java through the authenticated API, waits for stored results, checks compile failure handling, and confirms a denied cross-user access case.
 
 After that, the broader automated local stack should still pass:
 
@@ -115,5 +115,5 @@ npm run execution:get -- --env prod --email student1@example.com --password pass
 Wave 17 keeps the UI intentionally small:
 - Python and Java can be submitted from the authenticated recording page
 - Java compile errors appear in the same result area as normal execution stderr
-- only the latest stored execution result for the selected runnable language is shown
+- only the execution result submitted from the current page session is shown
 - JavaScript remains non-runnable in this wave

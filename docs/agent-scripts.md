@@ -264,10 +264,10 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - Use this after the human operator has deployed both the backend service and the execution job image.
 
 ### `npm run wave13:validate`
-- Starts the Firestore and Auth emulators, builds the local Python runner image, boots the backend in `local-container` mode, signs in through the Auth emulator, submits Python execution through the authenticated API, waits for the Docker-backed local runner to write the terminal Firestore result, fetches that result back through both the job-id and latest-job endpoints, verifies Firestore persistence, checks runner logs, and validates a denied cross-user case.
+- Starts the Firestore and Auth emulators, builds the local Python runner image, boots the backend in `local-container` mode, signs in through the Auth emulator, submits Python execution through the authenticated API, waits for the Docker-backed local runner to write the terminal Firestore result, fetches that result back through the job-id endpoint, verifies Firestore persistence, checks runner logs, and validates a denied cross-user case.
 - This is the preferred repeatable local validation script for the Wave 13 UI-facing execution integration.
 - Use this before relying on hosted/manual validation for the integrated Python execution flow.
 
 ### `npm run wave17:validate`
-- Starts the Firestore and Auth emulators, builds the Java runner image, boots the backend in `local-container` mode with separate Python and Java image names configured, signs in through the Auth emulator, submits Java execution through the authenticated API, waits for stored terminal results, verifies compile-failure normalization, checks latest-job language filtering, and validates a denied cross-user case.
+- Starts the Firestore and Auth emulators, builds the Java runner image, boots the backend in `local-container` mode with separate Python and Java image names configured, signs in through the Auth emulator, submits Java execution through the authenticated API, waits for stored terminal results, verifies compile-failure normalization, and validates a denied cross-user case.
 - This is the preferred repeatable local validation script for the Wave 17 non-UI Java path before relying on hosted/manual validation.

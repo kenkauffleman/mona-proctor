@@ -4,7 +4,6 @@ import { RecordingPage } from './RecordingPage'
 const appendSessionHistoryBatch = vi.fn()
 const createExecutionJob = vi.fn()
 const fetchExecutionJob = vi.fn()
-const fetchLatestExecutionJob = vi.fn()
 const editorListeners = new Map<string, (event: MonacoChangeEvent) => void>()
 
 type MonacoChangeEvent = {
@@ -35,7 +34,6 @@ vi.mock('./client', () => ({
 vi.mock('../execution/client', () => ({
   createExecutionJob: (...args: unknown[]) => createExecutionJob(...args),
   fetchExecutionJob: (...args: unknown[]) => fetchExecutionJob(...args),
-  fetchLatestExecutionJob: (...args: unknown[]) => fetchLatestExecutionJob(...args),
 }))
 
 vi.mock('@monaco-editor/react', async () => {
@@ -118,8 +116,6 @@ describe('RecordingPage', () => {
     })
     createExecutionJob.mockReset()
     fetchExecutionJob.mockReset()
-    fetchLatestExecutionJob.mockReset()
-    fetchLatestExecutionJob.mockResolvedValue({ job: null })
     fetchExecutionJob.mockResolvedValue({ job: null })
     editorListeners.clear()
   })
@@ -164,7 +160,7 @@ describe('RecordingPage', () => {
     })
   })
 
-  it('submits Python execution and renders the latest stored result', async () => {
+  it('submits Python execution and renders the current session result', async () => {
     createExecutionJob.mockResolvedValue({
       job: {
         jobId: 'exec-1',
@@ -192,9 +188,6 @@ describe('RecordingPage', () => {
     })
 
     render(<RecordingPage />)
-    await act(async () => {})
-
-    expect(fetchLatestExecutionJob).toHaveBeenCalledWith('python')
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Run Python' }))
@@ -205,15 +198,15 @@ describe('RecordingPage', () => {
       source: '',
     })
     expect(screen.getByText('Execution succeeded')).toBeInTheDocument()
-    expect(screen.getByText('Latest job: exec-1')).toBeInTheDocument()
+    expect(screen.getByText('Current job: exec-1')).toBeInTheDocument()
     expect(screen.getByText('Exit status: 0')).toBeInTheDocument()
     expect(screen.getByText('Duration: 42ms')).toBeInTheDocument()
     expect(screen.getByText('Truncated: no')).toBeInTheDocument()
     expect(screen.getByText((content) => content.includes('hello'))).toBeInTheDocument()
   })
 
-  it('loads the latest job on mount, polls active execution, and switches latest-job lookups by language', async () => {
-    fetchLatestExecutionJob.mockResolvedValue({
+  it('polls an active execution after submission and keeps Java runnable after switching languages', async () => {
+    createExecutionJob.mockResolvedValue({
       job: {
         jobId: 'exec-running',
         ownerUid: 'student-1',
@@ -258,10 +251,12 @@ describe('RecordingPage', () => {
     })
 
     render(<RecordingPage />)
-    await act(async () => {})
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Run Python' }))
+    })
 
     expect(screen.getByText('Execution queued')).toBeInTheDocument()
-    expect(fetchLatestExecutionJob).toHaveBeenCalledWith('python')
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_000)
@@ -277,7 +272,6 @@ describe('RecordingPage', () => {
       })
     })
 
-    expect(fetchLatestExecutionJob).toHaveBeenLastCalledWith('java')
     expect(screen.getByRole('button', { name: 'Run Java' })).toBeEnabled()
   })
 
@@ -309,7 +303,6 @@ describe('RecordingPage', () => {
     })
 
     render(<RecordingPage />)
-    await act(async () => {})
 
     await act(async () => {
       fireEvent.change(screen.getByLabelText('Language'), {
@@ -326,13 +319,12 @@ describe('RecordingPage', () => {
       source: '',
     })
     expect(screen.getByText('Execution failed')).toBeInTheDocument()
-    expect(screen.getByText('Latest job: exec-java-1')).toBeInTheDocument()
+    expect(screen.getByText('Current job: exec-java-1')).toBeInTheDocument()
     expect(screen.getByText((content) => content.includes("';' expected"))).toBeInTheDocument()
   })
 
   it('disables execution outside Python and Java', async () => {
     render(<RecordingPage />)
-    await act(async () => {})
 
     await act(async () => {
       fireEvent.change(screen.getByLabelText('Language'), {
@@ -344,22 +336,61 @@ describe('RecordingPage', () => {
     expect(screen.getByText(/Execution is available only when the Python or Java editor is selected/)).toBeInTheDocument()
   })
 
-  it('shows execution errors when the latest job load or submit fails', async () => {
-    fetchLatestExecutionJob.mockRejectedValue(new Error('Latest execution load failed.'))
+  it('shows execution errors when submit or refresh fails', async () => {
     createExecutionJob.mockRejectedValue(new Error('Execution submit failed.'))
 
     render(<RecordingPage />)
-    await act(async () => {})
-
-    expect(screen.getByText('Latest execution load failed.')).toBeInTheDocument()
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Run Python' }))
     })
 
     expect(screen.getByText('Execution submit failed.')).toBeInTheDocument()
-    expect(screen.getByText('No stdout captured for the latest execution.')).toBeInTheDocument()
-    expect(screen.getByText('No stderr captured for the latest execution.')).toBeInTheDocument()
+    expect(screen.getByText('No stdout captured for the current execution.')).toBeInTheDocument()
+    expect(screen.getByText('No stderr captured for the current execution.')).toBeInTheDocument()
+  })
+
+  it('clears the visible execution result when starting a new session', async () => {
+    createExecutionJob.mockResolvedValue({
+      job: {
+        jobId: 'exec-1',
+        ownerUid: 'student-1',
+        language: 'python',
+        source: 'print("hello")',
+        sourceSizeBytes: 14,
+        status: 'succeeded',
+        createdAt: '2026-03-28T00:00:00.000Z',
+        updatedAt: '2026-03-28T00:00:01.000Z',
+        startedAt: '2026-03-28T00:00:00.500Z',
+        completedAt: '2026-03-28T00:00:01.000Z',
+        backend: 'test-execution-backend',
+        backendJobName: 'job-1',
+        errorMessage: null,
+        result: {
+          status: 'succeeded',
+          stdout: 'hello\n',
+          stderr: '',
+          exitCode: 0,
+          durationMs: 42,
+          truncated: false,
+        },
+      },
+    })
+
+    render(<RecordingPage />)
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Run Python' }))
+    })
+
+    expect(screen.getByText('Current job: exec-1')).toBeInTheDocument()
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'New Session' }))
+    })
+
+    expect(screen.getByText('No execution submitted in this session yet')).toBeInTheDocument()
+    expect(screen.getByText('Current job: none')).toBeInTheDocument()
   })
 
   it('starts a fresh session by clearing local counters and recorded event state', async () => {

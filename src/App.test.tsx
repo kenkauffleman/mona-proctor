@@ -2,7 +2,6 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import App from './App'
 
 const useAuth = vi.fn()
-const fetchLatestExecutionJob = vi.fn()
 const signIn = vi.fn()
 const signOut = vi.fn()
 
@@ -17,7 +16,6 @@ vi.mock('./features/auth/useAuth', () => ({
 vi.mock('./features/execution/client', () => ({
   createExecutionJob: vi.fn(),
   fetchExecutionJob: vi.fn(),
-  fetchLatestExecutionJob: (...args: unknown[]) => fetchLatestExecutionJob(...args),
 }))
 
 vi.mock('@monaco-editor/react', () => ({
@@ -44,8 +42,6 @@ describe('App', () => {
   beforeEach(() => {
     signIn.mockReset()
     signOut.mockReset()
-    fetchLatestExecutionJob.mockReset()
-    fetchLatestExecutionJob.mockResolvedValue({ job: null })
   })
 
   it('renders an auth loading message while the emulator session is resolving', () => {

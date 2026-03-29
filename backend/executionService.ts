@@ -52,10 +52,6 @@ export class ExecutionService {
     return this.repository.getJob(jobId, owner)
   }
 
-  getLatestExecutionJob(owner: AuthenticatedUser, language?: ExecutionLanguage) {
-    return this.repository.getLatestJob(owner, language)
-  }
-
   private validateCreateRequest(request: CreateExecutionRequest) {
     const languageLimits = this.limits.languageLimits[request.language as ExecutionLanguage]
 

@@ -142,22 +142,6 @@ async function main() {
       throw new Error(`Unexpected loaded execution job payload: ${JSON.stringify(loadedJob)}`)
     }
 
-    const latestResponse = await fetch(`${baseUrl}/api/execution/jobs/latest`, {
-      headers: {
-        authorization: `Bearer ${firstUser.idToken}`,
-      },
-    })
-
-    if (!latestResponse.ok) {
-      throw new Error(`Latest execution load failed with ${latestResponse.status}: ${await latestResponse.text()}`)
-    }
-
-    const latestJob = await latestResponse.json() as { job: { jobId: string } | null }
-
-    if (latestJob.job?.jobId !== createdJob.job.jobId) {
-      throw new Error(`Expected latest execution job ${createdJob.job.jobId} but received ${JSON.stringify(latestJob)}`)
-    }
-
     const forbiddenResponse = await fetch(`${baseUrl}/api/execution/jobs/${createdJob.job.jobId}`, {
       headers: {
         authorization: `Bearer ${secondUser.idToken}`,
@@ -166,22 +150,6 @@ async function main() {
 
     if (forbiddenResponse.status !== 403) {
       throw new Error(`Expected second user execution access to fail with 403 but received ${forbiddenResponse.status}`)
-    }
-
-    const secondLatestResponse = await fetch(`${baseUrl}/api/execution/jobs/latest`, {
-      headers: {
-        authorization: `Bearer ${secondUser.idToken}`,
-      },
-    })
-
-    if (!secondLatestResponse.ok) {
-      throw new Error(`Second user latest execution load failed with ${secondLatestResponse.status}: ${await secondLatestResponse.text()}`)
-    }
-
-    const secondLatestJob = await secondLatestResponse.json() as { job: null }
-
-    if (secondLatestJob.job !== null) {
-      throw new Error(`Expected no latest execution job for second user but received ${JSON.stringify(secondLatestJob)}`)
     }
 
     const snapshot = await firestore.collection('executionJobs').doc(createdJob.job.jobId).get()
@@ -202,7 +170,7 @@ async function main() {
     }
 
     console.log(
-      `Wave 13 local execution integration validation succeeded for ${createdJob.job.jobId}. Verified authenticated submit, local container execution, stored-result retrieval, latest-job lookup, and denied cross-user access.`,
+      `Wave 13 local execution integration validation succeeded for ${createdJob.job.jobId}. Verified authenticated submit, local container execution, stored-result retrieval, and denied cross-user access.`,
     )
   } finally {
     backendProcess.kill('SIGTERM')

@@ -30,9 +30,9 @@ Wave 13 adds the authenticated browser flow on top of the same backend contract:
 1. A signed-in user edits Python in the main recording page.
 2. The UI submits the current source to `POST /api/execution/jobs`.
 3. The backend creates the stored execution record in Firestore and dispatches the configured execution backend as before.
-4. The UI loads `GET /api/execution/jobs/latest` to find the authenticated user's latest stored execution record.
-5. While the latest job remains `queued` or `running`, the UI polls `GET /api/execution/jobs/:jobId`.
-6. The UI renders only the latest execution result for this wave:
+4. The UI keeps the returned `jobId` in local page state.
+5. While that job remains `queued` or `running`, the UI polls `GET /api/execution/jobs/:jobId`.
+6. The UI renders only the current page session's execution result for this wave:
    - `stdout`
    - `stderr`
    - `exitCode`
