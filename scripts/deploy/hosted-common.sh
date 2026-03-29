@@ -366,11 +366,20 @@ steps:
       - -f
       - execution/python-runner/Dockerfile
       - -t
-      - ${HOSTED_EXECUTION_CONTAINER_IMAGE}
+      - ${HOSTED_PYTHON_EXECUTION_CONTAINER_IMAGE}
+      - .
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - execution/java-runner/Dockerfile
+      - -t
+      - ${HOSTED_JAVA_EXECUTION_CONTAINER_IMAGE}
       - .
 images:
   - ${HOSTED_CONTAINER_IMAGE}
-  - ${HOSTED_EXECUTION_CONTAINER_IMAGE}
+  - ${HOSTED_PYTHON_EXECUTION_CONTAINER_IMAGE}
+  - ${HOSTED_JAVA_EXECUTION_CONTAINER_IMAGE}
 EOF
 
   gcloud builds submit \
