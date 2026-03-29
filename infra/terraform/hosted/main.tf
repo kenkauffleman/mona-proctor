@@ -10,6 +10,11 @@ locals {
   ]
 }
 
+moved {
+  from = module.cloud_run_execution_job
+  to   = module.cloud_run_python_execution_job
+}
+
 module "firestore" {
   source = "./modules/firestore"
 
