@@ -1,3 +1,8 @@
+moved {
+  from = google_cloud_run_v2_job.python_execution
+  to   = google_cloud_run_v2_job.execution
+}
+
 resource "google_service_account" "execution_runtime" {
   project      = var.project_id
   account_id   = "${replace(var.job_name, "_", "-")}-runtime"
