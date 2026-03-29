@@ -468,7 +468,7 @@ export function RecordingPage() {
                 <pre className="event-log">
                   {latestJavaGradingResult
                     ? latestJavaGradingResult.compileFailed
-                      ? latestJavaGradingResult.tests.find((test) => test.stderr)?.stderr ?? 'No compiler output captured.'
+                      ? 'Per-test results are not shown when compilation fails.'
                       : latestJavaGradingResult.tests.map((test) => {
                       const lines = [
                         `${test.testId}: ${test.status}`,

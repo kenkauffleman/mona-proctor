@@ -338,7 +338,8 @@ describe('RecordingPage', () => {
     expect(screen.getByText('Java grading compile failure')).toBeInTheDocument()
     expect(screen.getByText('Current grading job: grade-java-1')).toBeInTheDocument()
     expect(screen.getByText('Passed tests: 0/4')).toBeInTheDocument()
-    expect(screen.getAllByText((content) => content.includes("';' expected"))).toHaveLength(2)
+    expect(screen.getByText((content) => content.includes("';' expected"))).toBeInTheDocument()
+    expect(screen.getByText('Per-test results are not shown when compilation fails.')).toBeInTheDocument()
     expect(screen.queryByText((content) => content.includes('expected stdout:'))).not.toBeInTheDocument()
   })
 
