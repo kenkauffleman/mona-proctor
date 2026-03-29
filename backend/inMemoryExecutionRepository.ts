@@ -8,6 +8,7 @@ import type {
   MarkExecutionDispatchedInput,
 } from './executionRepository.js'
 import type {
+  ExecutionLanguage,
   ExecutionRecord,
   ExecutionResult,
 } from './executionTypes.js'
@@ -75,9 +76,9 @@ export class InMemoryExecutionRepository implements ExecutionRepository {
     return cloneRecord(job)
   }
 
-  async getLatestJob(owner: AuthenticatedUser): Promise<ExecutionRecord | null> {
+  async getLatestJob(owner: AuthenticatedUser, language?: ExecutionLanguage): Promise<ExecutionRecord | null> {
     const ownedJobs = [...this.jobs.values()]
-      .filter((job) => job.ownerUid === owner.uid)
+      .filter((job) => job.ownerUid === owner.uid && (!language || job.language === language))
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
 
     return ownedJobs[0] ? cloneRecord(ownedJobs[0]) : null

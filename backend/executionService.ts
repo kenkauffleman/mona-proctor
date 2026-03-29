@@ -8,6 +8,7 @@ import type { ExecutionRepository } from './executionRepository.js'
 import type {
   CreateExecutionRequest,
   ExecutionLimits,
+  ExecutionLanguage,
   ExecutionRecord,
 } from './executionTypes.js'
 
@@ -51,22 +52,24 @@ export class ExecutionService {
     return this.repository.getJob(jobId, owner)
   }
 
-  getLatestExecutionJob(owner: AuthenticatedUser) {
-    return this.repository.getLatestJob(owner)
+  getLatestExecutionJob(owner: AuthenticatedUser, language?: ExecutionLanguage) {
+    return this.repository.getLatestJob(owner, language)
   }
 
   private validateCreateRequest(request: CreateExecutionRequest) {
-    if (request.language !== 'python') {
-      throw new ExecutionValidationError('Only python execution is supported in Wave 12.')
+    const languageLimits = this.limits.languageLimits[request.language as ExecutionLanguage]
+
+    if (!languageLimits) {
+      throw new ExecutionValidationError(`Unsupported execution language: ${request.language}.`)
     }
 
     if (request.source.trim().length === 0) {
       throw new ExecutionValidationError('Execution source must not be empty.')
     }
 
-    if (byteLength(request.source) > this.limits.maxSourceBytes) {
+    if (byteLength(request.source) > languageLimits.maxSourceBytes) {
       throw new ExecutionValidationError(
-        `Execution source exceeds the configured limit of ${this.limits.maxSourceBytes} bytes.`,
+        `Execution source exceeds the configured limit of ${languageLimits.maxSourceBytes} bytes for ${request.language}.`,
       )
     }
   }

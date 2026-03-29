@@ -130,7 +130,7 @@ describe('App', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: 'Authenticated Python execution',
+        name: 'Authenticated code execution',
       }),
     ).toBeInTheDocument()
     expect(screen.getByText('student1@example.com')).toBeInTheDocument()

@@ -14,14 +14,18 @@ describe('execution client', () => {
 
   it('treats a latest-job 404 as no stored execution result yet', async () => {
     getCurrentUserIdToken.mockResolvedValue('test-id-token')
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: false,
       status: 404,
       text: async () => '{"ok":false,"error":"Execution job not found."}',
     } as Response)
 
-    await expect(fetchLatestExecutionJob()).resolves.toEqual({
+    await expect(fetchLatestExecutionJob('java')).resolves.toEqual({
       job: null,
     })
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/execution/jobs/latest?language=java'),
+      expect.any(Object),
+    )
   })
 })

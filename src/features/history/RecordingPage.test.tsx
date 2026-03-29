@@ -194,6 +194,8 @@ describe('RecordingPage', () => {
     render(<RecordingPage />)
     await act(async () => {})
 
+    expect(fetchLatestExecutionJob).toHaveBeenCalledWith('python')
+
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Run Python' }))
     })
@@ -210,7 +212,7 @@ describe('RecordingPage', () => {
     expect(screen.getByText((content) => content.includes('hello'))).toBeInTheDocument()
   })
 
-  it('loads the latest job on mount, polls active execution, and disables running outside Python', async () => {
+  it('loads the latest job on mount, polls active execution, and switches latest-job lookups by language', async () => {
     fetchLatestExecutionJob.mockResolvedValue({
       job: {
         jobId: 'exec-running',
@@ -259,6 +261,7 @@ describe('RecordingPage', () => {
     await act(async () => {})
 
     expect(screen.getByText('Execution queued')).toBeInTheDocument()
+    expect(fetchLatestExecutionJob).toHaveBeenCalledWith('python')
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_000)
@@ -274,8 +277,71 @@ describe('RecordingPage', () => {
       })
     })
 
-    expect(screen.getByRole('button', { name: 'Run Python' })).toBeDisabled()
-    expect(screen.getByText(/Python execution is available only when the Python editor is selected/)).toBeInTheDocument()
+    expect(fetchLatestExecutionJob).toHaveBeenLastCalledWith('java')
+    expect(screen.getByRole('button', { name: 'Run Java' })).toBeEnabled()
+  })
+
+  it('submits Java execution and shows compile errors in the normal result area', async () => {
+    createExecutionJob.mockResolvedValue({
+      job: {
+        jobId: 'exec-java-1',
+        ownerUid: 'student-1',
+        language: 'java',
+        source: 'public class Main {}',
+        sourceSizeBytes: 20,
+        status: 'failed',
+        createdAt: '2026-03-28T00:00:00.000Z',
+        updatedAt: '2026-03-28T00:00:01.000Z',
+        startedAt: '2026-03-28T00:00:00.500Z',
+        completedAt: '2026-03-28T00:00:01.000Z',
+        backend: 'test-execution-backend',
+        backendJobName: 'job-java-1',
+        errorMessage: null,
+        result: {
+          status: 'failed',
+          stdout: '',
+          stderr: 'Main.java:2: error: \';\' expected\n',
+          exitCode: 1,
+          durationMs: 35,
+          truncated: false,
+        },
+      },
+    })
+
+    render(<RecordingPage />)
+    await act(async () => {})
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Language'), {
+        target: { value: 'java' },
+      })
+    })
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Run Java' }))
+    })
+
+    expect(createExecutionJob).toHaveBeenCalledWith({
+      language: 'java',
+      source: '',
+    })
+    expect(screen.getByText('Execution failed')).toBeInTheDocument()
+    expect(screen.getByText('Latest job: exec-java-1')).toBeInTheDocument()
+    expect(screen.getByText((content) => content.includes("';' expected"))).toBeInTheDocument()
+  })
+
+  it('disables execution outside Python and Java', async () => {
+    render(<RecordingPage />)
+    await act(async () => {})
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Language'), {
+        target: { value: 'javascript' },
+      })
+    })
+
+    expect(screen.getByRole('button', { name: 'Run Code' })).toBeDisabled()
+    expect(screen.getByText(/Execution is available only when the Python or Java editor is selected/)).toBeInTheDocument()
   })
 
   it('shows execution errors when the latest job load or submit fails', async () => {

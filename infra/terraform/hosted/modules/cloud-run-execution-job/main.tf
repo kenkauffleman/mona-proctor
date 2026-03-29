@@ -1,7 +1,7 @@
 resource "google_service_account" "execution_runtime" {
   project      = var.project_id
   account_id   = "${replace(var.job_name, "_", "-")}-runtime"
-  display_name = "Mona Proctor Python execution runtime"
+  display_name = "Mona Proctor execution runtime"
 }
 
 resource "google_project_iam_member" "execution_runtime_firestore_user" {
@@ -10,7 +10,7 @@ resource "google_project_iam_member" "execution_runtime_firestore_user" {
   member  = "serviceAccount:${google_service_account.execution_runtime.email}"
 }
 
-resource "google_cloud_run_v2_job" "python_execution" {
+resource "google_cloud_run_v2_job" "execution" {
   name     = var.job_name
   location = var.region
 
@@ -47,6 +47,26 @@ resource "google_cloud_run_v2_job" "python_execution" {
           name  = "EXECUTION_MAX_STDERR_BYTES"
           value = tostring(var.execution_max_stderr_bytes)
         }
+
+        env {
+          name  = "JAVA_EXECUTION_TIMEOUT_MS"
+          value = tostring(var.java_execution_timeout_ms)
+        }
+
+        env {
+          name  = "JAVA_EXECUTION_MAX_STDOUT_BYTES"
+          value = tostring(var.java_execution_max_stdout_bytes)
+        }
+
+        env {
+          name  = "JAVA_EXECUTION_MAX_STDERR_BYTES"
+          value = tostring(var.java_execution_max_stderr_bytes)
+        }
+
+        env {
+          name  = "JAVA_EXECUTION_MAX_MEMORY_MB"
+          value = tostring(var.java_execution_max_memory_mb)
+        }
       }
     }
   }
@@ -55,7 +75,7 @@ resource "google_cloud_run_v2_job" "python_execution" {
 resource "google_cloud_run_v2_job_iam_member" "backend_invoker" {
   project  = var.project_id
   location = var.region
-  name     = google_cloud_run_v2_job.python_execution.name
+  name     = google_cloud_run_v2_job.execution.name
   role     = "roles/run.invoker"
   member   = "serviceAccount:${var.backend_runtime_service_account_email}"
 }

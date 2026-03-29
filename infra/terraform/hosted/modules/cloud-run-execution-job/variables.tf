@@ -38,8 +38,28 @@ variable "execution_timeout_ms" {
   type        = number
 }
 
+variable "java_execution_max_memory_mb" {
+  description = "Maximum heap size passed to the Java runtime."
+  type        = number
+}
+
+variable "java_execution_max_stderr_bytes" {
+  description = "Maximum Java stderr bytes retained by the execution runner."
+  type        = number
+}
+
+variable "java_execution_max_stdout_bytes" {
+  description = "Maximum Java stdout bytes retained by the execution runner."
+  type        = number
+}
+
+variable "java_execution_timeout_ms" {
+  description = "Java execution timeout in milliseconds."
+  type        = number
+}
+
 variable "job_name" {
-  description = "Cloud Run Job name for Python execution."
+  description = "Cloud Run Job name for execution."
   type        = string
 }
 

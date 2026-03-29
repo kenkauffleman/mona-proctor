@@ -23,7 +23,7 @@ It summarizes the current npm scripts, when to use them, and what each one is me
   - Vite frontend on a container-friendly host
   - Firebase-authenticated backend API on port `8081`
 - Use this for the browser client ↔ backend ↔ Firestore vertical slice after the local emulators are already running.
-- Pair it with `npm run emulator:local`, `npm run auth:seed`, and `npm run execution:container:build` when you want the authenticated browser flow with real local Python execution working locally.
+- Pair it with `npm run emulator:local`, `npm run auth:seed`, and `npm run execution:container:build` when you want the authenticated browser flow with real local Python or Java execution working locally through separate language-specific images.
 
 ### `npm run dev:web`
 - Starts only the Vite frontend.
@@ -31,7 +31,7 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 
 ### `npm run dev:api`
 - Starts only the backend API with Firestore/Auth emulator settings and the local-container execution backend.
-- Use when working on backend token verification, authorization, Firestore persistence behavior, or real local Python execution dispatch.
+- Use when working on backend token verification, authorization, Firestore persistence behavior, or real local Python/Java execution dispatch.
 
 ### `npm run preview`
 - Serves the built frontend preview on a container-friendly host.
@@ -79,8 +79,8 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 ### `npm run manual:local`
 - Starts the full long-running local manual validation stack.
 - Waits for the Firestore and Auth emulators to finish starting before seeding the default local users.
-- Builds the local Python runner image, then starts the backend API and Vite frontend.
-- Use this when you want one command for manual browser verification of sign-in, history upload, replay, and Python execution.
+- Builds the local Python and Java runner images, then starts the backend API and Vite frontend.
+- Use this when you want one command for manual browser verification of sign-in, history upload, replay, and Python/Java execution.
 
 ## Backend and local validation scripts
 
@@ -154,11 +154,11 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 
 ### `npm run test:integration`
 - Starts the Firestore and Auth emulators and runs the integration Vitest suite under `tests/integration/`.
-- Validates authenticated backend/API behavior, Firestore persistence, local auth ownership checks, and local-container Python execution.
+- Validates authenticated backend/API behavior, Firestore persistence, local auth ownership checks, and local-container Python/Java execution.
 - This is the preferred repeatable emulator-backed validation layer for Wave 14 backend/auth/Firestore/execution seams.
 
 ### `npm run test:e2e`
-- Starts the Firestore and Auth emulators, launches a local frontend/backend test stack, builds the local Python runner image, and runs Playwright.
+- Starts the Firestore and Auth emulators, launches a local frontend/backend test stack, builds the local Python and Java runner images, and runs Playwright.
 - Covers a small set of high-value local browser flows:
   - authenticated happy path
   - execution submission/result display
@@ -236,16 +236,21 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - Confirms the hosted frontend is reachable, signs in through hosted Firebase Auth, appends and loads history with Firebase ID tokens, and checks at least one denied case.
 
 ### `npm run execution:container:validate`
-- Starts the Firestore emulator, seeds a queued execution record, builds the Python runner container, runs it against the emulator, verifies that the stored execution result becomes terminal, and shuts everything down.
-- This is the preferred repeatable local validation for the Wave 12 execution container before relying on hosted Cloud Run Jobs.
+- Starts the Firestore emulator, seeds a queued Python execution record, builds the Python execution runner container, runs it against the emulator, verifies that the stored execution result becomes terminal, and shuts everything down.
+- This remains the preferred repeatable local validation for the Python runner path.
+- Requires a local Docker-compatible runtime.
+
+### `npm run execution:java:container:validate`
+- Starts the Firestore emulator, seeds Java execution records, builds the Java execution runner container, runs it locally, and verifies both Java success and compile-failure handling.
+- Use this before relying on hosted Cloud Run Jobs for the Wave 17 Java path.
 - Requires a local Docker-compatible runtime.
 
 ### `npm run execution:container:build`
-- Builds the local Python runner image used by the `local-container` execution backend.
-- Use this before `npm run dev` if you want the browser flow to execute Python locally through Docker instead of failing with a missing image error.
+- Builds the local Python and Java execution runner images used by the `local-container` execution backend.
+- Use this before `npm run dev` if you want the browser flow to execute Python or Java locally through Docker instead of failing with a missing image error.
 
-### `npm run execution:submit -- --email <email> --password <password> --source-file <path>`
-- Reads hosted Terraform outputs, signs in through hosted Firebase Auth, and submits a Python execution job to the hosted backend.
+### `npm run execution:submit -- --email <email> --password <password> --language <python|java> --source-file <path>`
+- Reads hosted Terraform outputs, signs in through hosted Firebase Auth, and submits a Python or Java execution job to the hosted backend.
 - Prints the created execution record as JSON.
 - You can use `--source <code>` instead of `--source-file <path>`.
 
@@ -262,3 +267,7 @@ It summarizes the current npm scripts, when to use them, and what each one is me
 - Starts the Firestore and Auth emulators, builds the local Python runner image, boots the backend in `local-container` mode, signs in through the Auth emulator, submits Python execution through the authenticated API, waits for the Docker-backed local runner to write the terminal Firestore result, fetches that result back through both the job-id and latest-job endpoints, verifies Firestore persistence, checks runner logs, and validates a denied cross-user case.
 - This is the preferred repeatable local validation script for the Wave 13 UI-facing execution integration.
 - Use this before relying on hosted/manual validation for the integrated Python execution flow.
+
+### `npm run wave17:validate`
+- Starts the Firestore and Auth emulators, builds the Java runner image, boots the backend in `local-container` mode with separate Python and Java image names configured, signs in through the Auth emulator, submits Java execution through the authenticated API, waits for stored terminal results, verifies compile-failure normalization, checks latest-job language filtering, and validates a denied cross-user case.
+- This is the preferred repeatable local validation script for the Wave 17 non-UI Java path before relying on hosted/manual validation.

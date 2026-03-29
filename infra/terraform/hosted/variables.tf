@@ -48,15 +48,26 @@ variable "cloud_run_container_image" {
   type        = string
 }
 
-variable "execution_cloud_run_container_image" {
+variable "python_execution_cloud_run_container_image" {
   description = "Container image URI to deploy to the Python execution Cloud Run Job."
   type        = string
 }
 
-variable "execution_cloud_run_job_name" {
+variable "python_execution_cloud_run_job_name" {
   description = "Cloud Run Job name for the Python execution prototype."
   type        = string
   default     = "mona-proctor-python-executor"
+}
+
+variable "java_execution_cloud_run_container_image" {
+  description = "Container image URI to deploy to the Java execution Cloud Run Job."
+  type        = string
+}
+
+variable "java_execution_cloud_run_job_name" {
+  description = "Cloud Run Job name for the Java execution prototype."
+  type        = string
+  default     = "mona-proctor-java-executor"
 }
 
 variable "execution_backend" {
@@ -93,6 +104,36 @@ variable "execution_timeout_ms" {
   description = "Execution timeout in milliseconds."
   type        = number
   default     = 5000
+}
+
+variable "java_execution_max_memory_mb" {
+  description = "Maximum heap size passed to the Java runtime."
+  type        = number
+  default     = 128
+}
+
+variable "java_execution_max_source_bytes" {
+  description = "Maximum UTF-8 Java source size accepted by the backend."
+  type        = number
+  default     = 24576
+}
+
+variable "java_execution_max_stderr_bytes" {
+  description = "Maximum Java stderr bytes retained by the execution runner."
+  type        = number
+  default     = 6144
+}
+
+variable "java_execution_max_stdout_bytes" {
+  description = "Maximum Java stdout bytes retained by the execution runner."
+  type        = number
+  default     = 8192
+}
+
+variable "java_execution_timeout_ms" {
+  description = "Java execution timeout in milliseconds."
+  type        = number
+  default     = 6000
 }
 
 variable "cloud_run_invoker_principal" {

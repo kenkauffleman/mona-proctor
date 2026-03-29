@@ -1,6 +1,6 @@
 # mona-proctor
 
-Phase 15 focuses on cleanup and refactor work under the stronger local validation stack added in Phase 14.
+Phase 17 focuses on the Java execution prototype on top of the existing authenticated history and execution stack.
 
 The repo currently provides:
 
@@ -8,8 +8,8 @@ The repo currently provides:
 - an authenticated local browser ↔ backend ↔ Firestore vertical slice
 - local Firestore/Auth emulator workflows and validation scripts
 - a TypeScript backend history API with Firestore-backed persistence
-- a TypeScript backend execution API for Python submission and stored-result retrieval
-- a local Python runner container used by automated integration and e2e validation
+- a TypeScript backend execution API for Python and Java submission and stored-result retrieval
+- a local execution runner container used by automated integration and e2e validation
 - a single hosted Terraform root for Firestore, Artifact Registry, Cloud Run service, and Cloud Run Job
 - one project-level deploy workflow for hosted environments like `test` and `prod`
 
@@ -82,7 +82,7 @@ npm run backend:api:validate
 
 ## Local test stack
 
-Phase 14 formalized the local validation stack around the authenticated history and Python execution flow:
+Phase 14 and later waves formalized the local validation stack around the authenticated history plus Python and Java execution flows:
 
 ```bash
 npm run test:unit
@@ -98,7 +98,7 @@ To start one long-running stack for manual local verification:
 npm run manual:local
 ```
 
-This command starts the Firestore/Auth emulators, waits for them to become ready, seeds the default local Auth users, builds the local Python runner image, and then starts the backend plus frontend.
+This command starts the Firestore/Auth emulators, waits for them to become ready, seeds the default local Auth users, builds the local execution runner image, and then starts the backend plus frontend.
 
 ## Hosted deployment
 
@@ -143,7 +143,7 @@ See [docs/hosted-deployment.md](./docs/hosted-deployment.md) for the full runboo
 - `npm run auth:seed` seeds the local Auth emulator users
 - `npm run emulator:firestore:check` runs the emulator-backed read/write sanity check
 - `npm run emulator:firestore:manualcheck` runs the same sanity check, prints the fetched document, and keeps the emulator UI running
-- `npm run manual:local` starts the full local manual verification stack: emulators, auth seed, backend, frontend, and local Python execution image
+- `npm run manual:local` starts the full local manual verification stack: emulators, auth seed, backend, frontend, and the local Python and Java execution images
 - `npm run deploy -- adopt --env <name>` imports existing Firestore resources into the unified hosted Terraform state one time during migration
 - `npm run deploy -- build --env <name>` bootstraps hosted prerequisites, then builds and pushes the backend image
 - `npm run execution:container:validate` validates the Python runner container locally against the Firestore emulator

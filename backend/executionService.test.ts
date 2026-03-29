@@ -8,17 +8,27 @@ function createService(backend: ExecutionBackend) {
     new InMemoryExecutionRepository(),
     backend,
     {
-      maxSourceBytes: 32,
-      timeoutMs: 5_000,
-      maxStdoutBytes: 256,
-      maxStderrBytes: 256,
       globalActiveJobLimit: 2,
+      languageLimits: {
+        python: {
+          maxSourceBytes: 32,
+          timeoutMs: 5_000,
+          maxStdoutBytes: 256,
+          maxStderrBytes: 256,
+        },
+        java: {
+          maxSourceBytes: 64,
+          timeoutMs: 6_000,
+          maxStdoutBytes: 512,
+          maxStderrBytes: 512,
+        },
+      },
     },
   )
 }
 
 describe('execution service', () => {
-  it('rejects empty source and oversized source', async () => {
+  it('rejects empty source and oversized source per language', async () => {
     const service = createService({
       name: 'test-backend',
       async dispatch() {
@@ -36,6 +46,11 @@ describe('execution service', () => {
       language: 'python',
       source: 'x'.repeat(40),
     })).rejects.toThrow('configured limit')
+
+    await expect(service.submitExecution(owner, {
+      language: 'java',
+      source: 'x'.repeat(80),
+    })).rejects.toThrow('configured limit of 64 bytes for java')
   })
 
   it('stores a terminal error result when dispatch fails', async () => {

@@ -8,7 +8,7 @@ async function signIn(page: Page, email: string) {
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill('pass1234')
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByRole('heading', { name: 'Authenticated Python execution' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Authenticated code execution' })).toBeVisible()
 }
 
 async function signInAuthEmulator(email: string) {
@@ -94,12 +94,21 @@ test('execution submission displays the latest stored result', async ({ page }) 
   await expect(page.getByText('Exit status: 0')).toBeVisible()
 })
 
-test('non-python selection exposes the local execution guardrail', async ({ page }) => {
+test('java selection enables the Java execution controls', async ({ page }) => {
   await signIn(page, 'student1@example.com')
   await page.getByLabel('Language').selectOption('java')
 
-  await expect(page.getByRole('button', { name: 'Run Python' })).toBeDisabled()
-  await expect(page.getByText('Python execution is available only when the Python editor is selected in this wave.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Run Java' })).toBeEnabled()
+  await expect(page.getByRole('heading', { name: 'Java Execution' })).toBeVisible()
+  await expect(page.getByText('No execution submitted yet')).toBeVisible()
+})
+
+test('javascript selection exposes the local execution guardrail', async ({ page }) => {
+  await signIn(page, 'student1@example.com')
+  await page.getByLabel('Language').selectOption('javascript')
+
+  await expect(page.getByRole('button', { name: 'Run Code' })).toBeDisabled()
+  await expect(page.getByText('Execution is available only when the Python or Java editor is selected in this wave.')).toBeVisible()
 })
 
 test('one user cannot replay another user session', async ({ page }) => {

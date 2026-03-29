@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { OnMount } from '@monaco-editor/react'
+import type { ExecutionLanguage, ExecutionRecord } from '../../../backend/executionTypes'
 import { EditorPane } from '../../components/EditorPane'
 import { LanguageSelector } from '../../components/LanguageSelector'
-import type { ExecutionRecord } from '../../../backend/executionTypes'
 import {
   emptySourcesByLanguage,
   editorLanguages,
@@ -23,6 +23,11 @@ import type { RecordedMonacoEvent } from './types'
 
 const syncIntervalMs = 2000
 const executionPollIntervalMs = 1000
+const runnableLanguages: ExecutionLanguage[] = ['python', 'java']
+
+function isExecutionLanguage(language: EditorLanguage): language is ExecutionLanguage {
+  return runnableLanguages.includes(language as ExecutionLanguage)
+}
 
 function formatSyncLabel(state: HistoryBatcherState) {
   if (state.isFlushing) {
@@ -110,6 +115,7 @@ export function RecordingPage() {
   const [isLoadingLatestExecutionJob, setIsLoadingLatestExecutionJob] = useState(true)
   const [executionError, setExecutionError] = useState<string | null>(null)
   const [isSubmittingExecution, setIsSubmittingExecution] = useState(false)
+  const executionLanguage = isExecutionLanguage(activeLanguage) ? activeLanguage : null
 
   useEffect(() => {
     const batcher = new HistoryBatcher({
@@ -153,10 +159,17 @@ export function RecordingPage() {
     let isCancelled = false
 
     const loadLatestExecutionJob = async () => {
+      if (!executionLanguage) {
+        setLatestExecutionJob(null)
+        setExecutionError(null)
+        setIsLoadingLatestExecutionJob(false)
+        return
+      }
+
       setIsLoadingLatestExecutionJob(true)
 
       try {
-        const response = await fetchLatestExecutionJob()
+        const response = await fetchLatestExecutionJob(executionLanguage)
 
         if (isCancelled) {
           return
@@ -182,7 +195,7 @@ export function RecordingPage() {
     return () => {
       isCancelled = true
     }
-  }, [])
+  }, [executionLanguage])
 
   useEffect(() => {
     if (!latestExecutionJob || isExecutionTerminal(latestExecutionJob)) {
@@ -252,11 +265,15 @@ export function RecordingPage() {
   }
 
   const handleRunPython = async () => {
+    if (!executionLanguage) {
+      return
+    }
+
     setIsSubmittingExecution(true)
 
     try {
       const response = await createExecutionJob({
-        language: 'python',
+        language: executionLanguage,
         source,
       })
       setLatestExecutionJob(response.job)
@@ -270,15 +287,16 @@ export function RecordingPage() {
 
   const activeLanguageConfig = editorLanguages[activeLanguage]
   const latestExecutionResult = latestExecutionJob?.result ?? null
-  const canRunPython = activeLanguage === 'python'
+  const canRunCode = !!executionLanguage
+  const executionLabel = executionLanguage ? editorLanguages[executionLanguage].label : 'Code'
 
   return (
     <main className="app-shell">
       <section className="hero">
         <p className="eyebrow">{currentPhaseLabel}</p>
-        <h1>Authenticated Python execution</h1>
+        <h1>Authenticated code execution</h1>
         <p className="hero-copy">
-          Record Monaco content-change events, run Python through the authenticated backend flow,
+          Record Monaco content-change events, run Python or Java through the authenticated backend flow,
           and display the latest stored execution result directly in the app.
         </p>
       </section>
@@ -287,7 +305,7 @@ export function RecordingPage() {
         <div className="workspace-toolbar">
           <div>
             <h2>Recording Page</h2>
-            <p>Each page session keeps the authenticated history upload path while showing the latest stored Python execution result.</p>
+            <p>Each page session keeps the authenticated history upload path while showing the latest stored execution result for the selected runnable language.</p>
           </div>
           <LanguageSelector
             languages={editorLanguages}
@@ -331,19 +349,19 @@ export function RecordingPage() {
           </section>
         </div>
 
-        <section className="debug-panel" aria-label="Python execution status">
+        <section className="debug-panel" aria-label="Execution status">
           <div className="panel-heading">
             <div>
-              <h3>Python Execution</h3>
-              <p>The app shows only the latest execution record stored for the authenticated user.</p>
+              <h3>{executionLabel} Execution</h3>
+              <p>The app shows only the latest execution record stored for the authenticated user for the selected runnable language.</p>
             </div>
             <div className="replay-controls">
               <button
                 type="button"
                 onClick={() => void handleRunPython()}
-                disabled={!canRunPython || isSubmittingExecution}
+                disabled={!canRunCode || isSubmittingExecution}
               >
-                {isSubmittingExecution ? 'Submitting...' : 'Run Python'}
+                {isSubmittingExecution ? 'Submitting...' : `Run ${executionLabel}`}
               </button>
             </div>
           </div>
@@ -354,8 +372,8 @@ export function RecordingPage() {
             <span>Duration: {formatDuration(latestExecutionResult?.durationMs ?? null)}</span>
             <span>Truncated: {latestExecutionResult?.truncated ? 'yes' : 'no'}</span>
           </div>
-          {!canRunPython ? (
-            <p className="panel-note">Python execution is available only when the Python editor is selected in this wave.</p>
+          {!canRunCode ? (
+            <p className="panel-note">Execution is available only when the Python or Java editor is selected in this wave.</p>
           ) : null}
           {executionError ? <p className="auth-error panel-note">{executionError}</p> : null}
           <div className="execution-results-grid">

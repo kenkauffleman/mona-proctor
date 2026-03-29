@@ -89,8 +89,8 @@ For most tasks:
 6. run lint and typecheck
 7. summarize changes, verification, and remaining gaps
 
-## Wave 14 local test stack
-Wave 14 formalizes the local validation layers around the current authenticated Python flow.
+## Local test stack
+The current test stack covers the authenticated history flow plus the Python and Java execution prototype flows.
 
 Preferred local order:
 1. `npm run test:unit`
@@ -111,7 +111,7 @@ Use `npm run test:local` when you want the full local unit + emulator-backed int
   - validates authenticated backend flows plus Firestore persistence
 - `npm run test:e2e`
   - starts the Firestore and Auth emulators through `firebase emulators:exec`
-  - launches a local frontend/backend test stack plus the local Python runner image
+  - launches a local frontend/backend test stack plus the local Python and Java execution runner images
   - runs Playwright against a small set of stable high-value user flows
 
 ### Browser test scope

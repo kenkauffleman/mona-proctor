@@ -12,11 +12,21 @@ const executionRepository = new FirestoreExecutionRepository(config.projectId)
 const authVerifier = new FirebaseAdminAuthVerifier(config.projectId)
 const executionBackend = createExecutionBackend(config)
 const executionService = new ExecutionService(executionRepository, executionBackend, {
-  maxSourceBytes: config.executionMaxSourceBytes,
-  timeoutMs: config.executionTimeoutMs,
-  maxStdoutBytes: config.executionMaxStdoutBytes,
-  maxStderrBytes: config.executionMaxStderrBytes,
   globalActiveJobLimit: config.executionGlobalActiveJobLimit,
+  languageLimits: {
+    python: {
+      maxSourceBytes: config.executionMaxSourceBytes,
+      timeoutMs: config.executionTimeoutMs,
+      maxStdoutBytes: config.executionMaxStdoutBytes,
+      maxStderrBytes: config.executionMaxStderrBytes,
+    },
+    java: {
+      maxSourceBytes: config.javaExecutionMaxSourceBytes,
+      timeoutMs: config.javaExecutionTimeoutMs,
+      maxStdoutBytes: config.javaExecutionMaxStdoutBytes,
+      maxStderrBytes: config.javaExecutionMaxStderrBytes,
+    },
+  },
 })
 const app = createBackendApp(historyRepository, authVerifier, executionService, config)
 

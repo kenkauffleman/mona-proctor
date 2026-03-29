@@ -1,8 +1,8 @@
-import type { ExecutionBackend, ExecutionDispatchResult } from './executionBackend.js'
+import type { ExecutionBackend, ExecutionBackendOptionsByLanguage, ExecutionDispatchResult } from './executionBackend.js'
 import type { ExecutionRecord } from './executionTypes.js'
 
 type CloudRunJobExecutionBackendOptions = {
-  jobName: string
+  jobs: ExecutionBackendOptionsByLanguage
   projectId: string
   region: string
 }
@@ -44,14 +44,14 @@ export class CloudRunJobExecutionBackend implements ExecutionBackend {
   constructor(private readonly options: CloudRunJobExecutionBackendOptions) {}
 
   async dispatch(job: ExecutionRecord): Promise<ExecutionDispatchResult> {
-    void job
+    const jobConfiguration = this.options.jobs[job.language]
     const accessToken = await getMetadataAccessToken()
     const endpoint = [
       'https://run.googleapis.com/v2/projects',
       this.options.projectId,
       'locations',
       this.options.region,
-      `jobs/${this.options.jobName}:run`,
+      `jobs/${jobConfiguration.backendJobNameOrImage}:run`,
     ].join('/')
     const response = await fetch(endpoint, {
       method: 'POST',

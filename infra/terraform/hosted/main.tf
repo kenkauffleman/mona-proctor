@@ -40,32 +40,60 @@ module "cloud_run_backend" {
   allowed_origins                   = local.hosted_frontend_origins
   invoker_principal                 = var.cloud_run_invoker_principal
   execution_backend                 = var.execution_backend
-  execution_cloud_run_job_name      = var.execution_cloud_run_job_name
+  execution_cloud_run_java_job_name = var.java_execution_cloud_run_job_name
+  execution_cloud_run_python_job_name = var.python_execution_cloud_run_job_name
   execution_global_active_job_limit = var.execution_global_active_job_limit
   execution_max_source_bytes        = var.execution_max_source_bytes
   execution_max_stderr_bytes        = var.execution_max_stderr_bytes
   execution_max_stdout_bytes        = var.execution_max_stdout_bytes
   execution_timeout_ms              = var.execution_timeout_ms
+  java_execution_max_memory_mb      = var.java_execution_max_memory_mb
+  java_execution_max_source_bytes   = var.java_execution_max_source_bytes
+  java_execution_max_stderr_bytes   = var.java_execution_max_stderr_bytes
+  java_execution_max_stdout_bytes   = var.java_execution_max_stdout_bytes
+  java_execution_timeout_ms         = var.java_execution_timeout_ms
   max_instance_count                = var.cloud_run_max_instance_count
   min_instance_count                = var.cloud_run_min_instance_count
 
   depends_on = [module.firestore, module.firebase_frontend]
 }
 
-module "cloud_run_execution_job" {
+module "cloud_run_python_execution_job" {
   source = "./modules/cloud-run-execution-job"
 
   project_id                            = var.project_id
   region                                = var.region
-  job_name                              = var.execution_cloud_run_job_name
+  job_name                              = var.python_execution_cloud_run_job_name
   artifact_repository_name              = var.artifact_repository_name
-  container_image                       = var.execution_cloud_run_container_image
+  container_image                       = var.python_execution_cloud_run_container_image
   backend_runtime_service_account_email = module.cloud_run_backend.runtime_service_account_email
   execution_global_active_job_limit     = var.execution_global_active_job_limit
   execution_max_source_bytes            = var.execution_max_source_bytes
   execution_max_stderr_bytes            = var.execution_max_stderr_bytes
   execution_max_stdout_bytes            = var.execution_max_stdout_bytes
   execution_timeout_ms                  = var.execution_timeout_ms
+ 
+  depends_on = [module.cloud_run_backend]
+}
+
+module "cloud_run_java_execution_job" {
+  source = "./modules/cloud-run-execution-job"
+
+  project_id                            = var.project_id
+  region                                = var.region
+  job_name                              = var.java_execution_cloud_run_job_name
+  artifact_repository_name              = var.artifact_repository_name
+  container_image                       = var.java_execution_cloud_run_container_image
+  backend_runtime_service_account_email = module.cloud_run_backend.runtime_service_account_email
+  execution_global_active_job_limit     = var.execution_global_active_job_limit
+  execution_max_source_bytes            = var.execution_max_source_bytes
+  execution_max_stderr_bytes            = var.execution_max_stderr_bytes
+  execution_max_stdout_bytes            = var.execution_max_stdout_bytes
+  execution_timeout_ms                  = var.execution_timeout_ms
+  java_execution_max_memory_mb          = var.java_execution_max_memory_mb
+  java_execution_max_stderr_bytes       = var.java_execution_max_stderr_bytes
+  java_execution_max_stdout_bytes       = var.java_execution_max_stdout_bytes
+  java_execution_timeout_ms             = var.java_execution_timeout_ms
 
   depends_on = [module.cloud_run_backend]
 }

@@ -8,7 +8,7 @@ const port = 18081 + (process.pid % 1000)
 const host = '127.0.0.1'
 const baseUrl = `http://${host}:${port}`
 const projectId = process.env.GCLOUD_PROJECT ?? 'demo-mona-proctor'
-const imageName = 'mona-proctor-python-runner-local'
+const pythonImageName = 'mona-proctor-python-runner-local'
 
 type LoadedExecutionJob = {
   job: {
@@ -55,7 +55,7 @@ async function waitForHealthcheck(timeoutMs: number) {
 
 async function main() {
   await ensureDockerAvailable()
-  await buildLocalPythonRunnerImage(imageName)
+  await buildLocalPythonRunnerImage(pythonImageName)
 
   const backendProcess = spawn(
     'npx',
@@ -64,7 +64,8 @@ async function main() {
       env: {
         ...process.env,
         EXECUTION_BACKEND: 'local-container',
-        EXECUTION_LOCAL_CONTAINER_IMAGE_NAME: imageName,
+        EXECUTION_LOCAL_CONTAINER_PYTHON_IMAGE_NAME: pythonImageName,
+        EXECUTION_LOCAL_CONTAINER_JAVA_IMAGE_NAME: 'mona-proctor-java-runner-local',
         PORT: String(port),
         GCLOUD_PROJECT: projectId,
       },

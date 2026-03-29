@@ -57,8 +57,8 @@ function AuthenticatedApp() {
           <h1>{runtimeConfig.appModeLabel}</h1>
           <p className="hero-copy">
             {runtimeConfig.isHostedAuth
-              ? 'Sign in with a hosted Firebase Auth user before recording history or running Python execution.'
-              : 'Sign in with a local Firebase Auth emulator user before recording history or running Python execution.'}
+              ? 'Sign in with a hosted Firebase Auth user before recording history or running code execution.'
+              : 'Sign in with a local Firebase Auth emulator user before recording history or running code execution.'}
           </p>
         </section>
 

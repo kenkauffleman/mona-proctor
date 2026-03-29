@@ -9,6 +9,7 @@ import type {
   MarkExecutionDispatchedInput,
 } from './executionRepository.js'
 import type {
+  ExecutionLanguage,
   ExecutionRecord,
   ExecutionResult,
   ExecutionStatus,
@@ -158,10 +159,16 @@ export class FirestoreExecutionRepository implements ExecutionRepository {
     return executionRecordFromDocument(document)
   }
 
-  async getLatestJob(owner: AuthenticatedUser): Promise<ExecutionRecord | null> {
-    const snapshot = await this.firestore
+  async getLatestJob(owner: AuthenticatedUser, language?: ExecutionLanguage): Promise<ExecutionRecord | null> {
+    let query: FirebaseFirestore.Query = this.firestore
       .collection(executionJobsCollection)
       .where('ownerUid', '==', owner.uid)
+
+    if (language) {
+      query = query.where('language', '==', language)
+    }
+
+    const snapshot = await query
       .orderBy('createdAt', 'desc')
       .limit(1)
       .get()

@@ -1,4 +1,4 @@
-export const executionLanguages = ['python'] as const
+export const executionLanguages = ['python', 'java'] as const
 
 export type ExecutionLanguage = (typeof executionLanguages)[number]
 
@@ -50,11 +50,13 @@ export type ExecutionRecord = {
 }
 
 export type ExecutionLimits = {
-  maxSourceBytes: number
-  timeoutMs: number
-  maxStdoutBytes: number
-  maxStderrBytes: number
   globalActiveJobLimit: number
+  languageLimits: Record<ExecutionLanguage, {
+    maxSourceBytes: number
+    timeoutMs: number
+    maxStdoutBytes: number
+    maxStderrBytes: number
+  }>
 }
 
 export type CreateExecutionResponse = {

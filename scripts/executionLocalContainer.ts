@@ -33,25 +33,46 @@ export function runCommand(
 
 export async function ensureDockerAvailable(dockerCommand = 'docker') {
   const result = await runCommand(dockerCommand, ['--version'], { capture: true }).catch((error) => {
-    throw new Error(`Docker is required for local Python execution: ${String(error)}`)
+    throw new Error(`Docker is required for local execution validation: ${String(error)}`)
   })
 
   if (result.code !== 0) {
-    throw new Error(`Docker is required for local Python execution.\n${result.stderr || result.stdout}`)
+    throw new Error(`Docker is required for local execution validation.\n${result.stderr || result.stdout}`)
   }
 }
 
-export async function buildLocalPythonRunnerImage(imageName: string, dockerCommand = 'docker') {
+export async function buildLocalExecutorImage(
+  language: 'python' | 'java',
+  imageName: string,
+  dockerCommand = 'docker',
+) {
+  const dockerfile = language === 'python'
+    ? 'execution/python-runner/Dockerfile'
+    : 'execution/java-runner/Dockerfile'
   const buildResult = await runCommand(dockerCommand, [
     'build',
     '-f',
-    'execution/python-runner/Dockerfile',
+    dockerfile,
     '-t',
     imageName,
     '.',
   ])
 
   if (buildResult.code !== 0) {
-    throw new Error(`Python execution runner image build failed for ${imageName}.`)
+    throw new Error(`${language} execution runner image build failed for ${imageName}.`)
   }
 }
+
+export async function buildLocalExecutionRunnerImages(
+  images: { pythonImageName: string; javaImageName: string },
+  dockerCommand = 'docker',
+) {
+  await buildLocalExecutorImage('python', images.pythonImageName, dockerCommand)
+  await buildLocalExecutorImage('java', images.javaImageName, dockerCommand)
+}
+
+export const buildLocalPythonRunnerImage = (imageName: string, dockerCommand = 'docker') =>
+  buildLocalExecutorImage('python', imageName, dockerCommand)
+
+export const buildLocalJavaRunnerImage = (imageName: string, dockerCommand = 'docker') =>
+  buildLocalExecutorImage('java', imageName, dockerCommand)

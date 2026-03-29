@@ -1,12 +1,16 @@
 import { spawn } from 'node:child_process'
-import type { ExecutionBackend, ExecutionDispatchResult } from './executionBackend.js'
+import type { ExecutionBackend, ExecutionBackendOptionsByLanguage, ExecutionDispatchResult } from './executionBackend.js'
 import type { ExecutionRecord } from './executionTypes.js'
 
 type LocalContainerExecutionBackendOptions = {
   addHostGateway: boolean
   dockerCommand: string
   firestoreEmulatorHost?: string
-  imageName: string
+  images: ExecutionBackendOptionsByLanguage
+  javaMaxMemoryMb: number
+  javaMaxStderrBytes: number
+  javaMaxStdoutBytes: number
+  javaTimeoutMs: number
   maxStderrBytes: number
   maxStdoutBytes: number
   network?: string
@@ -75,6 +79,7 @@ export class LocalContainerExecutionBackend implements ExecutionBackend {
 
   async dispatch(job: ExecutionRecord): Promise<ExecutionDispatchResult> {
     const containerName = sanitizeContainerName(`mona-proctor-exec-${job.jobId}`)
+    const imageConfiguration = this.options.images[job.language]
     const args = [
       'run',
       '--detach',
@@ -99,6 +104,14 @@ export class LocalContainerExecutionBackend implements ExecutionBackend {
       `EXECUTION_MAX_STDOUT_BYTES=${this.options.maxStdoutBytes}`,
       '--env',
       `EXECUTION_MAX_STDERR_BYTES=${this.options.maxStderrBytes}`,
+      '--env',
+      `JAVA_EXECUTION_TIMEOUT_MS=${this.options.javaTimeoutMs}`,
+      '--env',
+      `JAVA_EXECUTION_MAX_STDOUT_BYTES=${this.options.javaMaxStdoutBytes}`,
+      '--env',
+      `JAVA_EXECUTION_MAX_STDERR_BYTES=${this.options.javaMaxStderrBytes}`,
+      '--env',
+      `JAVA_EXECUTION_MAX_MEMORY_MB=${this.options.javaMaxMemoryMb}`,
     )
 
     if (this.options.firestoreEmulatorHost) {
@@ -108,7 +121,7 @@ export class LocalContainerExecutionBackend implements ExecutionBackend {
       )
     }
 
-    args.push(this.options.imageName)
+    args.push(imageConfiguration.backendJobNameOrImage)
 
     const result = await this.runCommand(this.options.dockerCommand, args).catch((error) => {
       throw new Error(`Local container dispatch failed: ${String(error)}`)

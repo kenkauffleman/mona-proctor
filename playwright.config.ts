@@ -23,7 +23,8 @@ export default defineConfig({
       E2E_FRONTEND_PORT: String(frontendPort),
       E2E_BACKEND_PORT: String(backendPort),
       GCLOUD_PROJECT: process.env.GCLOUD_PROJECT ?? 'demo-mona-proctor',
-      EXECUTION_LOCAL_CONTAINER_IMAGE_NAME: process.env.EXECUTION_LOCAL_CONTAINER_IMAGE_NAME ?? 'mona-proctor-python-runner-local',
+      EXECUTION_LOCAL_CONTAINER_PYTHON_IMAGE_NAME: process.env.EXECUTION_LOCAL_CONTAINER_PYTHON_IMAGE_NAME ?? 'mona-proctor-python-runner-local',
+      EXECUTION_LOCAL_CONTAINER_JAVA_IMAGE_NAME: process.env.EXECUTION_LOCAL_CONTAINER_JAVA_IMAGE_NAME ?? 'mona-proctor-java-runner-local',
     },
   },
   projects: [

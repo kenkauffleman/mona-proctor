@@ -12,7 +12,14 @@ describe('LocalContainerExecutionBackend', () => {
       addHostGateway: true,
       dockerCommand: 'docker',
       firestoreEmulatorHost: '127.0.0.1:8080',
-      imageName: 'mona-proctor-python-runner-local',
+      images: {
+        python: { backendJobNameOrImage: 'mona-proctor-python-runner-local' },
+        java: { backendJobNameOrImage: 'mona-proctor-java-runner-local' },
+      },
+      javaMaxMemoryMb: 128,
+      javaMaxStderrBytes: 4096,
+      javaMaxStdoutBytes: 2048,
+      javaTimeoutMs: 6000,
       maxStderrBytes: 1024,
       maxStdoutBytes: 2048,
       projectId: 'demo-mona-proctor',
@@ -52,6 +59,14 @@ describe('LocalContainerExecutionBackend', () => {
       '--env',
       'EXECUTION_MAX_STDERR_BYTES=1024',
       '--env',
+      'JAVA_EXECUTION_TIMEOUT_MS=6000',
+      '--env',
+      'JAVA_EXECUTION_MAX_STDOUT_BYTES=2048',
+      '--env',
+      'JAVA_EXECUTION_MAX_STDERR_BYTES=4096',
+      '--env',
+      'JAVA_EXECUTION_MAX_MEMORY_MB=128',
+      '--env',
       'FIRESTORE_EMULATOR_HOST=host.docker.internal:8080',
       'mona-proctor-python-runner-local',
     ])
@@ -64,7 +79,14 @@ describe('LocalContainerExecutionBackend', () => {
     const backend = new LocalContainerExecutionBackend({
       addHostGateway: false,
       dockerCommand: 'docker',
-      imageName: 'runner-image',
+      images: {
+        python: { backendJobNameOrImage: 'runner-image' },
+        java: { backendJobNameOrImage: 'runner-image-java' },
+      },
+      javaMaxMemoryMb: 128,
+      javaMaxStderrBytes: 4096,
+      javaMaxStdoutBytes: 2048,
+      javaTimeoutMs: 6000,
       maxStderrBytes: 1024,
       maxStdoutBytes: 1024,
       projectId: 'demo-mona-proctor',
@@ -91,5 +113,50 @@ describe('LocalContainerExecutionBackend', () => {
       errorMessage: null,
       result: null,
     })).rejects.toThrow('Local container dispatch failed: missing image')
+  })
+
+  it('selects the Java runner image for Java jobs', async () => {
+    const runCommand = vi.fn().mockResolvedValue({
+      code: 0,
+      stderr: '',
+      stdout: 'container-456\n',
+    })
+    const backend = new LocalContainerExecutionBackend({
+      addHostGateway: false,
+      dockerCommand: 'docker',
+      images: {
+        python: { backendJobNameOrImage: 'mona-proctor-python-runner-local' },
+        java: { backendJobNameOrImage: 'mona-proctor-java-runner-local' },
+      },
+      javaMaxMemoryMb: 128,
+      javaMaxStderrBytes: 4096,
+      javaMaxStdoutBytes: 2048,
+      javaTimeoutMs: 6000,
+      maxStderrBytes: 1024,
+      maxStdoutBytes: 1024,
+      projectId: 'demo-mona-proctor',
+      timeoutMs: 5000,
+    }, runCommand)
+
+    await backend.dispatch({
+      jobId: 'exec-java-123',
+      ownerUid: 'student-1',
+      language: 'java',
+      source: 'public class Main { public static void main(String[] args) {} }',
+      sourceSizeBytes: 62,
+      status: 'queued',
+      createdAt: '2026-03-28T00:00:00.000Z',
+      updatedAt: '2026-03-28T00:00:00.000Z',
+      startedAt: null,
+      completedAt: null,
+      backend: 'local-container',
+      backendJobName: null,
+      errorMessage: null,
+      result: null,
+    })
+
+    expect(runCommand).toHaveBeenCalledWith('docker', expect.arrayContaining([
+      'mona-proctor-java-runner-local',
+    ]))
   })
 })

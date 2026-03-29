@@ -2,7 +2,7 @@ import net from 'node:net'
 import process from 'node:process'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { ensureLocalAuthUser, localAuthUsers } from './authEmulatorUsers.js'
-import { buildLocalPythonRunnerImage, ensureDockerAvailable } from './executionLocalContainer.js'
+import { buildLocalExecutionRunnerImages, ensureDockerAvailable } from './executionLocalContainer.js'
 
 const projectId = process.env.GCLOUD_PROJECT ?? 'demo-mona-proctor'
 const firestoreHost = '127.0.0.1'
@@ -15,7 +15,8 @@ const backendHost = '127.0.0.1'
 const backendPort = 8081
 const frontendHost = '127.0.0.1'
 const frontendPort = 5173
-const imageName = process.env.EXECUTION_LOCAL_CONTAINER_IMAGE_NAME ?? 'mona-proctor-python-runner-local'
+const pythonImageName = process.env.EXECUTION_LOCAL_CONTAINER_PYTHON_IMAGE_NAME ?? 'mona-proctor-python-runner-local'
+const javaImageName = process.env.EXECUTION_LOCAL_CONTAINER_JAVA_IMAGE_NAME ?? 'mona-proctor-java-runner-local'
 
 function startProcess(command: string, args: string[], env: NodeJS.ProcessEnv) {
   return spawn(command, args, {
@@ -72,7 +73,7 @@ async function main() {
   }
 
   await ensureDockerAvailable()
-  await buildLocalPythonRunnerImage(imageName)
+  await buildLocalExecutionRunnerImages({ pythonImageName, javaImageName })
 
   const childProcesses: ChildProcess[] = []
   let shuttingDown = false
@@ -126,7 +127,8 @@ async function main() {
         FIRESTORE_EMULATOR_HOST: `${firestoreHost}:${firestorePort}`,
         FIREBASE_AUTH_EMULATOR_HOST: `${authHost}:${authPort}`,
         EXECUTION_BACKEND: 'local-container',
-        EXECUTION_LOCAL_CONTAINER_IMAGE_NAME: imageName,
+        EXECUTION_LOCAL_CONTAINER_PYTHON_IMAGE_NAME: pythonImageName,
+        EXECUTION_LOCAL_CONTAINER_JAVA_IMAGE_NAME: javaImageName,
       },
     )
     childProcesses.push(backendProcess)

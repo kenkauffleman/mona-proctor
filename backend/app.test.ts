@@ -62,11 +62,21 @@ async function startTestServer() {
     executionRepository,
     executionBackend,
     {
-      maxSourceBytes: 4096,
-      timeoutMs: 5_000,
-      maxStdoutBytes: 1024,
-      maxStderrBytes: 1024,
       globalActiveJobLimit: 2,
+      languageLimits: {
+        python: {
+          maxSourceBytes: 4096,
+          timeoutMs: 5_000,
+          maxStdoutBytes: 1024,
+          maxStderrBytes: 1024,
+        },
+        java: {
+          maxSourceBytes: 8192,
+          timeoutMs: 6_000,
+          maxStdoutBytes: 2048,
+          maxStderrBytes: 2048,
+        },
+      },
     },
   )
   const app = createBackendApp(repository, authVerifier, executionService, {
@@ -75,7 +85,8 @@ async function startTestServer() {
     cloudRunRevision: undefined,
     cloudRunService: undefined,
     executionBackend: executionBackend.name,
-    executionCloudRunJobName: 'mona-proctor-python-executor',
+    executionCloudRunJavaJobName: 'mona-proctor-java-executor',
+    executionCloudRunPythonJobName: 'mona-proctor-python-executor',
     executionCloudRunProjectId: 'demo-mona-proctor',
     executionCloudRunRegion: 'us-central1',
     executionGlobalActiveJobLimit: 2,
@@ -83,6 +94,11 @@ async function startTestServer() {
     executionMaxStderrBytes: 1024,
     executionMaxStdoutBytes: 1024,
     executionTimeoutMs: 5000,
+    javaExecutionMaxMemoryMb: 128,
+    javaExecutionMaxSourceBytes: 8192,
+    javaExecutionMaxStderrBytes: 2048,
+    javaExecutionMaxStdoutBytes: 2048,
+    javaExecutionTimeoutMs: 6000,
     firebaseAuthEmulatorHost: '127.0.0.1:9099',
     projectId: 'demo-mona-proctor',
     firestoreEmulatorHost: '127.0.0.1:8080',
@@ -120,7 +136,8 @@ describe('backend history app', () => {
       cloudRunRevision: null,
       cloudRunService: null,
       executionBackend: 'test-execution-backend',
-      executionCloudRunJobName: 'mona-proctor-python-executor',
+      executionCloudRunJavaJobName: 'mona-proctor-java-executor',
+      executionCloudRunPythonJobName: 'mona-proctor-python-executor',
       executionCloudRunProjectId: 'demo-mona-proctor',
       executionCloudRunRegion: 'us-central1',
       executionGlobalActiveJobLimit: 2,
@@ -128,6 +145,11 @@ describe('backend history app', () => {
       executionMaxStderrBytes: 1024,
       executionMaxStdoutBytes: 1024,
       executionTimeoutMs: 5000,
+      javaExecutionMaxMemoryMb: 128,
+      javaExecutionMaxSourceBytes: 8192,
+      javaExecutionMaxStderrBytes: 2048,
+      javaExecutionMaxStdoutBytes: 2048,
+      javaExecutionTimeoutMs: 6000,
       firebaseAuthEmulatorHost: '127.0.0.1:9099',
       projectId: 'demo-mona-proctor',
       firestoreEmulatorHost: '127.0.0.1:8080',
@@ -634,7 +656,7 @@ describe('backend history app', () => {
     expect(invalidResponse.status).toBe(400)
     expect(await invalidResponse.json()).toEqual({
       ok: false,
-      error: 'Invalid execution job request.',
+      error: 'Execution source must not be empty.',
     })
 
     const createResponse = await fetch(`${baseUrl}/api/execution/jobs`, {

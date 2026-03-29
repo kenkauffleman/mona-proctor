@@ -2,6 +2,7 @@ import process from 'node:process'
 import {
   loadDeployEnvFile,
   parseDeployEnvironment,
+  parseExecutionLanguage,
   parseTerraformDir,
   printJson,
   readSourceFromArgs,
@@ -18,13 +19,14 @@ async function main() {
   const terraformDir = parseTerraformDir(args)
   const outputs = readTerraformOutputs(terraformDir)
   const user = requireUserFromArgs(args)
+  const language = parseExecutionLanguage(args)
   const source = readSourceFromArgs(args)
   const idToken = await signInWithPassword(outputs.firebase_web_app.value.api_key, user)
   const response = await submitExecutionJob(
     outputs.service_uri.value,
     idToken,
     {
-      language: 'python',
+      language,
       source,
     },
   )

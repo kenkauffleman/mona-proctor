@@ -1,11 +1,12 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import process from 'node:process'
-import { buildLocalPythonRunnerImage, ensureDockerAvailable } from './executionLocalContainer.js'
+import { buildLocalExecutionRunnerImages, ensureDockerAvailable } from './executionLocalContainer.js'
 import { ensureLocalAuthUser, localAuthUsers } from './authEmulatorUsers.js'
 
 const frontendPort = Number(process.env.E2E_FRONTEND_PORT ?? 4173)
 const backendPort = Number(process.env.E2E_BACKEND_PORT ?? 8081)
-const imageName = process.env.EXECUTION_LOCAL_CONTAINER_IMAGE_NAME ?? 'mona-proctor-python-runner-local'
+const pythonImageName = process.env.EXECUTION_LOCAL_CONTAINER_PYTHON_IMAGE_NAME ?? 'mona-proctor-python-runner-local'
+const javaImageName = process.env.EXECUTION_LOCAL_CONTAINER_JAVA_IMAGE_NAME ?? 'mona-proctor-java-runner-local'
 const projectId = process.env.GCLOUD_PROJECT ?? 'demo-mona-proctor'
 
 const childProcesses: ChildProcess[] = []
@@ -34,7 +35,7 @@ function shutdown() {
 
 async function main() {
   await ensureDockerAvailable()
-  await buildLocalPythonRunnerImage(imageName)
+  await buildLocalExecutionRunnerImages({ pythonImageName, javaImageName })
 
   for (const user of localAuthUsers) {
     await ensureLocalAuthUser(user)
@@ -45,7 +46,8 @@ async function main() {
     PORT: String(backendPort),
     GCLOUD_PROJECT: projectId,
     EXECUTION_BACKEND: 'local-container',
-    EXECUTION_LOCAL_CONTAINER_IMAGE_NAME: imageName,
+    EXECUTION_LOCAL_CONTAINER_PYTHON_IMAGE_NAME: pythonImageName,
+    EXECUTION_LOCAL_CONTAINER_JAVA_IMAGE_NAME: javaImageName,
   })
 
   startProcess('npx', ['vite', '--host', '127.0.0.1', '--port', String(frontendPort), '--strictPort'], {

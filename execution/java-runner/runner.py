@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import os
+import re
 import selectors
 import subprocess
-import sys
 import tempfile
 import time
 from datetime import datetime, timezone
@@ -17,7 +17,7 @@ EXECUTION_JOBS_COLLECTION = os.environ.get("EXECUTION_JOBS_COLLECTION", "executi
 EXECUTION_ACTIVE_USERS_COLLECTION = os.environ.get("EXECUTION_ACTIVE_USERS_COLLECTION", "executionActiveUsers")
 EXECUTION_SYSTEM_COLLECTION = os.environ.get("EXECUTION_SYSTEM_COLLECTION", "executionSystem")
 EXECUTION_SYSTEM_STATS_DOCUMENT = os.environ.get("EXECUTION_SYSTEM_STATS_DOCUMENT", "stats")
-
+PACKAGE_PATTERN = re.compile(r"^\s*package\s+[A-Za-z_][A-Za-z0-9_.]*\s*;", re.MULTILINE)
 
 
 def get_required_env(name: str) -> str:
@@ -49,51 +49,51 @@ def claim_next_job(db: firestore.Client) -> Optional[dict]:
     jobs_collection = db.collection(EXECUTION_JOBS_COLLECTION)
 
     for _attempt in range(10):
-        queue_documents = list(queue_collection.limit(1).stream())
-        if not queue_documents:
-            return None
+      queue_documents = list(queue_collection.limit(1).stream())
+      if not queue_documents:
+          return None
 
-        queue_document = queue_documents[0]
-        queue_reference = queue_document.reference
-        job_reference = jobs_collection.document(queue_document.id)
-        transaction = db.transaction()
+      queue_document = queue_documents[0]
+      queue_reference = queue_document.reference
+      job_reference = jobs_collection.document(queue_document.id)
+      transaction = db.transaction()
 
-        @firestore.transactional
-        def _claim(transaction: firestore.Transaction):
-            queue_snapshot = queue_reference.get(transaction=transaction)
-            if not queue_snapshot.exists:
-                return None
+      @firestore.transactional
+      def _claim(transaction: firestore.Transaction):
+          queue_snapshot = queue_reference.get(transaction=transaction)
+          if not queue_snapshot.exists:
+              return None
 
-            job_snapshot = job_reference.get(transaction=transaction)
-            if not job_snapshot.exists:
-                transaction.delete(queue_reference)
-                return None
+          job_snapshot = job_reference.get(transaction=transaction)
+          if not job_snapshot.exists:
+              transaction.delete(queue_reference)
+              return None
 
-            job = job_snapshot.to_dict()
-            if job is None:
-                raise RuntimeError(f"Execution job {queue_document.id} was empty.")
+          job = job_snapshot.to_dict()
+          if job is None:
+              raise RuntimeError(f"Execution job {queue_document.id} was empty.")
 
-            if job.get("status") != "queued":
-                transaction.delete(queue_reference)
-                return None
+          if job.get("status") != "queued":
+              transaction.delete(queue_reference)
+              return None
 
-            updated_at = now_iso()
-            started_at = job.get("startedAt") or updated_at
-            transaction.update(job_reference, {
-                "status": "running",
-                "startedAt": started_at,
-                "updatedAt": updated_at,
-            })
-            transaction.delete(queue_reference)
+          updated_at = now_iso()
+          started_at = job.get("startedAt") or updated_at
+          transaction.update(job_reference, {
+              "status": "running",
+              "startedAt": started_at,
+              "updatedAt": updated_at,
+          })
+          transaction.delete(queue_reference)
 
-            job["status"] = "running"
-            job["startedAt"] = started_at
-            job["updatedAt"] = updated_at
-            return job
+          job["status"] = "running"
+          job["startedAt"] = started_at
+          job["updatedAt"] = updated_at
+          return job
 
-        claimed_job = _claim(transaction)
-        if claimed_job is not None:
-            return claimed_job
+      claimed_job = _claim(transaction)
+      if claimed_job is not None:
+          return claimed_job
 
     return None
 
@@ -105,18 +105,9 @@ def capture_process_output(
     stderr_limit: int,
 ) -> dict:
     selector = selectors.DefaultSelector()
-    buffers = {
-        "stdout": bytearray(),
-        "stderr": bytearray(),
-    }
-    seen = {
-        "stdout": 0,
-        "stderr": 0,
-    }
-    limits = {
-        "stdout": stdout_limit,
-        "stderr": stderr_limit,
-    }
+    buffers = {"stdout": bytearray(), "stderr": bytearray()}
+    seen = {"stdout": 0, "stderr": 0}
+    limits = {"stdout": stdout_limit, "stderr": stderr_limit}
     started_at = time.monotonic()
     deadline = started_at + (timeout_ms / 1000)
     timed_out = False
@@ -131,8 +122,7 @@ def capture_process_output(
             timed_out = True
             process.kill()
 
-        timeout = 0.2
-        events = selector.select(timeout)
+        events = selector.select(0.2)
         if not events and process.poll() is not None:
             break
 
@@ -150,28 +140,18 @@ def capture_process_output(
             if room > 0:
                 buffers[name].extend(chunk[:room])
 
-    return_code = process.wait(timeout=5)
-    duration_ms = int((time.monotonic() - started_at) * 1000)
-
     return {
         "stdout": bytes(buffers["stdout"]),
         "stderr": bytes(buffers["stderr"]),
         "stdout_truncated": seen["stdout"] > len(buffers["stdout"]),
         "stderr_truncated": seen["stderr"] > len(buffers["stderr"]),
         "timed_out": timed_out,
-        "return_code": return_code,
-        "duration_ms": duration_ms,
+        "return_code": process.wait(timeout=5),
+        "duration_ms": int((time.monotonic() - started_at) * 1000),
     }
 
 
-def execute_command(
-    command: list[str],
-    cwd: str,
-    env: dict[str, str],
-    timeout_ms: int,
-    stdout_limit: int,
-    stderr_limit: int,
-) -> dict:
+def execute_command(command: list[str], cwd: str, env: dict[str, str], timeout_ms: int, stdout_limit: int, stderr_limit: int) -> dict:
     process = subprocess.Popen(
         command,
         cwd=cwd,
@@ -183,79 +163,24 @@ def execute_command(
     return capture_process_output(process, timeout_ms, stdout_limit, stderr_limit)
 
 
-def build_result_from_capture(capture: dict, stderr_limit: int, stderr_suffix: str = "") -> dict:
-    stdout = decode_output(capture["stdout"])
-    stderr = decode_output(capture["stderr"])
-    truncated = capture["stdout_truncated"] or capture["stderr_truncated"]
-
-    if stderr_suffix:
-        stderr, suffix_truncated = append_text_with_limit(
-            stderr,
-            stderr_suffix,
-            stderr_limit,
-        )
-        truncated = truncated or suffix_truncated
-
-    if capture["timed_out"]:
-        status = "timed_out"
-    elif capture["return_code"] == 0:
-        status = "succeeded"
-    else:
-        status = "failed"
-
-    return {
-        "status": status,
-        "stdout": stdout,
-        "stderr": stderr,
+def build_result(capture: dict, stderr_limit: int) -> dict:
+    result = {
+        "status": "timed_out" if capture["timed_out"] else ("succeeded" if capture["return_code"] == 0 else "failed"),
+        "stdout": decode_output(capture["stdout"]),
+        "stderr": decode_output(capture["stderr"]),
         "exitCode": capture["return_code"],
         "durationMs": capture["duration_ms"],
-        "truncated": truncated,
+        "truncated": capture["stdout_truncated"] or capture["stderr_truncated"],
     }
-
-
-def mark_timeout(result: dict, timeout_ms: int, stderr_limit: int) -> dict:
-    if result["status"] != "timed_out":
-        return result
-
-    stderr, timeout_truncated = append_text_with_limit(
-        result["stderr"],
-        f"\nExecution timed out after {timeout_ms} ms.",
-        stderr_limit,
-    )
-    result["stderr"] = stderr
-    result["truncated"] = result["truncated"] or timeout_truncated
-    return result
-
-
-def execute_python(source: str, timeout_ms: int, stdout_limit: int, stderr_limit: int) -> dict:
-    with tempfile.TemporaryDirectory(prefix="mona-proctor-exec-") as working_directory:
-        script_path = os.path.join(working_directory, "main.py")
-        with open(script_path, "w", encoding="utf-8") as script_file:
-            script_file.write(source)
-
-        command = [
-            sys.executable,
-            "-I",
-            "-S",
-            "-c",
-            "import pathlib, sys; path = sys.argv[1]; sys.argv = []; source = pathlib.Path(path).read_text(encoding='utf-8'); globals_dict = {'__name__': '__main__', '__file__': path}; exec(compile(source, path, 'exec'), globals_dict)",
-            script_path,
-        ]
-        environment = {
-            "PATH": os.environ.get("PATH", ""),
-            "PYTHONIOENCODING": "utf-8",
-            "PYTHONUNBUFFERED": "1",
-        }
-        capture = execute_command(
-            command,
-            working_directory,
-            environment,
-            timeout_ms,
-            stdout_limit,
+    if result["status"] == "timed_out":
+        stderr, truncated = append_text_with_limit(
+            result["stderr"],
+            f"\nExecution timed out after {os.environ.get('JAVA_EXECUTION_TIMEOUT_MS', '6000')} ms.",
             stderr_limit,
         )
-
-    return mark_timeout(build_result_from_capture(capture, stderr_limit), timeout_ms, stderr_limit)
+        result["stderr"] = stderr
+        result["truncated"] = result["truncated"] or truncated
+    return result
 
 
 def complete_job(db: firestore.Client, job: dict, result: dict) -> None:
@@ -281,11 +206,10 @@ def complete_job(db: firestore.Client, job: dict, result: dict) -> None:
             raise RuntimeError(f"Execution job {job['jobId']} was empty during completion.")
 
         completed_at = now_iso()
-        error_message = result["stderr"] if result["status"] == "error" else None
         transaction.update(job_reference, {
             "status": result["status"],
             "result": result,
-            "errorMessage": error_message,
+            "errorMessage": result["stderr"] if result["status"] == "error" else None,
             "completedAt": completed_at,
             "updatedAt": completed_at,
             "startedAt": job_document.get("startedAt") or completed_at,
@@ -306,23 +230,57 @@ def complete_job(db: firestore.Client, job: dict, result: dict) -> None:
     _complete(transaction)
 
 
-def execute_job(job: dict) -> dict:
-    if job["language"] != "python":
-        raise RuntimeError(f"Python runner received unsupported language: {job['language']}")
+def execute_java(job: dict) -> dict:
+    if job["language"] != "java":
+        raise RuntimeError(f"Java runner received unsupported language {job['language']}.")
 
-    return execute_python(
-        job["source"],
-        int(os.environ.get("EXECUTION_TIMEOUT_MS", "5000")),
-        int(os.environ.get("EXECUTION_MAX_STDOUT_BYTES", "8192")),
-        int(os.environ.get("EXECUTION_MAX_STDERR_BYTES", "4096")),
-    )
+    timeout_ms = int(os.environ.get("JAVA_EXECUTION_TIMEOUT_MS", "6000"))
+    stdout_limit = int(os.environ.get("JAVA_EXECUTION_MAX_STDOUT_BYTES", "8192"))
+    stderr_limit = int(os.environ.get("JAVA_EXECUTION_MAX_STDERR_BYTES", "6144"))
+    max_memory_mb = int(os.environ.get("JAVA_EXECUTION_MAX_MEMORY_MB", "128"))
+
+    if PACKAGE_PATTERN.search(job["source"]):
+        stderr, truncated = append_text_with_limit("", "Packages are not supported in this phase.\n", stderr_limit)
+        return {
+            "status": "failed",
+            "stdout": "",
+            "stderr": stderr,
+            "exitCode": 1,
+            "durationMs": 0,
+            "truncated": truncated,
+        }
+
+    started_at = time.monotonic()
+    with tempfile.TemporaryDirectory(prefix="mona-proctor-java-exec-") as working_directory:
+        source_path = os.path.join(working_directory, "Main.java")
+        with open(source_path, "w", encoding="utf-8") as source_file:
+            source_file.write(job["source"])
+
+        environment = {
+            "HOME": working_directory,
+            "LANG": "C.UTF-8",
+            "LC_ALL": "C.UTF-8",
+            "PATH": os.environ.get("PATH", ""),
+        }
+
+        compile_capture = execute_command(["javac", "Main.java"], working_directory, environment, timeout_ms, stdout_limit, stderr_limit)
+        compile_result = build_result(compile_capture, stderr_limit)
+        compile_result["durationMs"] = int((time.monotonic() - started_at) * 1000)
+        if compile_result["status"] != "succeeded":
+            return compile_result
+
+        remaining_timeout_ms = max(1, timeout_ms - int((time.monotonic() - started_at) * 1000))
+        run_capture = execute_command(["java", f"-Xmx{max_memory_mb}m", "Main"], working_directory, environment, remaining_timeout_ms, stdout_limit, stderr_limit)
+        run_result = build_result(run_capture, stderr_limit)
+        run_result["durationMs"] = int((time.monotonic() - started_at) * 1000)
+        return run_result
 
 
 def main() -> int:
     project_id = get_required_env("GCLOUD_PROJECT")
     db = firestore.Client(project=project_id)
 
-    print("Execution runner starting.")
+    print("Java runner starting.")
     job = claim_next_job(db)
     if job is None:
         print("No queued execution jobs found.")
@@ -330,8 +288,8 @@ def main() -> int:
 
     print(f"Claimed execution job {job['jobId']} for {job['language']}.")
     try:
-        result = execute_job(job)
-    except Exception as error:  # pragma: no cover - defensive path
+        result = execute_java(job)
+    except Exception as error:
         result = {
             "status": "error",
             "stdout": "",

@@ -1,5 +1,7 @@
 # Python Execution Flow
 
+For the Java-specific Wave 17 extension, see [docs/java-execution-prototype.md](/workspaces/mona-proctor/docs/java-execution-prototype.md).
+
 ## Purpose
 Wave 12 added a script-driven Python execution prototype without UI integration.
 Wave 13 keeps that backend shape and integrates it into the authenticated application UI.
@@ -8,7 +10,7 @@ The goal is to prove:
 - a backend execution abstraction layer
 - Firestore-backed execution job records
 - remote execution through Cloud Run Jobs
-- local execution through the same runner image in development
+- local execution through a Python-specific runner image in development
 - a tiny async result contract
 - UI integration that reuses the stored execution records
 - repeatable operator validation
@@ -52,7 +54,7 @@ The execution dispatch seam supports multiple backend modes behind the same queu
   - backend starts the configured Cloud Run Job
 - `local-container`
   - development behavior
-  - backend starts the same Python runner image through local Docker
+  - backend starts the Python runner image through local Docker
   - intended for full local testing with Firestore/Auth emulators
 - `disabled`
   - explicit non-execution mode when needed for narrow backend work
@@ -124,7 +126,7 @@ Validate the Wave 13 authenticated integration against local emulators:
 npm run wave13:validate
 ```
 
-This builds the local runner image, boots the backend against the Firestore and Auth emulators in `local-container` mode, submits Python execution through the authenticated API, waits for the real local runner container to complete the job, verifies latest-result retrieval from stored execution records, and checks a denied cross-user case.
+This builds the local Python runner image, boots the backend against the Firestore and Auth emulators in `local-container` mode, submits Python execution through the authenticated API, waits for the real local runner container to complete the job, verifies latest-result retrieval from stored execution records, and checks a denied cross-user case.
 
 Wave 14 adds formal automated local validation layers on top of those focused scripts:
 
@@ -147,8 +149,10 @@ npm run auth:seed
 npm run dev
 ```
 
+`npm run execution:container:build` builds both the Python and Java local runner images so the shared local app stack can dispatch either language.
+
 ## Hosted validation
-After the human operator deploys the new backend and execution job, use an explicit production target:
+After the human operator deploys the new backend and Python execution job, use an explicit production target:
 
 ```bash
 npm run deploy -- validate --env prod

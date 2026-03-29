@@ -44,7 +44,12 @@ variable "execution_backend" {
   type        = string
 }
 
-variable "execution_cloud_run_job_name" {
+variable "execution_cloud_run_java_job_name" {
+  description = "Cloud Run Job name used for Java execution."
+  type        = string
+}
+
+variable "execution_cloud_run_python_job_name" {
   description = "Cloud Run Job name used for Python execution."
   type        = string
 }
@@ -71,6 +76,31 @@ variable "execution_max_stdout_bytes" {
 
 variable "execution_timeout_ms" {
   description = "Execution timeout in milliseconds."
+  type        = number
+}
+
+variable "java_execution_max_memory_mb" {
+  description = "Maximum heap size passed to the Java runtime."
+  type        = number
+}
+
+variable "java_execution_max_source_bytes" {
+  description = "Maximum UTF-8 Java source size accepted by the backend."
+  type        = number
+}
+
+variable "java_execution_max_stderr_bytes" {
+  description = "Maximum Java stderr bytes retained by the execution runner."
+  type        = number
+}
+
+variable "java_execution_max_stdout_bytes" {
+  description = "Maximum Java stdout bytes retained by the execution runner."
+  type        = number
+}
+
+variable "java_execution_timeout_ms" {
+  description = "Java execution timeout in milliseconds."
   type        = number
 }
 

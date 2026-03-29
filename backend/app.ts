@@ -5,9 +5,11 @@ import type { AuthVerifier } from './auth.js'
 import { AuthorizationError } from './errors.js'
 import { executionErrorStatusCode, ExecutionService } from './executionService.js'
 import type { CreateExecutionJobRequest } from './executionApiTypes.js'
+import { executionLanguages, type ExecutionLanguage } from './executionTypes.js'
 import type { HistoryRepository } from './historyRepository.js'
 
 const supportedLanguages = new Set<EditorLanguage>(['python', 'javascript', 'java'])
+const supportedExecutionLanguages = new Set<ExecutionLanguage>(executionLanguages)
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -36,7 +38,11 @@ function isCreateExecutionJobRequest(value: unknown): value is CreateExecutionJo
     return false
   }
 
-  return value.language === 'python' && typeof value.source === 'string'
+  return (
+    typeof value.language === 'string'
+    && supportedExecutionLanguages.has(value.language as ExecutionLanguage)
+    && typeof value.source === 'string'
+  )
 }
 
 function validateBatchOrdering(request: AppendHistoryBatchRequest) {
@@ -72,7 +78,8 @@ export function createBackendApp(
     cloudRunRevision?: string
     cloudRunService?: string
     executionBackend?: string
-    executionCloudRunJobName?: string
+    executionCloudRunJavaJobName?: string
+    executionCloudRunPythonJobName?: string
     executionCloudRunProjectId?: string
     executionCloudRunRegion?: string
     executionGlobalActiveJobLimit?: number
@@ -80,6 +87,11 @@ export function createBackendApp(
     executionMaxStderrBytes?: number
     executionMaxStdoutBytes?: number
     executionTimeoutMs?: number
+    javaExecutionMaxMemoryMb?: number
+    javaExecutionMaxSourceBytes?: number
+    javaExecutionMaxStderrBytes?: number
+    javaExecutionMaxStdoutBytes?: number
+    javaExecutionTimeoutMs?: number
     firebaseAuthEmulatorHost?: string
     firestoreEmulatorHost?: string
     projectId: string
@@ -126,7 +138,8 @@ export function createBackendApp(
       cloudRunRevision: options.cloudRunRevision ?? null,
       cloudRunService: options.cloudRunService ?? null,
       executionBackend: options.executionBackend ?? null,
-      executionCloudRunJobName: options.executionCloudRunJobName ?? null,
+      executionCloudRunJavaJobName: options.executionCloudRunJavaJobName ?? null,
+      executionCloudRunPythonJobName: options.executionCloudRunPythonJobName ?? null,
       executionCloudRunProjectId: options.executionCloudRunProjectId ?? null,
       executionCloudRunRegion: options.executionCloudRunRegion ?? null,
       executionGlobalActiveJobLimit: options.executionGlobalActiveJobLimit ?? null,
@@ -134,6 +147,11 @@ export function createBackendApp(
       executionMaxStderrBytes: options.executionMaxStderrBytes ?? null,
       executionMaxStdoutBytes: options.executionMaxStdoutBytes ?? null,
       executionTimeoutMs: options.executionTimeoutMs ?? null,
+      javaExecutionMaxMemoryMb: options.javaExecutionMaxMemoryMb ?? null,
+      javaExecutionMaxSourceBytes: options.javaExecutionMaxSourceBytes ?? null,
+      javaExecutionMaxStderrBytes: options.javaExecutionMaxStderrBytes ?? null,
+      javaExecutionMaxStdoutBytes: options.javaExecutionMaxStdoutBytes ?? null,
+      javaExecutionTimeoutMs: options.javaExecutionTimeoutMs ?? null,
       firebaseAuthEmulatorHost: options.firebaseAuthEmulatorHost ?? null,
       projectId: options.projectId,
       firestoreEmulatorHost: options.firestoreEmulatorHost ?? null,
@@ -243,9 +261,13 @@ export function createBackendApp(
     }
   })
 
-  app.get('/api/execution/jobs/latest', async (_request, response) => {
+  app.get('/api/execution/jobs/latest', async (request, response) => {
     try {
-      const job = await executionService.getLatestExecutionJob(response.locals.authenticatedUser)
+      const requestedLanguage = request.query.language
+      const language = typeof requestedLanguage === 'string' && supportedExecutionLanguages.has(requestedLanguage as ExecutionLanguage)
+        ? requestedLanguage as ExecutionLanguage
+        : undefined
+      const job = await executionService.getLatestExecutionJob(response.locals.authenticatedUser, language)
       response.json({ job })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown execution load error.'

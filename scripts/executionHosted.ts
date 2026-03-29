@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import type { CreateExecutionJobRequest, ExecutionJobResponse } from '../backend/executionApiTypes.js'
+import { executionLanguages, type ExecutionLanguage } from '../backend/executionTypes.js'
 
 export type TerraformOutputs = {
   firebase_web_app: {
@@ -124,6 +125,16 @@ export function readSourceFromArgs(args: string[]) {
   }
 
   throw new Error('Provide either --source-file <path> or --source <code>.')
+}
+
+export function parseExecutionLanguage(args: string[]): ExecutionLanguage {
+  const rawLanguage = parseNamedArg('--language', args) ?? 'python'
+
+  if (executionLanguages.includes(rawLanguage as ExecutionLanguage)) {
+    return rawLanguage as ExecutionLanguage
+  }
+
+  throw new Error(`Unsupported execution language: ${rawLanguage}. Supported values: ${executionLanguages.join(', ')}`)
 }
 
 export async function submitExecutionJob(

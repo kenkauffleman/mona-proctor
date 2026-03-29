@@ -73,8 +73,13 @@ resource "google_cloud_run_v2_service" "backend" {
       }
 
       env {
-        name  = "EXECUTION_CLOUD_RUN_JOB_NAME"
-        value = var.execution_cloud_run_job_name
+        name  = "EXECUTION_CLOUD_RUN_PYTHON_JOB_NAME"
+        value = var.execution_cloud_run_python_job_name
+      }
+
+      env {
+        name  = "EXECUTION_CLOUD_RUN_JAVA_JOB_NAME"
+        value = var.execution_cloud_run_java_job_name
       }
 
       env {
@@ -110,6 +115,31 @@ resource "google_cloud_run_v2_service" "backend" {
       env {
         name  = "EXECUTION_GLOBAL_ACTIVE_JOB_LIMIT"
         value = tostring(var.execution_global_active_job_limit)
+      }
+
+      env {
+        name  = "JAVA_EXECUTION_MAX_MEMORY_MB"
+        value = tostring(var.java_execution_max_memory_mb)
+      }
+
+      env {
+        name  = "JAVA_EXECUTION_MAX_SOURCE_BYTES"
+        value = tostring(var.java_execution_max_source_bytes)
+      }
+
+      env {
+        name  = "JAVA_EXECUTION_TIMEOUT_MS"
+        value = tostring(var.java_execution_timeout_ms)
+      }
+
+      env {
+        name  = "JAVA_EXECUTION_MAX_STDOUT_BYTES"
+        value = tostring(var.java_execution_max_stdout_bytes)
+      }
+
+      env {
+        name  = "JAVA_EXECUTION_MAX_STDERR_BYTES"
+        value = tostring(var.java_execution_max_stderr_bytes)
       }
     }
   }

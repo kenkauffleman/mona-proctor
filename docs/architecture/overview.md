@@ -235,6 +235,15 @@ Wave 13 keeps the same execution backend and stored-record contract, but connect
 
 Wave 13 intentionally shows only the latest execution result in the UI and does not add history browsing yet.
 
+### Wave 17 Java execution prototype
+Wave 17 keeps the same stored execution-record model and dispatch abstraction, but adds a separate Java executor image alongside the Python executor image:
+1. an authenticated script or UI submits Java source through the same execution endpoint
+2. the backend stores the same Firestore execution record shape, now with `language: "java"`
+3. the configured execution backend dispatches the Java Cloud Run Job or Java local-container image for Java work
+4. the Java execution runner writes `Main.java`, compiles with `javac`, and runs `java Main` only if compilation succeeds
+5. compile failures are stored as normal terminal execution results using the existing stdout/stderr contract
+6. the UI loads only the latest stored result for the selected runnable language
+
 ## Isolation model
 
 ### Main app environment
