@@ -4,10 +4,13 @@ set -euo pipefail
 
 source "$(dirname "$0")/common.sh"
 
+readonly HOSTED_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly HOSTED_REPO_ROOT="$(cd "${HOSTED_SCRIPT_DIR}/../.." && pwd)"
 readonly HOSTED_TERRAFORM_DIR="infra/terraform/hosted"
 readonly HOSTED_ENVIRONMENTS_DIR="${HOSTED_TERRAFORM_DIR}/environments"
 readonly HOSTED_PLAN_BASENAME="hosted.tfplan"
 readonly HOSTED_PLAN_FILE="${HOSTED_TERRAFORM_DIR}/${HOSTED_PLAN_BASENAME}"
+readonly HOSTED_TAG_STATE_DIR="${HOSTED_REPO_ROOT}/.deploy-tags"
 
 print_hosted_usage() {
   cat <<'EOF'
@@ -33,6 +36,7 @@ load_hosted_args() {
   load_shared_deploy_env_file
 
   DEPLOY_ENVIRONMENT_NAME="${DEPLOY_ENVIRONMENT:-test}"
+  HOSTED_IMAGE_TAG_FROM_CLI=""
   HOSTED_PROJECT_ID="${DEPLOY_PROJECT_ID:-}"
   HOSTED_QUOTA_PROJECT_ID="${DEPLOY_QUOTA_PROJECT_ID:-${DEPLOY_PROJECT_ID:-}}"
   HOSTED_REGION="${DEPLOY_REGION:-}"
@@ -100,6 +104,7 @@ load_hosted_args() {
         ;;
       --tag)
         HOSTED_IMAGE_TAG="${2:-}"
+        HOSTED_IMAGE_TAG_FROM_CLI="${2:-}"
         shift 2
         ;;
       --web-app-name)
@@ -139,7 +144,9 @@ load_hosted_args() {
     HOSTED_IMAGE_NAME="${CLOUDRUN_IMAGE_NAME:-${HOSTED_IMAGE_NAME}}"
     HOSTED_PYTHON_EXECUTION_IMAGE_NAME="${PYTHON_EXECUTION_CLOUDRUN_IMAGE_NAME:-${HOSTED_PYTHON_EXECUTION_IMAGE_NAME}}"
     HOSTED_JAVA_EXECUTION_IMAGE_NAME="${JAVA_EXECUTION_CLOUDRUN_IMAGE_NAME:-${HOSTED_JAVA_EXECUTION_IMAGE_NAME}}"
-    HOSTED_IMAGE_TAG="${CLOUDRUN_IMAGE_TAG:-${HOSTED_IMAGE_TAG}}"
+    if [[ -z "${HOSTED_IMAGE_TAG_FROM_CLI}" ]]; then
+      HOSTED_IMAGE_TAG="${CLOUDRUN_IMAGE_TAG:-${HOSTED_IMAGE_TAG}}"
+    fi
     HOSTED_FIREBASE_WEB_APP_NAME="${FIREBASE_WEB_APP_NAME:-${HOSTED_FIREBASE_WEB_APP_NAME}}"
     HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL="${CLOUDRUN_INVOKER_PRINCIPAL:-${HOSTED_CLOUD_RUN_INVOKER_PRINCIPAL}}"
   fi
@@ -158,10 +165,82 @@ EOF
     exit 1
   fi
 
+  resolve_hosted_image_tag
+
   HOSTED_CONTAINER_IMAGE="${HOSTED_REGION}-docker.pkg.dev/${HOSTED_PROJECT_ID}/${HOSTED_ARTIFACT_REPOSITORY}/${HOSTED_IMAGE_NAME}:${HOSTED_IMAGE_TAG}"
   HOSTED_PYTHON_EXECUTION_CONTAINER_IMAGE="${HOSTED_REGION}-docker.pkg.dev/${HOSTED_PROJECT_ID}/${HOSTED_ARTIFACT_REPOSITORY}/${HOSTED_PYTHON_EXECUTION_IMAGE_NAME}:${HOSTED_IMAGE_TAG}"
   HOSTED_JAVA_EXECUTION_CONTAINER_IMAGE="${HOSTED_REGION}-docker.pkg.dev/${HOSTED_PROJECT_ID}/${HOSTED_ARTIFACT_REPOSITORY}/${HOSTED_JAVA_EXECUTION_IMAGE_NAME}:${HOSTED_IMAGE_TAG}"
   HOSTED_TFVARS_FILE="${HOSTED_ENVIRONMENTS_DIR}/${DEPLOY_ENVIRONMENT_NAME}.tfvars"
+}
+
+hosted_tag_state_file() {
+  printf '%s/%s.tag\n' "${HOSTED_TAG_STATE_DIR}" "${DEPLOY_ENVIRONMENT_NAME}"
+}
+
+persist_hosted_image_tag() {
+  mkdir -p "${HOSTED_TAG_STATE_DIR}"
+  printf '%s\n' "${HOSTED_IMAGE_TAG}" > "$(hosted_tag_state_file)"
+}
+
+load_persisted_hosted_image_tag() {
+  local tag_file
+  tag_file="$(hosted_tag_state_file)"
+
+  if [[ -f "${tag_file}" ]]; then
+    cat "${tag_file}"
+    return 0
+  fi
+
+  return 1
+}
+
+generate_hosted_image_tag() {
+  local timestamp
+  timestamp="$(date -u +%Y%m%d%H%M%S)"
+
+  if git rev-parse --short HEAD >/dev/null 2>&1; then
+    printf '%s-%s\n' "${timestamp}" "$(git rev-parse --short HEAD)"
+    return 0
+  fi
+
+  printf '%s\n' "${timestamp}"
+}
+
+resolve_hosted_image_tag() {
+  if [[ -n "${HOSTED_IMAGE_TAG_FROM_CLI}" ]]; then
+    persist_hosted_image_tag
+    return 0
+  fi
+
+  if [[ -n "${HOSTED_IMAGE_TAG:-}" && "${HOSTED_IMAGE_TAG}" != "auto" ]]; then
+    persist_hosted_image_tag
+    return 0
+  fi
+
+  case "${HOSTED_DEPLOY_ACTION:-}" in
+    build)
+      HOSTED_IMAGE_TAG="$(generate_hosted_image_tag)"
+      persist_hosted_image_tag
+      ;;
+    plan|deploy)
+      if HOSTED_IMAGE_TAG="$(load_persisted_hosted_image_tag)"; then
+        return 0
+      fi
+
+      cat >&2 <<'EOF'
+No persisted hosted image tag was found for this environment.
+Run the hosted build step first, or set CLOUDRUN_IMAGE_TAG in the environment file to an explicit non-auto value.
+EOF
+      exit 1
+      ;;
+    *)
+      if HOSTED_IMAGE_TAG="$(load_persisted_hosted_image_tag)"; then
+        return 0
+      fi
+
+      HOSTED_IMAGE_TAG="$(generate_hosted_image_tag)"
+      ;;
+  esac
 }
 
 print_hosted_target_summary() {

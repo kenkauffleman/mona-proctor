@@ -11,6 +11,7 @@ Agents may prepare code, scripts, and docs, but a human should run the productio
   - `firebase`
   - `docker`
 - Production environment settings are available locally if needed through `.env.deploy.prod`.
+- For safer backend rollouts, prefer `CLOUDRUN_IMAGE_TAG="auto"` in the deploy env file so the build step generates a fresh tag and the later plan/deploy steps reuse it automatically.
 
 ## Production deploy flow
 

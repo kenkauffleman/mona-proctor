@@ -126,6 +126,9 @@ dist
 *.tfstate.*
 *.tfplan
 
+# Local deploy image-tag coordination
+.deploy-tags/
+
 # TernJS port file
 .tern-port
 

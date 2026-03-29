@@ -2,6 +2,7 @@
 
 set -euo pipefail
 
+HOSTED_DEPLOY_ACTION="deploy"
 source "$(dirname "$0")/hosted-common.sh"
 
 load_hosted_args "$@"
