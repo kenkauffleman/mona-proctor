@@ -309,7 +309,7 @@ Exit criteria:
 - one active execution per authenticated user is enforced
 - the Java execution prototype is documented and repeatable
 
-### Phase 18: Java stdout-based tests and grading
+### Phase 18 (completed): Java stdout-based tests and grading
 Goal: extend the Java execution system from raw code execution into grading based on expected stdout results.
 
 Deliverables:
